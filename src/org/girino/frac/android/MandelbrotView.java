@@ -1,5 +1,10 @@
 package org.girino.frac.android;
 
+import org.girino.frac.operators.BurningShipOperator;
+import org.girino.frac.operators.FractalOperator;
+import org.girino.frac.operators.NovaOperator;
+import org.girino.frac.operators.OptimizedMandelbrotOperator;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -13,6 +18,16 @@ public class MandelbrotView extends View {
 	private Bitmap mBitmap;
 	private Canvas mCanvas;
 	private Paint mBitmapPaint;
+	
+	private FractalOperator oper = new OptimizedMandelbrotOperator();
+
+	public FractalOperator getOper() {
+		return oper;
+	}
+
+	public void setOper(FractalOperator oper) {
+		this.oper = oper;
+	}
 
 	public MandelbrotView(Context context) {
 		super(context);
@@ -65,40 +80,32 @@ public class MandelbrotView extends View {
 		Log.d("MandelbrotView", "stoped...");
 	}
 
-	int i0 = 0;
-	int j0 = 0;
+	double x0 = 0.0;
+	double y0 = 0.0;
 
 	private double hscale(int i) {
-		return (i0 + i - (width/2)) / scale - 0.5;
+		return (i - (width/2)) / scale + x0;
 	}
 
 	private double vscale(int j) {
-		return (j0 + j - (height / 2)) / scale;
+		return (j - (height / 2)) / scale + y0;
 	}
 
 	public void runMandelbrot() {
 		for (int d = 8; d > 0; d /= 2) {
 			for (int j = 0; j < height; j += d) {
 				for (int i = 0; i < width; i += d) {
-					double x = 0f;
-					double y = 0f;
-					int v = 0;
-					for (; v < 40 && (x * x + y * y) / 2f < 2f; v++) {
-						double t = hscale(i) + x * x - y * y;
-						y = vscale(j) + x * y * 2f;
-						x = t;
-					}
-					int r = (v == 40) ? 0 : (int) (v * 0xFF / 40.0) * d;
+					int v = oper.apply(hscale(i), vscale(j), 40);
+
+					int r = (v == 40) ? 0 : (int) (v * 0xFF / 40.0);
 					int g = (v == 40) ? 0 : (int) (255 * Math.log(v + 1) / Math
-							.log(41))
-							* d;
-					// int g = (v == 40)?0:(int)(255 * Math.pow(v,0.5)/6.325) * d;
-					int b = (v == 40) ? 0 : (int) (v * 0xFF / 40.0) * d;
-					r = (r > 255) ? 255 : r;
-					g = (g > 255) ? 255 : g;
-					b = (b > 255) ? 255 : b;
+							.log(41));
+					// int g = (v == 40)?0:(int)(255 * Math.pow(v,0.5)/6.325);
+					int b = (v == 40) ? 0 : (int) (v * 0xFF / 40.0);
+					
 					mBitmapPaint.setARGB(0xFF, r, g, b);
-					mCanvas.drawPoint(i, j, mBitmapPaint);
+					if (d == 1)	mCanvas.drawPoint(i, j, mBitmapPaint);
+					else mCanvas.drawRect(i, j, i+d, j+d, mBitmapPaint);
 					if (stoped) {
 						Log.d("MandelbrotView", "forced stop...");
 						return;
@@ -138,8 +145,8 @@ public class MandelbrotView extends View {
 		invalidate();
 	}
 
-	float x0;
-	float y0;
+	float ex0;
+	float ey0;
 	boolean hasMoved = false;
 
 	@Override
@@ -150,13 +157,13 @@ public class MandelbrotView extends View {
 		switch (event.getAction()) {
 		case MotionEvent.ACTION_DOWN:
 			Log.d("MandelbrotView", "down...");
-			x0 = x;
-			y0 = y;
+			ex0 = x;
+			ey0 = y;
 			hasMoved = false;
 			break;
 		case MotionEvent.ACTION_MOVE:
-			xoffset = x - x0;
-			yoffset = y - y0;
+			xoffset = x - ex0;
+			yoffset = y - ey0;
 			hasMoved = true;
 			invalidate();
 			break;
@@ -164,11 +171,11 @@ public class MandelbrotView extends View {
 			Log.d("MandelbrotView", "up...");
 			if (hasMoved) {
 				hasMoved = false;
-				i0 += (int) ((x0 - x));
-				j0 += (int) ((y0 - y));
+				x0 += (ex0 - x) / scale;
+				y0 += (ey0 - y) / scale;
 				// move image
-				xoffset = x - x0;
-				yoffset = y - y0;
+				xoffset = x - ex0;
+				yoffset = y - ey0;
 				Bitmap bm = mBitmap;
 				rescale(width, height);
 				mCanvas.drawBitmap(bm, xoffset, yoffset, mBitmapPaint);
