@@ -54,16 +54,6 @@ public class MandelbrotActivity extends Activity {
 		super.onStop();
 	}
 
-	private Object[][] operators = {
-		{new OptimizedMandelbrotOperator(), "Mandelbrot Set"},
-		{new BurningShipOperator(), "Burning Ship"},
-		{new NovaOperator(), "Nova"},
-		{new MandelbarOperator(), "Mandelbar"},
-		{new CubeMandelbrotOperator(), "Cube Mandelbrot"},
-		{new FourthMandelbrotOperator(), "Fourth Mandelbrto"},
-		{new ShipBarOperator(), "Shipbar"},
-	};
-	
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);

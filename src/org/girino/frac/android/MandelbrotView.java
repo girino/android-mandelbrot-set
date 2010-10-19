@@ -1,8 +1,6 @@
 package org.girino.frac.android;
 
-import org.girino.frac.operators.BurningShipOperator;
 import org.girino.frac.operators.FractalOperator;
-import org.girino.frac.operators.NovaOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 
 import android.content.Context;
