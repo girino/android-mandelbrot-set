@@ -10,6 +10,7 @@ import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.operators.ShipBarOperator;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -18,19 +19,20 @@ import android.view.MenuItem;
 public class MandelbrotActivity extends Activity {
 
 	MandelbrotView view;
+	public static final int SELECT_OPERATOR = 0;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		view = new MandelbrotView(this);
+		setContentView(view);
 	}
 
 	@Override
 	protected void onStart() {
 		super.onStart();
-		// restart in default position
-		view = new MandelbrotView(this);
-		setContentView(view);
 	}
 	
 	@Override
@@ -50,7 +52,6 @@ public class MandelbrotActivity extends Activity {
 	@Override
 	protected void onStop() {
 		super.onStop();
-		view = null;
 	}
 
 	private Object[][] operators = {
@@ -67,9 +68,10 @@ public class MandelbrotActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         
-        for (int i = 0; i < operators.length; i++) {
-        	menu.add(0, Menu.FIRST + i, 0, operators[i][1].toString());
-        }
+    	menu.add(0, Menu.FIRST, 0, "Formula");
+    	menu.add(0, Menu.FIRST+1, 0, "Zoom");
+    	menu.add(0, Menu.FIRST+2, 0, "Reset");
+    	menu.add(0, Menu.FIRST+3, 0, "Exit");
 
         return true;
     }
@@ -82,13 +84,35 @@ public class MandelbrotActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
-    	if (item.getItemId() >= Menu.FIRST && item.getItemId() < Menu.FIRST + operators.length) {
+    	switch (item.getItemId() - Menu.FIRST) {
+    	case 0:
     		view.stop();
-    		FractalOperator oper = (FractalOperator) operators[item.getItemId() - Menu.FIRST][0];
-    		view.setOper(oper);
-    		view.start();
+    		startActivityForResult(new Intent(this, OperatorsListActivity.class), SELECT_OPERATOR);
             return true;
+    	case 1: 
+    		view.zoom();
+    		return true;
+    	case 2:
+    		view.reset();
+    		return true;
+    	case 3:
+    		finish();
+    		return true;
         }
+    	
         return super.onOptionsItemSelected(item);
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	// TODO Auto-generated method stub
+    	super.onActivityResult(requestCode, resultCode, data);
+    	
+    	if (requestCode == SELECT_OPERATOR && resultCode >= Activity.RESULT_FIRST_USER) {
+    		FractalOperator oper = OperatorsListActivity.getOperator(resultCode - Activity.RESULT_FIRST_USER);
+    		Log.d("MandelbrotActivity", oper.toString());
+    		view.setOper(oper);
+    		view.reset();
+    	}
     }
 }

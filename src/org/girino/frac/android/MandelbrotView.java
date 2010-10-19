@@ -39,9 +39,10 @@ public class MandelbrotView extends View {
 	}
 
 	private void rescale(int w, int h) {
-		width = w > 0 ? w : 1;
+		w = w > 0 ? w : 1;
+		width = w;
+		scale *= ((double)w)/(double)width;
 		height = h > 0 ? h : 1;
-		scale = 100.0 * 300.0 / (double) width;
 
 		mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 		mCanvas = new Canvas(mBitmap);
@@ -118,7 +119,7 @@ public class MandelbrotView extends View {
 
 	int width = 320;
 	int height = 480;
-	double scale = 100.0;
+	double scale = 100.0 * 300.0 / (double) width;
 
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
@@ -186,6 +187,20 @@ public class MandelbrotView extends View {
 			break;
 		}
 		return true;
+	}
+
+	public void zoom() {
+		stop();
+		scale *= 1.5;
+		start();
+	}
+
+	public void reset() {
+		stop();
+		x0 = 0;
+		y0 = 0;
+		scale = 100.0 * 300.0 / (double) width;
+		start();
 	}
 
 }

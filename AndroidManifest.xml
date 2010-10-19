@@ -12,7 +12,8 @@
             </intent-filter>
         </activity>
 
-    </application>
+    <activity android:name=".OperatorsListActivity" android:label="@string/app_name"></activity>
+</application>
 
 
 </manifest> 
