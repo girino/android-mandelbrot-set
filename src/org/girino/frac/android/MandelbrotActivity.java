@@ -1,24 +1,26 @@
 package org.girino.frac.android;
 
-import org.girino.frac.operators.BurningShipOperator;
-import org.girino.frac.operators.CubeMandelbrotOperator;
-import org.girino.frac.operators.FourthMandelbrotOperator;
 import org.girino.frac.operators.FractalOperator;
-import org.girino.frac.operators.MandelbarOperator;
-import org.girino.frac.operators.NovaOperator;
-import org.girino.frac.operators.OptimizedMandelbrotOperator;
-import org.girino.frac.operators.ShipBarOperator;
 
+import android.R;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+
+import com.admob.android.ads.AdManager;
+import com.admob.android.ads.AdView;
 
 public class MandelbrotActivity extends Activity {
 
+	FrameLayout layout;
 	MandelbrotView view;
+	AdView adView;
 	public static final int SELECT_OPERATOR = 0;
 
 	/** Called when the activity is first created. */
@@ -26,8 +28,26 @@ public class MandelbrotActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		layout = new FrameLayout(this);
 		view = new MandelbrotView(this);
-		setContentView(view);
+		adView = new AdView(this);
+		AdManager.setTestDevices(new String[] { 
+				AdManager.TEST_EMULATOR,
+				"04037B710901A015" // motorola droid
+		});
+		adView.setRequestInterval(20);
+		adView.setBackgroundColor(0x000000);
+		adView.setPrimaryTextColor(0xFFFFFF);
+		adView.setSecondaryTextColor(0xCCCCCC);
+		adView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+		//adView.setBackgroundResource(R.color.white);
+		
+
+		//layout.setOrientation(LinearLayout.VERTICAL);
+		layout.addView(view);
+		layout.addView(adView);
+		
+		setContentView(layout);
 	}
 
 	@Override
