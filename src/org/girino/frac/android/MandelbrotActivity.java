@@ -1,6 +1,7 @@
 package org.girino.frac.android;
 
 import org.girino.frac.operators.FractalOperator;
+import org.girino.frac.palettes.PaletteProvider;
 
 import android.R;
 import android.app.Activity;
@@ -22,6 +23,7 @@ public class MandelbrotActivity extends Activity {
 	MandelbrotView view;
 	AdView adView;
 	public static final int SELECT_OPERATOR = 0;
+	public static final int SELECT_PALETTE = 1;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -79,9 +81,11 @@ public class MandelbrotActivity extends Activity {
         super.onCreateOptionsMenu(menu);
         
     	menu.add(0, Menu.FIRST, 0, "Formula");
-    	menu.add(0, Menu.FIRST+1, 0, "Zoom");
-    	menu.add(0, Menu.FIRST+2, 0, "Reset");
-    	menu.add(0, Menu.FIRST+3, 0, "Exit");
+    	menu.add(0, Menu.FIRST+1, 0, "Palette");
+    	menu.add(0, Menu.FIRST+2, 0, "Smooth Palette");
+    	menu.add(0, Menu.FIRST+2, 0, "Zoom");
+    	menu.add(0, Menu.FIRST+3, 0, "Reset");
+    	menu.add(0, Menu.FIRST+4, 0, "Exit");
 
         return true;
     }
@@ -94,18 +98,26 @@ public class MandelbrotActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
+    	int i = 0;
     	switch (item.getItemId() - Menu.FIRST) {
     	case 0:
     		view.stop();
     		startActivityForResult(new Intent(this, OperatorsListActivity.class), SELECT_OPERATOR);
             return true;
-    	case 1: 
+    	case 1:
+    		view.stop();
+    		startActivityForResult(new Intent(this, PalettesListActivity.class), SELECT_PALETTE);
+            return true;
+    	case 2: 
+    		view.smooth();
+    		return true;
+    	case 3: 
     		view.zoom();
     		return true;
-    	case 2:
+    	case 4:
     		view.reset();
     		return true;
-    	case 3:
+    	case 5:
     		finish();
     		return true;
         }
@@ -122,6 +134,12 @@ public class MandelbrotActivity extends Activity {
     		FractalOperator oper = OperatorsListActivity.getOperator(resultCode - Activity.RESULT_FIRST_USER);
     		Log.d("MandelbrotActivity", oper.toString());
     		view.setOper(oper);
+    		view.reset();
+    	}
+    	if (requestCode == SELECT_PALETTE && resultCode >= Activity.RESULT_FIRST_USER) {
+    		PaletteProvider provider = PalettesListActivity.getPalette(resultCode - Activity.RESULT_FIRST_USER);
+    		Log.d("MandelbrotActivity", provider.toString());
+    		view.setPalette(provider);
     		view.reset();
     	}
     }

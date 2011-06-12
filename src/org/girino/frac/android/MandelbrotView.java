@@ -1,7 +1,10 @@
 package org.girino.frac.android;
 
+import org.girino.frac.operators.Complex;
 import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
+import org.girino.frac.palettes.HSBPalette;
+import org.girino.frac.palettes.PaletteProvider;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -18,6 +21,8 @@ public class MandelbrotView extends View {
 	private Paint mBitmapPaint;
 	
 	private FractalOperator oper = new OptimizedMandelbrotOperator();
+	private PaletteProvider palette = new HSBPalette();
+	private boolean smooth = false;
 
 	public FractalOperator getOper() {
 		return oper;
@@ -25,6 +30,10 @@ public class MandelbrotView extends View {
 
 	public void setOper(FractalOperator oper) {
 		this.oper = oper;
+	}
+	
+	public void setPalette(PaletteProvider provider) {
+		this.palette = provider;
 	}
 
 	public MandelbrotView(Context context) {
@@ -91,18 +100,15 @@ public class MandelbrotView extends View {
 	}
 
 	public void runMandelbrot() {
+		Complex C = new Complex();
 		for (int d = 8; d > 0; d /= 2) {
+			long begin = System.currentTimeMillis();
 			for (int j = 0; j < height; j += d) {
 				for (int i = 0; i < width; i += d) {
-					int v = oper.apply(hscale(i), vscale(j), 40);
+					C.set(hscale(i), vscale(j));
+					double v = oper.apply(C, 40, smooth);
 
-					int r = (v == 40) ? 0 : (int) (v * 0xFF / 40.0);
-					int g = (v == 40) ? 0 : (int) (255 * Math.log(v + 1) / Math
-							.log(41));
-					// int g = (v == 40)?0:(int)(255 * Math.pow(v,0.5)/6.325);
-					int b = (v == 40) ? 0 : (int) (v * 0xFF / 40.0);
-					
-					mBitmapPaint.setARGB(0xFF, r, g, b);
+					mBitmapPaint.setColor(palette.getColor(v));
 					if (d == 1)	mCanvas.drawPoint(i, j, mBitmapPaint);
 					else mCanvas.drawRect(i, j, i+d, j+d, mBitmapPaint);
 					if (stoped) {
@@ -111,6 +117,9 @@ public class MandelbrotView extends View {
 					}
 				}
 			}
+			long end = System.currentTimeMillis();
+			long elapsed = end-begin;
+			Log.d("MandelbrotView", "Elapsed time: " + elapsed);
 		}
 		stoped = true;
 	}
@@ -190,6 +199,12 @@ public class MandelbrotView extends View {
 	public void zoom() {
 		stop();
 		scale *= 1.5;
+		start();
+	}
+
+	public void smooth() {
+		stop();
+		smooth = !smooth;
 		start();
 	}
 
