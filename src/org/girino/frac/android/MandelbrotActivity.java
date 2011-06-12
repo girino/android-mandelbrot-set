@@ -80,12 +80,13 @@ public class MandelbrotActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         
-    	menu.add(0, Menu.FIRST, 0, "Formula");
-    	menu.add(0, Menu.FIRST+1, 0, "Palette");
-    	menu.add(0, Menu.FIRST+2, 0, "Smooth Palette");
-    	menu.add(0, Menu.FIRST+2, 0, "Zoom");
-    	menu.add(0, Menu.FIRST+3, 0, "Reset");
-    	menu.add(0, Menu.FIRST+4, 0, "Exit");
+        int i = 0;
+    	menu.add(0, Menu.FIRST+i++, 0, "Formula");
+    	menu.add(0, Menu.FIRST+i++, 0, "Palette");
+    	menu.add(0, Menu.FIRST+i++, 0, "Smooth Palette");
+    	menu.add(0, Menu.FIRST+i++, 0, "Zoom");
+    	menu.add(0, Menu.FIRST+i++, 0, "Reset");
+    	menu.add(0, Menu.FIRST+i++, 0, "Exit");
 
         return true;
     }
