@@ -141,7 +141,7 @@ public class MandelbrotActivity extends Activity {
     		PaletteProvider provider = PalettesListActivity.getPalette(resultCode - Activity.RESULT_FIRST_USER);
     		Log.d("MandelbrotActivity", provider.toString());
     		view.setPalette(provider);
-    		view.reset();
+    		view.start();
     	}
     }
 }

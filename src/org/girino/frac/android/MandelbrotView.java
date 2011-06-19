@@ -12,13 +12,19 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 
 public class MandelbrotView extends View {
 
+	private static final int INVALID_POINTER_ID = -1;
+
 	private Bitmap mBitmap;
 	private Canvas mCanvas;
 	private Paint mBitmapPaint;
+	private ScaleGestureDetector mScaleDetector;
+	private ScaleListener mScaleListener;
+
 	
 	private FractalOperator oper = new OptimizedMandelbrotOperator();
 	private PaletteProvider palette = new HSBPalette();
@@ -43,8 +49,55 @@ public class MandelbrotView extends View {
 
 		// draws first mandelbrot
 		mCanvas.drawARGB(0xff, 10, 10, 10);
+		
+		// scale gesture
+		mScaleListener = new ScaleListener();
+		mScaleDetector = new ScaleGestureDetector(context, mScaleListener);
 	}
-
+	
+	float cumulatedScale = 1f;
+	
+	private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+		
+		@Override
+		public boolean onScaleBegin(ScaleGestureDetector detector) {
+			stop();
+	        Log.d("MandelbrotView", "onScaleBegin");
+			cumulatedScale = 1f;
+			return true;
+		}
+		
+	    @Override
+	    public boolean onScale(ScaleGestureDetector detector) {
+	    	cumulatedScale *= detector.getScaleFactor();
+	        invalidate();
+	        return true;
+	    }
+	    
+	    @Override
+	    public void onScaleEnd(ScaleGestureDetector detector) {
+	        Log.d("MandelbrotView", "onScaleEnd " + cumulatedScale);
+	    	scale *= cumulatedScale;
+	    	
+			Bitmap bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+			Canvas canvas = new Canvas(bm);
+		    canvas.save();
+		    // delta for scaling
+		    float dx = (1 - cumulatedScale) * width / 2;
+		    float dy = (1 - cumulatedScale) * height / 2;
+	    	canvas.translate(mPosX + dx, mPosY + dy);
+		    canvas.scale(cumulatedScale, cumulatedScale);
+		    canvas.drawBitmap(mBitmap, 0, 0, mBitmapPaint);
+		    canvas.restore();
+			mBitmap = bm;
+			mCanvas = canvas; 
+	    	
+			cumulatedScale = 1f;
+	    	start();
+	    }
+	    
+	}
+	
 	private void rescale(int w, int h) {
 		w = w > 0 ? w : 1;
 		width = w;
@@ -139,13 +192,18 @@ public class MandelbrotView extends View {
 		Log.d("MandelbrotView", "onSizeChanged end...");
 	}
 
-	float xoffset = 0;
-	float yoffset = 0;
-
 	@Override
 	protected void onDraw(Canvas canvas) {
 		// avoids drawing too much
-		canvas.drawBitmap(mBitmap, xoffset, yoffset, mBitmapPaint);
+        //Log.d("MandelbrotView", "Redrawing...");
+	    canvas.save();
+	    // delta for scaling
+	    float dx = (1 - cumulatedScale) * width / 2;
+	    float dy = (1 - cumulatedScale) * height / 2;
+    	canvas.translate(mPosX + dx, mPosY + dy);
+	    canvas.scale(cumulatedScale, cumulatedScale);
+	    canvas.drawBitmap(mBitmap, 0, 0, mBitmapPaint);
+	    canvas.restore();
 		// stops only after drawing a last time
 		if (stoped) {
 			return;
@@ -153,47 +211,92 @@ public class MandelbrotView extends View {
 		invalidate();
 	}
 
-	float ex0;
-	float ey0;
-	boolean hasMoved = false;
+    private float mPosX;
+    private float mPosY;
+    
+    private float mLastTouchX;
+    private float mLastTouchY;
 
-	@Override
-	public boolean onTouchEvent(MotionEvent event) {
-		float x = event.getX();
-		float y = event.getY();
 
-		switch (event.getAction()) {
-		case MotionEvent.ACTION_DOWN:
-			Log.d("MandelbrotView", "down...");
-			ex0 = x;
-			ey0 = y;
-			hasMoved = false;
-			break;
-		case MotionEvent.ACTION_MOVE:
-			xoffset = x - ex0;
-			yoffset = y - ey0;
-			hasMoved = true;
-			invalidate();
-			break;
-		case MotionEvent.ACTION_UP:
-			Log.d("MandelbrotView", "up...");
-			if (hasMoved) {
-				hasMoved = false;
-				x0 += (ex0 - x) / scale;
-				y0 += (ey0 - y) / scale;
-				// move image
-				xoffset = x - ex0;
-				yoffset = y - ey0;
-				Bitmap bm = mBitmap;
-				rescale(width, height);
-				mCanvas.drawBitmap(bm, xoffset, yoffset, mBitmapPaint);
-				xoffset = 0;
-				yoffset = 0;
-				start();
-			}
-			break;
-		}
-		return true;
+    private int mActivePointerId = INVALID_POINTER_ID;
+
+    @Override
+	public boolean onTouchEvent(MotionEvent ev) {
+        // Let the ScaleGestureDetector inspect all events.
+        mScaleDetector.onTouchEvent(ev);
+
+        final int action = ev.getAction();
+	    switch (action & MotionEvent.ACTION_MASK) {
+	    case MotionEvent.ACTION_DOWN: {
+	        final float x = ev.getX();
+	        final float y = ev.getY();
+	        
+	        mLastTouchX = x;
+	        mLastTouchY = y;
+
+	        // Save the ID of this pointer
+	        mActivePointerId = ev.getPointerId(0);
+	        break;
+	    }
+	        
+	    case MotionEvent.ACTION_MOVE: {
+	        // Find the index of the active pointer and fetch its position
+	        final int pointerIndex = ev.findPointerIndex(mActivePointerId);
+	        final float x = ev.getX(pointerIndex);
+	        final float y = ev.getY(pointerIndex);
+	        
+	        if (!mScaleDetector.isInProgress()) {
+	        	final float dx = x - mLastTouchX;
+	        	final float dy = y - mLastTouchY;
+	        
+	        	mPosX += dx;
+	        	mPosY += dy;
+		    
+	        	invalidate();
+	        }
+	        
+	        mLastTouchX = x;
+	        mLastTouchY = y;
+	        
+	        Log.d("MandelbrotView", "moved " + mPosX + "x" + mPosY);
+	        break;
+	    }
+	        
+	    case MotionEvent.ACTION_UP:	        
+	    case MotionEvent.ACTION_CANCEL: {
+	        mActivePointerId = INVALID_POINTER_ID;
+			x0 -= mPosX / scale;
+			y0 -= mPosY / scale;
+			// move bitmap
+			Bitmap bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+			Canvas canvas = new Canvas(bm);
+			canvas.drawBitmap(mBitmap, mPosX, mPosY, mBitmapPaint);
+			mBitmap = bm;
+			mCanvas = canvas; 
+	        mPosX = 0;
+	        mPosY = 0;
+	        start();
+	        break;
+	    }
+	    
+	    case MotionEvent.ACTION_POINTER_UP: {
+	        // Extract the index of the pointer that left the touch sensor
+	        final int pointerIndex = (action & MotionEvent.ACTION_POINTER_INDEX_MASK) 
+	                >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+	        final int pointerId = ev.getPointerId(pointerIndex);
+	        if (pointerId == mActivePointerId) {
+	            // This was our active pointer going up. Choose a new
+	            // active pointer and adjust accordingly.
+	            final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+	            mLastTouchX = ev.getX(newPointerIndex);
+	            mLastTouchY = ev.getY(newPointerIndex);
+	            mActivePointerId = ev.getPointerId(newPointerIndex);
+	        }
+	        break;
+	    }
+	    }
+	    
+	    return true;
 	}
 
 	public void zoom() {
