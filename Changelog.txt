@@ -1,3 +1,4 @@
+* 1.2.0 - Pinch gesture to zoom!
 * 1.1.1 - zoom bug corrected 
 * 1.1.0 - Refactored Complex for performance. Refactored for smooth palette support. Added palette options in menu
 * 1.0.1 - move to SD
