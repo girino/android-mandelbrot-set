@@ -1,0 +1,6 @@
+Explore the Mandelbrot set and related fractals directly on your Android device.
+
+Pan and pinch to navigate, choose different fractal formulas, switch color palettes,
+and toggle smooth coloring. Rendering happens entirely on the device.
+
+The app contains no ads, trackers, analytics, network access, or data collection.

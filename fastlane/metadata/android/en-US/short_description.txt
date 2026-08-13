@@ -1,0 +1,1 @@
+Explore Mandelbrot and related fractals offline

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fractals by Girino</string>
+    <string name="select_formula">Select formula</string>
+    <string name="select_palette">Select palette</string>
+    <string name="menu_formula">Formula</string>
+    <string name="menu_palette">Palette</string>
+    <string name="menu_smooth_palette">Smooth palette</string>
+    <string name="menu_zoom">Zoom</string>
+    <string name="menu_reset">Reset</string>
+    <string name="menu_exit">Exit</string>
+</resources>
