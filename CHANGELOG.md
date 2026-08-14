@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 - 2026-08-14
+
+- Add BSD 2-Clause as an F-Droid-compatible alternative to the GAL.
+- Add localized F-Droid metadata, icon, and current FOSS screenshots.
+- Document the F-Droid build and submission process.
+- Promote the modernized FOSS edition from alpha to its first stable release.
+
 ## 1.0.0-alpha - 2026-08-13
 
 - Migrate the project from Eclipse/ADT to a modern Gradle build.

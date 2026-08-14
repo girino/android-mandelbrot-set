@@ -1,0 +1,1 @@
+First stable FOSS release, with no ads, trackers, network access, or data collection. Includes F-Droid metadata and dual BSD-2-Clause/GAL licensing.

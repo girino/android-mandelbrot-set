@@ -1,0 +1,1 @@
+Primeira versão FOSS estável, sem anúncios, rastreadores, acesso à rede ou coleta de dados. Inclui metadados para o F-Droid e licenciamento duplo BSD-2-Clause/GAL.

@@ -7,10 +7,10 @@ and `LICENSE.GAL` for details.
 
 ## Before submitting the first stable release
 
-1. Replace the alpha version with `versionName = "1.0.0"` and increment
-   `versionCode` from `1` to `2` in `app/build.gradle.kts`.
-2. Add localized changelogs named `2.txt` below both Fastlane locale
-   directories.
+1. Confirm `versionName = "1.0.0"` and `versionCode = 2` in
+   `app/build.gradle.kts`.
+2. Confirm the localized changelogs named `2.txt` below both Fastlane locale
+   directories describe the stable release.
 3. Review the current FOSS screenshots in
    `fastlane/metadata/android/en-US/images/phoneScreenshots/`. Replace or add
    images there whenever the visible interface changes; never reuse the
