@@ -1,0 +1,7 @@
+repository: https://github.com/girino/android-mandelbrot-set
+pubkey: npub18lav8fkgt8424rxamvk8qq4xuy9n8mltjtgztv2w44hc5tt9vets0hcfsz
+
+metadata_sources:
+  - fastlane
+
+release_notes: ./CHANGELOG.md
