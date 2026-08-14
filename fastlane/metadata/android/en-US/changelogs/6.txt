@@ -1,0 +1,1 @@
+Modern Android build, no ads or trackers, safer background rendering, and improved multitouch handling.

@@ -1,0 +1,1 @@
+Build Android moderno, sem anúncios ou rastreadores, renderização em segundo plano mais segura e melhorias no multitoque.
