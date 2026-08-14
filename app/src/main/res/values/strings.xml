@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fractals by Girino</string>
+    <string name="app_name">Fractals by Girino FOSS</string>
     <string name="select_formula">Select formula</string>
     <string name="select_palette">Select palette</string>
     <string name="menu_formula">Formula</string>

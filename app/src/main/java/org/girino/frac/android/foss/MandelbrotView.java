@@ -1,4 +1,4 @@
-package org.girino.frac.android;
+package org.girino.frac.android.foss;
 
 import android.content.Context;
 import android.graphics.Bitmap;

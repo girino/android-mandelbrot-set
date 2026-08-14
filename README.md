@@ -1,7 +1,10 @@
-# Fractals by Girino
+# Fractals by Girino FOSS
 
 An interactive Android fractal explorer. Pan and pinch to navigate, switch between
 fractal formulas and palettes, and enable smooth coloring.
+
+This FOSS edition uses the application ID `org.girino.frac.android.foss`, so it
+can be installed alongside the historical Google Play edition without conflicts.
 
 The app is written in Java and uses only Android platform APIs. It contains no ads,
 trackers, network access, analytics, or proprietary runtime dependencies.

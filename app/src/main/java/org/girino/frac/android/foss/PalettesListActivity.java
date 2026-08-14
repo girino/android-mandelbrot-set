@@ -1,4 +1,4 @@
-package org.girino.frac.android;
+package org.girino.frac.android.foss;
 
 import org.girino.frac.palettes.DefaultPaletteBlue;
 import org.girino.frac.palettes.DefaultPaletteGreen;

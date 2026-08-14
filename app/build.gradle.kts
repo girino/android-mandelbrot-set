@@ -14,11 +14,11 @@ val hasReleaseSigning = listOf(
 ).all { !it.isNullOrBlank() }
 
 android {
-    namespace = "org.girino.frac.android"
+    namespace = "org.girino.frac.android.foss"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "org.girino.frac.android"
+        applicationId = "org.girino.frac.android.foss"
         minSdk = 21
         targetSdk = 36
         versionCode = 6

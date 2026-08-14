@@ -7,3 +7,4 @@
 - Remove AdMob, advertising metadata, and Internet and location permissions.
 - Make rendering lifecycle-safe and non-blocking.
 - Harden multitouch pointer handling.
+- Use a distinct FOSS application name and package ID for parallel installation.
