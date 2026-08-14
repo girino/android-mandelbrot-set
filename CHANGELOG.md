@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0 - Unreleased
+## 1.0.0-alpha - 2026-08-13
 
 - Migrate the project from Eclipse/ADT to a modern Gradle build.
 - Target Android 16 while retaining support for Android 5.0 and newer.

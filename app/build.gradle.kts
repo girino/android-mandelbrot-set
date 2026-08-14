@@ -21,8 +21,8 @@ android {
         applicationId = "org.girino.frac.android.foss"
         minSdk = 21
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.3.0"
+        versionCode = 1
+        versionName = "1.0.0-alpha"
     }
 
     compileOptions {
