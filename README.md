@@ -9,6 +9,25 @@ can be installed alongside the historical Google Play edition without conflicts.
 The app is written in Java and uses only Android platform APIs. It contains no ads,
 trackers, network access, analytics, or proprietary runtime dependencies.
 
+## Install with Obtainium
+
+On Android, open this Obtainium link:
+
+`obtainium://add?url=https%3A%2F%2Fgithub.com%2Fgirino%2Fandroid-mandelbrot-set`
+
+If the link does not open automatically:
+
+1. Open **Add App** in Obtainium.
+2. Enter `https://github.com/girino/android-mandelbrot-set` as the app source URL.
+3. Leave **Include prereleases** disabled to receive only stable versions.
+4. Enable **Include prereleases** only if you want alpha, beta, or other test builds.
+5. Confirm the detected APK and install it.
+
+The GitHub and Zapstore APKs are signed with the upstream author's key and can
+update each other as long as that signing key is preserved. The official F-Droid
+build uses F-Droid's signing key, so an F-Droid installation cannot be updated
+with the GitHub APK (or vice versa) without uninstalling the existing app first.
+
 ## Build
 
 Requirements:

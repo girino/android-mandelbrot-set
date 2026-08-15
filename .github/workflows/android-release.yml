@@ -80,6 +80,21 @@ jobs:
         with:
           name: Fractals by Girino FOSS ${{ github.ref_name }}
           prerelease: ${{ steps.release_type.outputs.prerelease }}
+          body: |
+            ## Install with Obtainium
+
+            On Android, open this Obtainium link:
+
+            `obtainium://add?url=https%3A%2F%2Fgithub.com%2Fgirino%2Fandroid-mandelbrot-set`
+
+            If the link does not open, open **Add App** in Obtainium and enter
+            `https://github.com/girino/android-mandelbrot-set` as the app source URL.
+            Keep **Include prereleases** disabled for stable versions, or enable it
+            to receive alpha, beta, and other test builds.
+
+            This APK is signed with the upstream author's key. It cannot update an
+            installation from the official F-Droid repository because F-Droid uses
+            a different signing key.
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
