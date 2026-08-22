@@ -12,10 +12,11 @@ de gesto.
 ## O que isso significa
 
 1. **Durante o gesto**: preview no canvas (scale/translate sobre o bitmap atual).
-2. **Ao soltar**: a imagem continua estável; o preview só some quando o bitmap
-   renderizado corresponde ao viewport lógico commitado.
-3. **Correções de coordenadas ou concorrência** não podem remover nem enfraquecer
-   esse preview: não publicar bitmap “no seco” nem zerar transform antes da hora.
+2. **Ao soltar**: na **primeira iteração do render (step=8)**, publicar o bitmap
+   coarse nas coordenadas corretas e **só então** remover o preview; steps 4→2→1
+   refinam in-place.
+3. **Correções de coordenadas ou concorrência** não podem atrasar essa publicação
+   até step=1 nem zerar o preview antes do step=8 correspondente.
 
 ## Concorrência (render vs gesto novo)
 
@@ -24,8 +25,8 @@ Se um **novo gesto começa antes** do render anterior terminar:
 - O **viewport lógico** (`centerX` / `centerY` / `scale`) deve refletir o commit
   mais recente **na hora do commit**, para o gesto seguinte não reutilizar
   coordenadas do bitmap antigo.
-- O **bitmap na tela** pode ficar defasado até o step=1 do render correto; o
-  preview cobre essa lacuna.
+- O **bitmap na tela** atualiza no **step=8** (preview some); refinamento continua
+  até step=1. O preview cobre só o intervalo commit→step=8.
 - Renders obsoletos devem ser **cancelados ou ignorados** (`generation` /
   `pendingViewportGeneration`), nunca aplicados por cima do viewport atual.
 

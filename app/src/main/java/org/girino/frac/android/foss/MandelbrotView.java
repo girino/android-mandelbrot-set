@@ -307,10 +307,11 @@ public class MandelbrotView extends View {
     }
 
     private void flushDeferredPublishIfReady() {
-        if (deferredBitmap != null && deferredStep == 1) {
+        if (deferredBitmap != null) {
             publishRenderFrame(deferredBitmap, deferredGeneration, deferredStep);
+        } else {
+            clearDeferredPublish();
         }
-        clearDeferredPublish();
     }
 
     private void publishRenderFrame(Bitmap rendered, int generation, int step) {
@@ -327,20 +328,22 @@ public class MandelbrotView extends View {
                     "publish skip stale gen=" + generation + " pendingGen=" + pendingViewportGeneration);
             return;
         }
-        if (awaitingBitmapPublish && step != 1) {
-            debugViewport("publish hold preview gen=" + generation + " step=" + step);
-            return;
-        }
-        if (awaitingBitmapPublish) {
-            debugJumpCheck(
-                    "publish gen=" + generation + " step=" + step,
-                    centerX,
-                    centerY,
-                    scale);
-        }
         bitmap = rendered;
-        clearAwaitingBitmapPublish();
-        clearPreviewTransform();
+        if (awaitingBitmapPublish && generation == pendingViewportGeneration) {
+            if (step == 8) {
+                debugJumpCheck(
+                        "publish gen=" + generation + " step=" + step,
+                        centerX,
+                        centerY,
+                        scale);
+                clearPreviewTransform();
+            }
+            if (step == 1) {
+                clearAwaitingBitmapPublish();
+            }
+        } else if (!awaitingBitmapPublish) {
+            clearPreviewTransform();
+        }
         clearDeferredPublish();
         debugViewport("publish applied gen=" + generation + " step=" + step);
         invalidate();
