@@ -70,11 +70,13 @@ Stable GitHub releases can be published to [Zapstore](https://zapstore.dev) with
 [`zapstore.yaml`](zapstore.yaml) with the publisher npub and Fastlane metadata
 sources.
 
-Publish manually from WSL (see [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc)):
+Publish manually from **WSL** (required — `zsp` does not build on native Windows).
+See [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc) for the full flow.
 
 ```shell
-export SIGN_WITH='bunker://...'   # or nsec — use your local env, not GitHub secrets
-export GITHUB_TOKEN='...'         # if release fetch requires a token
+# inside WSL, repo root:
+export SIGN_WITH='bunker://...'
+export GITHUB_TOKEN='...'   # optional
 zsp publish -q zapstore.yaml
 ```
 

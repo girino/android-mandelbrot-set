@@ -1,0 +1,11 @@
+---
+description: Nunca commitar nem pushar sem pedido explícito do usuário
+alwaysApply: true
+---
+
+# Git — só commit quando o usuário pedir
+
+- **Nunca** criar commit, amend ou push por iniciativa própria.
+- Alterações ficam no working tree até o usuário pedir explicitamente (ex.: "commita", "dá push").
+- Pode preparar mensagem de commit ou listar o que está pendente, mas **não** executar `git commit` / `git push`.
+- Exceção: instrução explícita do usuário na mesma conversa pedindo commit ou PR.
