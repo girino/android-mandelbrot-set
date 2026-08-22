@@ -63,6 +63,28 @@ Configure these GitHub Actions repository secrets before pushing a tag:
 
 Keep the historical signing key if releases must update existing installations.
 
+## Zapstore
+
+Stable GitHub releases can be published to [Zapstore](https://zapstore.dev) with
+[`zsp`](https://github.com/zapstore/zsp). The repo root already contains
+[`zapstore.yaml`](zapstore.yaml) with the publisher npub and Fastlane metadata
+sources.
+
+Configure one of these GitHub Actions repository secrets:
+
+- `ZAPSTORE_BUNKER_URL` (recommended for CI): NIP-46 bunker URL for signing
+- `ZAPSTORE_NSEC`: publisher Nostr private key (avoid on shared machines)
+
+On the first publish, `zsp` may prompt to link the Android signing certificate
+to the Nostr identity; run locally once if CI cannot complete that step:
+
+```shell
+SIGN_WITH=bunker://... zsp publish -q zapstore.yaml
+```
+
+After secrets are set, stable tag pushes publish automatically. To publish an
+existing tag manually, run the **Publish Zapstore** workflow in GitHub Actions.
+
 ## License
 
 Girino Anarchist's License (GAL) remains the author's preferred license for
