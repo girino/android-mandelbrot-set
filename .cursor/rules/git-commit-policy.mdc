@@ -7,9 +7,14 @@ alwaysApply: true
 
 ## Commit (automático)
 
-- Após alterações concluídas, **sempre** criar commit com mensagem concisa.
+- Após alterações concluídas, **sempre** criar commit com mensagem concisa —
+  **imediatamente**, sem esperar o usuário pedir ou aprovar. Commit não é
+  publicação; o push é que fica retido.
+- Vale para código, testes, regras e documentação: trabalho terminado = commitado.
 - Agrupar só arquivos relacionados à tarefa; excluir lixo de build e mudanças não relacionadas.
 - **Nunca** fazer amend/push destrutivo sem pedido explícito.
+- Exceção: se o usuário pedir explicitamente para *não* commitar ainda
+  (ex.: "deixa sem commit pra testar"), obedecer até ele liberar.
 
 ## Push (manual)
 
