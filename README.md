@@ -82,8 +82,8 @@ to the Nostr identity; run locally once if CI cannot complete that step:
 SIGN_WITH=bunker://... zsp publish -q zapstore.yaml
 ```
 
-After secrets are set, stable tag pushes publish automatically. To publish an
-existing tag manually, run the **Publish Zapstore** workflow in GitHub Actions.
+After secrets are set, run the **Publish Zapstore** workflow in GitHub Actions
+(manual `workflow_dispatch` only — tag pushes do not publish to Zapstore).
 
 ## License
 
