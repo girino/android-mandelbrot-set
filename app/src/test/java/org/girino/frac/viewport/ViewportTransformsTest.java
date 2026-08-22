@@ -336,4 +336,76 @@ class ViewportTransformsTest {
         assertEquals(fromPanThenZoom.centerY, fromCommit.centerY, EPS);
         assertEquals(fromPanThenZoom.scale, fromCommit.scale, EPS);
     }
+
+    @ParameterizedTest
+    @CsvSource({
+            // focusX, focusY, accScale, posX, posY — off-center pinch with drag
+            "150, 300, 2.0, 20.0, -10.0",
+            "900, 1600, 0.5, -35.0, 25.0",
+            "80, 1800, 1.75, 0.0, 0.0",
+            "1000, 120, 0.4, 60.0, 40.0"
+    })
+    void frozenGestureKeepsComplexPointUnderFocusFixed(
+            float focusX,
+            float focusY,
+            float accumulatedScale,
+            float positionX,
+            float positionY) {
+        ViewportTransforms.State published =
+                new ViewportTransforms.State(-0.3, 0.15, 140.0);
+
+        // Preview draws the published bitmap as q = s*p + pos + (1-s)*focus.
+        // The bitmap point displayed at the focus is therefore p(focus).
+        float bitmapAtFocusX = (focusX - positionX - (1f - accumulatedScale) * focusX)
+                / accumulatedScale;
+        double complexBeforeX = ViewportTransforms.complexX(
+                bitmapAtFocusX, WIDTH, published.centerX, published.scale);
+
+        ViewportTransforms.State after = ViewportTransforms.commitFrozenGesture(
+                published, accumulatedScale, positionX, positionY,
+                focusX, focusY, WIDTH, HEIGHT);
+
+        // After commit the screen shows the target viewport under identity transform.
+        double complexAfterX = ViewportTransforms.complexX(
+                focusX, WIDTH, after.centerX, after.scale);
+
+        assertEquals(published.scale * accumulatedScale, after.scale, EPS);
+        assertEquals(complexBeforeX, complexAfterX, 1e-6, "real under focus jumped");
+
+        float bitmapAtFocusY = (focusY - positionY - (1f - accumulatedScale) * focusY)
+                / accumulatedScale;
+        double complexBeforeY = ViewportTransforms.complexY(
+                bitmapAtFocusY, HEIGHT, published.centerY, published.scale);
+        double complexAfterY = ViewportTransforms.complexY(
+                focusY, HEIGHT, after.centerY, after.scale);
+        assertEquals(complexBeforeY, complexAfterY, 1e-6, "imag under focus jumped");
+    }
+
+    @Test
+    void frozenGesturePurePanReducesToCommitPan() {
+        ViewportTransforms.State before = new ViewportTransforms.State(0.05, -0.15, 130.0);
+        float panX = 45f;
+        float panY = -70f;
+
+        ViewportTransforms.State viaFrozen = ViewportTransforms.commitFrozenGesture(
+                before, 1f, panX, panY, 200f, 800f, WIDTH, HEIGHT);
+        ViewportTransforms.State viaPan = ViewportTransforms.commitPan(before, panX, panY);
+
+        assertEquals(viaPan.centerX, viaFrozen.centerX, EPS);
+        assertEquals(viaPan.centerY, viaFrozen.centerY, EPS);
+        assertEquals(viaPan.scale, viaFrozen.scale, EPS);
+    }
+
+    @Test
+    void frozenGestureCenteredPinchReducesToCenterPreservingZoom() {
+        ViewportTransforms.State before = new ViewportTransforms.State(0.0, 0.0, 110.0);
+        float s = 1.6f;
+
+        ViewportTransforms.State after = ViewportTransforms.commitFrozenGesture(
+                before, s, 0f, 0f, WIDTH / 2f, HEIGHT / 2f, WIDTH, HEIGHT);
+
+        assertEquals(before.centerX, after.centerX, EPS);
+        assertEquals(before.centerY, after.centerY, EPS);
+        assertEquals(before.scale * s, after.scale, EPS);
+    }
 }
