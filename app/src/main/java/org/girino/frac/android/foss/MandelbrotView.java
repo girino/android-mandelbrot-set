@@ -66,6 +66,14 @@ public class MandelbrotView extends View {
     private float previewPosX;
     private float previewPosY;
 
+    /**
+     * Preview transform already represented by {@link #pendingCenterX} etc. on the stale bitmap.
+     * Live {@link #accumulatedScale}/{@link #positionX} are incremental deltas on top.
+     */
+    private float sessionBasePreviewScale = 1f;
+    private float sessionBasePreviewPosX = 0f;
+    private float sessionBasePreviewPosY = 0f;
+
     /** Finger down / drag in progress (defer bitmap swaps until release). */
     private boolean panInProgress;
     /** Two-finger pinch active for this touch sequence. */
@@ -271,12 +279,16 @@ public class MandelbrotView extends View {
     private void beginPinchSession(MotionEvent event) {
         stop();
         pinchNeedsCommit = false;
-        if (hasLivePreview()) {
+        if (hasPendingViewport && hasLivePreview()) {
+            // Pending viewport already matches sessionBase preview on the stale bitmap.
+            resetLiveGestureCounters();
+        } else if (hasLivePreview()) {
+            clearSessionBase();
             accumulatedScale = previewScale;
             positionX = previewPosX;
             positionY = previewPosY;
         } else {
-            accumulatedScale = 1f;
+            clearSessionBase();
         }
         pinchPivotX = pinchMidX(event);
         pinchPivotY = pinchMidY(event);
@@ -423,20 +435,38 @@ public class MandelbrotView extends View {
     }
 
     private void syncPreviewFromGesture() {
-        previewScale = accumulatedScale;
+        previewScale = sessionBasePreviewScale * accumulatedScale;
         previewFocusX = focusX;
         previewFocusY = focusY;
-        previewPosX = positionX;
-        previewPosY = positionY;
+        previewPosX = sessionBasePreviewPosX + positionX;
+        previewPosY = sessionBasePreviewPosY + positionY;
+    }
+
+    private void resetLiveGestureCounters() {
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+    }
+
+    private void captureSessionBaseFromPreview() {
+        sessionBasePreviewScale = previewScale;
+        sessionBasePreviewPosX = previewPosX;
+        sessionBasePreviewPosY = previewPosY;
+        resetLiveGestureCounters();
+    }
+
+    private void clearSessionBase() {
+        sessionBasePreviewScale = 1f;
+        sessionBasePreviewPosX = 0f;
+        sessionBasePreviewPosY = 0f;
+        resetLiveGestureCounters();
     }
 
     private void clearPreviewTransform() {
         previewScale = 1f;
         previewPosX = 0f;
         previewPosY = 0f;
-        accumulatedScale = 1f;
-        positionX = 0f;
-        positionY = 0f;
+        clearSessionBase();
     }
 
     private boolean hasLivePreview() {
@@ -485,6 +515,11 @@ public class MandelbrotView extends View {
                 pinchNeedsCommit = false;
                 lastPinchSpan = -1f;
                 clearDeferredPublish();
+                if (hasPendingViewport && hasLivePreview()) {
+                    resetLiveGestureCounters();
+                } else {
+                    clearSessionBase();
+                }
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
                 activePointerId = event.getPointerId(0);
@@ -566,8 +601,7 @@ public class MandelbrotView extends View {
                 positionY);
         setPendingViewport(next);
         syncPreviewFromGesture();
-        positionX = 0f;
-        positionY = 0f;
+        captureSessionBaseFromPreview();
         debugViewport("commitPan pendingCenter=(" + next.centerX + "," + next.centerY + ")");
         return true;
     }
@@ -588,9 +622,7 @@ public class MandelbrotView extends View {
                 positionY);
         setPendingViewport(next);
         syncPreviewFromGesture();
-        accumulatedScale = 1f;
-        positionX = 0f;
-        positionY = 0f;
+        captureSessionBaseFromPreview();
         debugViewport("commitPinch pendingCenter=(" + next.centerX + "," + next.centerY + ") scale=" + next.scale);
         return true;
     }

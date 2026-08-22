@@ -192,4 +192,68 @@ class ViewportTransformsTest {
                 ViewportTransforms.complexX(focusX, WIDTH, fixed.centerX, fixed.scale),
                 EPS);
     }
+
+    @Test
+    void chainedPinchMustUseIncrementalFactorOnPendingBase_notTotalPreviewScale() {
+        ViewportTransforms.State committed = new ViewportTransforms.State(0.1, -0.2, 200.0);
+        float firstPinchFactor = 2.0f;
+        float secondPinchFactor = 1.5f;
+        float focusX = 480f;
+        float focusY = 1200f;
+
+        ViewportTransforms.State afterFirst = ViewportTransforms.commitPinch(
+                committed, firstPinchFactor, focusX, focusY, WIDTH, HEIGHT, 0f, 0f);
+
+        ViewportTransforms.State correctSecond = ViewportTransforms.commitPinch(
+                afterFirst, secondPinchFactor, focusX, focusY, WIDTH, HEIGHT, 0f, 0f);
+
+        ViewportTransforms.State doubleCounted = ViewportTransforms.commitPinch(
+                afterFirst,
+                firstPinchFactor * secondPinchFactor,
+                focusX,
+                focusY,
+                WIDTH,
+                HEIGHT,
+                0f,
+                0f);
+
+        assertEquals(600.0, correctSecond.scale, EPS);
+        assertEquals(1200.0, doubleCounted.scale, EPS);
+
+        double underFocus = ViewportTransforms.complexX(
+                focusX, WIDTH, afterFirst.centerX, afterFirst.scale);
+        assertEquals(
+                underFocus,
+                ViewportTransforms.complexX(focusX, WIDTH, correctSecond.centerX, correctSecond.scale),
+                EPS);
+        assertEquals(
+                firstPinchFactor * secondPinchFactor / secondPinchFactor,
+                doubleCounted.scale / correctSecond.scale,
+                EPS,
+                "double-counting applies total preview factor again on pending base");
+    }
+
+    @Test
+    void chainedPanMustUseIncrementalOffsetOnPendingBase_notTotalPreviewPan() {
+        ViewportTransforms.State committed = new ViewportTransforms.State(0.0, 0.0, 180.0);
+        float firstPanX = 60f;
+        float secondPanX = 35f;
+
+        ViewportTransforms.State afterFirst =
+                ViewportTransforms.commitPan(committed, firstPanX, 0f);
+        ViewportTransforms.State correctSecond =
+                ViewportTransforms.commitPan(afterFirst, secondPanX, 0f);
+
+        ViewportTransforms.State doubleCounted =
+                ViewportTransforms.commitPan(afterFirst, firstPanX + secondPanX, 0f);
+
+        assertEquals(
+                committed.centerX - (firstPanX + secondPanX) / committed.scale,
+                correctSecond.centerX,
+                EPS);
+        assertEquals(
+                -firstPanX / afterFirst.scale,
+                doubleCounted.centerX - correctSecond.centerX,
+                EPS);
+    }
 }
