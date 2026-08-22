@@ -73,4 +73,61 @@ public final class ViewportTransforms {
                         + (focusY - height / 2.0) * (1.0 - 1.0 / factor) / oldScale;
         return new State(newCenterX, newCenterY, newScale);
     }
+
+    /**
+     * Canvas preview bridge: stale bitmap at {@code published*} drawn with scale-about-center
+     * then translate must match {@code target*} on screen (same convention as MandelbrotView).
+     */
+    public static final class PreviewBridge {
+        public final float scale;
+        public final float focusX;
+        public final float focusY;
+        public final float posX;
+        public final float posY;
+
+        public PreviewBridge(float scale, float focusX, float focusY, float posX, float posY) {
+            this.scale = scale;
+            this.focusX = focusX;
+            this.focusY = focusY;
+            this.posX = posX;
+            this.posY = posY;
+        }
+    }
+
+    public static PreviewBridge bridgeFromPublishedToTarget(
+            double publishedCenterX,
+            double publishedCenterY,
+            double publishedScale,
+            double targetCenterX,
+            double targetCenterY,
+            double targetScale,
+            int width,
+            int height) {
+        return new PreviewBridge(
+                (float) (targetScale / publishedScale),
+                width * 0.5f,
+                height * 0.5f,
+                (float) ((publishedCenterX - targetCenterX) * publishedScale),
+                (float) ((publishedCenterY - targetCenterY) * publishedScale));
+    }
+
+    /** Complex coords visible at a screen pixel after applying {@link PreviewBridge} on a published bitmap. */
+    public static double[] complexAtScreen(
+            float screenX,
+            float screenY,
+            PreviewBridge bridge,
+            int width,
+            int height,
+            double publishedCenterX,
+            double publishedCenterY,
+            double publishedScale) {
+        float bitmapX =
+                (screenX - bridge.focusX) / bridge.scale + bridge.focusX - bridge.posX;
+        float bitmapY =
+                (screenY - bridge.focusY) / bridge.scale + bridge.focusY - bridge.posY;
+        return new double[] {
+            complexX(bitmapX, width, publishedCenterX, publishedScale),
+            complexY(bitmapY, height, publishedCenterY, publishedScale)
+        };
+    }
 }

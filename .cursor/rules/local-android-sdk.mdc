@@ -15,6 +15,20 @@ nem `C:\Users\...` em regras, exemplos ou `local.properties`):
 |---|---|
 | Android SDK | [`.android-sdk/`](.android-sdk/) |
 | JDK 17+ | [`.jdk/`](.jdk/) |
+| AVDs (opcional) | [`.android-avd/`](.android-avd/) — `ANDROID_AVD_HOME` |
+
+## Testes headless (sem emulador)
+
+Gestos pinch+drag: **Robolectric** + `testDebugUnitTest` (ver regra
+[`headless-gesture-tests.mdc`](headless-gesture-tests.mdc)).
+
+```powershell
+.\scripts\setup-headless-tests.ps1 -RunTests
+```
+
+Emulador local **opcional** (E2E): `.\scripts\setup-android-emulator.ps1`
+
+Setup SDK (platform-tools, Platform 36, Build-Tools): `.\scripts\setup-android-sdk.ps1`
 
 ```text
 # ❌ BAD — absolutos ou SDK/JDK do sistema

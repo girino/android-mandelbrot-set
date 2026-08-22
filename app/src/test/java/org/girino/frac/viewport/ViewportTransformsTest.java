@@ -256,4 +256,84 @@ class ViewportTransformsTest {
                 doubleCounted.centerX - correctSecond.centerX,
                 EPS);
     }
+
+    @Test
+    void previewBridgeMatchesTargetViewportOnScreen() {
+        double pubCx = 0.1;
+        double pubCy = -0.05;
+        double pubScale = 150.0;
+        ViewportTransforms.State target =
+                ViewportTransforms.commitPinch(
+                        new ViewportTransforms.State(pubCx, pubCy, pubScale),
+                        1.8,
+                        200f,
+                        900f,
+                        WIDTH,
+                        HEIGHT,
+                        30f,
+                        -15f);
+
+        ViewportTransforms.PreviewBridge bridge =
+                ViewportTransforms.bridgeFromPublishedToTarget(
+                        pubCx, pubCy, pubScale,
+                        target.centerX, target.centerY, target.scale,
+                        WIDTH, HEIGHT);
+
+        for (float[] point : new float[][] {
+            {WIDTH * 0.5f, HEIGHT * 0.5f},
+            {200f, 900f},
+            {100f, 300f},
+            {900f, 1600f}
+        }) {
+            double[] preview =
+                    ViewportTransforms.complexAtScreen(
+                            point[0],
+                            point[1],
+                            bridge,
+                            WIDTH,
+                            HEIGHT,
+                            pubCx,
+                            pubCy,
+                            pubScale);
+            assertEquals(
+                    ViewportTransforms.complexX(point[0], WIDTH, target.centerX, target.scale),
+                    preview[0],
+                    1e-5,
+                    "x at " + point[0] + "," + point[1]);
+            assertEquals(
+                    ViewportTransforms.complexY(point[1], HEIGHT, target.centerY, target.scale),
+                    preview[1],
+                    1e-5,
+                    "y at " + point[0] + "," + point[1]);
+        }
+    }
+
+    @Test
+    void pinchWithMidpointDragMatchesCommitPanThenScale() {
+        ViewportTransforms.State start = new ViewportTransforms.State(0.2, -0.1, 200.0);
+        float pivotX = 480f;
+        float pivotY = 1200f;
+        float factor = 1.6f;
+        float dragX = 55f;
+        float dragY = -30f;
+
+        ViewportTransforms.State fromCommit =
+                ViewportTransforms.commitPinch(
+                        start, factor, pivotX, pivotY, WIDTH, HEIGHT, dragX, dragY);
+
+        ViewportTransforms.State fromPanThenZoom =
+                ViewportTransforms.commitPinch(
+                        ViewportTransforms.commitPan(start, dragX, dragY),
+                        factor,
+                        pivotX,
+                        pivotY,
+                        WIDTH,
+                        HEIGHT,
+                        0f,
+                        0f);
+
+        assertEquals(fromPanThenZoom.centerX, fromCommit.centerX, EPS);
+        assertEquals(fromPanThenZoom.centerY, fromCommit.centerY, EPS);
+        assertEquals(fromPanThenZoom.scale, fromCommit.scale, EPS);
+    }
 }

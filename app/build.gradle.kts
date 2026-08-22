@@ -62,6 +62,7 @@ android {
     testOptions {
         unitTests {
             isReturnDefaultValues = true
+            isIncludeAndroidResources = false
             all {
                 it.useJUnitPlatform()
             }
@@ -78,4 +79,7 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("junit:junit:4.13.2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.12.2")
 }

@@ -1,0 +1,49 @@
+---
+description: Testes headless de gestos viewport (Robolectric, pinch+drag simulado)
+globs: app/src/test/java/org/girino/frac/android/foss/**,app/src/main/java/org/girino/frac/android/foss/MandelbrotView.java
+alwaysApply: false
+---
+
+# Testes headless de gesto (viewport)
+
+## Preferência: sem emulador
+
+Gestos pinch+drag são testados na **JVM** com **Robolectric** — não exige celular nem AVD.
+
+| Item | Local |
+|------|--------|
+| Testes | [`app/src/test/java/org/girino/frac/android/foss/`](app/src/test/java/org/girino/frac/android/foss/) |
+| Simulador de toque | [`PinchDragMotionSimulator.java`](app/src/test/java/org/girino/frac/android/foss/PinchDragMotionSimulator.java) |
+| Regressão pinch+drag | [`MandelbrotViewGestureTest.java`](app/src/test/java/org/girino/frac/android/foss/MandelbrotViewGestureTest.java) |
+| Hooks na view | métodos package-private `testing*` em `MandelbrotView` |
+
+```powershell
+$env:JAVA_HOME = Join-Path $PWD ".jdk"
+$env:ANDROID_HOME = Join-Path $PWD ".android-sdk"
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+.\gradlew.bat testDebugUnitTest --tests org.girino.frac.android.foss.MandelbrotViewGestureTest
+```
+
+Ou: `.\scripts\setup-headless-tests.ps1 -RunTests`
+
+SDK local (`platform-tools`, Platform 36, Build-Tools): `.\scripts\setup-android-sdk.ps1`
+
+## Emulador (opcional)
+
+Só para E2E manual ou `connectedAndroidTest` futuro — **não** necessário para pinch+drag regressão.
+
+| Item | Local |
+|------|--------|
+| SDK + emulator binaries | [`.android-sdk/`](.android-sdk/) |
+| AVDs (`ANDROID_AVD_HOME`) | [`.android-avd/`](.android-avd/) |
+| Setup script | [`scripts/setup-android-emulator.ps1`](scripts/setup-android-emulator.ps1) |
+
+## Ao alterar gestos em MandelbrotView
+
+1. Rodar `MandelbrotViewGestureTest` (headless).
+2. Rodar `ViewportTransformsTest` (math pura).
+3. Se adicionar novo gesto, estender `PinchDragMotionSimulator` + teste correspondente.
+
+## Dependência
+
+Robolectric: `org.robolectric:robolectric` em `app/build.gradle.kts` (escopo `testImplementation` apenas).

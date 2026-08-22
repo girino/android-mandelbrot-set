@@ -4,6 +4,7 @@
 local.properties
 .android-sdk/
 .jdk/
+.android-avd/
 **/build/
 captures/
 .externalNativeBuild/
