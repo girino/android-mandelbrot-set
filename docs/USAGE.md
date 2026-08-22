@@ -38,7 +38,7 @@ Open the options menu for:
 |------|--------|
 | **Formula** | Pick a fractal: Mandelbrot, Optimized Mandelbrot, Julia, Nova, Burning Ship, Mandelbar, ShipBar, cube/fourth/fifth-power variants, WTF, and test operators |
 | **Palette** | Pick a color palette (default, red/green/blue variants, HSB, smooth fixed) |
-| **Smooth palette** | Toggle smooth (continuous) coloring |
+| **Smooth palette** | Toggle continuous (smooth) iteration coloring on/off |
 | **Zoom** | Reset to a comfortable default zoom |
 | **Reset** | Reset viewport to the initial position and scale |
 | **Exit** | Close the app |

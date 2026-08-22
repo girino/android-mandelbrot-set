@@ -334,8 +334,14 @@ public class MandelbrotView extends View {
         requestRender(scale * 1.5, centerX, centerY);
     }
 
+    /** Toggles continuous (smooth) iteration coloring and re-renders. */
     public void smooth() {
+        smooth = !smooth;
         start();
+    }
+
+    public boolean isSmooth() {
+        return smooth;
     }
 
     public void reset() {

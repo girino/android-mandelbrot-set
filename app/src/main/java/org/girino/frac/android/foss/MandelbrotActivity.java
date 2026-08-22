@@ -38,11 +38,22 @@ public class MandelbrotActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add(0, Menu.FIRST, 0, R.string.menu_formula);
         menu.add(0, Menu.FIRST + 1, 1, R.string.menu_palette);
-        menu.add(0, Menu.FIRST + 2, 2, R.string.menu_smooth_palette);
+        menu.add(0, Menu.FIRST + 2, 2, R.string.menu_smooth_palette)
+                .setCheckable(true)
+                .setChecked(view.isSmooth());
         menu.add(0, Menu.FIRST + 3, 3, R.string.menu_zoom);
         menu.add(0, Menu.FIRST + 4, 4, R.string.menu_reset);
         menu.add(0, Menu.FIRST + 5, 5, R.string.menu_exit);
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem smoothItem = menu.findItem(Menu.FIRST + 2);
+        if (smoothItem != null) {
+            smoothItem.setChecked(view.isSmooth());
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -58,6 +69,7 @@ public class MandelbrotActivity extends Activity {
                 return true;
             case 2:
                 view.smooth();
+                item.setChecked(view.isSmooth());
                 return true;
             case 3:
                 view.zoom();

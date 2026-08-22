@@ -215,4 +215,14 @@ public class MandelbrotViewGestureTest {
         assertEquals(0f, view.testingPositionX(), 0f);
         assertEquals(1f, view.testingAccumulatedScale(), 0f);
     }
+
+    /** Issue #4: Smooth palette must flip the smooth flag (not only re-render). */
+    @Test
+    public void smoothToggle_flipsFlagEachCall() {
+        assertFalse(view.isSmooth());
+        view.smooth();
+        assertTrue(view.isSmooth());
+        view.smooth();
+        assertFalse(view.isSmooth());
+    }
 }
