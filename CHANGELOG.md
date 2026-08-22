@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1-alpha - 2026-08-22
+
+- Fix abrupt viewport jumps during pinch zoom (issue #2).
+- Anchor pinch commits on the gesture focus and keep preview transforms until re-render.
+- Modernize unit tests to JUnit 5 and expand coverage, including viewport regression tests.
+
 ## 1.0.0 - 2026-08-14
 
 - Add BSD 2-Clause as an F-Droid-compatible alternative to the GAL.
