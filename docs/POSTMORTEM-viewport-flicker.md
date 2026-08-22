@@ -116,4 +116,5 @@ flash.
 
 - [x] Regression suite committed (`MandelbrotViewGestureTest`)
 - [x] Model documented as mandatory rule (`.cursor/rules/viewport-smooth-transition.mdc`)
-- [ ] Optional: focus-anchored zoom (pinch currently scales about screen center, inherited from v1.0.0) — would need the same deferred-commit discipline; do not attempt without re-reading the postmortems
+- [x] Focus-anchored pinch zoom (issue #3) — shipped in v1.0.3; see
+  [POSTMORTEM-pinch-anchor.md](POSTMORTEM-pinch-anchor.md)

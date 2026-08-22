@@ -64,3 +64,4 @@ on last-pointer-up, atomic bitmap+preview swap). Run
 |----------|-------|
 | [docs/POSTMORTEM-viewport-gestures.md](docs/POSTMORTEM-viewport-gestures.md) | Failed approaches before v1.0.2-alpha2 (handoff, bridge, manual pinch, publish gates) |
 | [docs/POSTMORTEM-viewport-flicker.md](docs/POSTMORTEM-viewport-flicker.md) | The fix that worked: deferred commit + atomic handoff (v1.0.2) |
+| [docs/POSTMORTEM-pinch-anchor.md](docs/POSTMORTEM-pinch-anchor.md) | Focus-anchored pinch (issue #3) — failed attempts and v1.0.3 fix |

@@ -21,10 +21,14 @@ GitHub/Zapstore builds requires uninstalling first. Details in
 
 - **Pan**: drag with one finger. The image follows your finger 1:1 while a live
   preview moves it; the high-resolution render catches up after you lift.
-- **Pinch zoom**: pinch with two fingers. Zoom commits when you lift the *last*
-  finger — bringing fingers close together does not end the gesture early.
+- **Pinch zoom**: pinch with two fingers. Zoom is anchored on the midpoint
+  between your fingers (not the screen center), so the fractal under your
+  fingers stays put while you zoom or drag the pinch. Zoom commits when you
+  lift the *last* finger — bringing fingers close together does not end the
+  gesture early.
 - During any gesture the picture stays smooth: the screen shows a transformed
-  preview and never flashes an older bitmap.
+  preview and never flashes an older bitmap. Brief gaps at the edges during
+  a large pinch preview are normal; the new render fills the whole screen.
 
 ## Menu
 

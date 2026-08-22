@@ -103,18 +103,22 @@ docs/                          usage, deploy, postmortems
 `MandelbrotView` implements **deferred commit + atomic handoff**:
 
 1. During a gesture, the view draws a canvas-transformed *preview*
-   (`accumulatedScale`, `positionX/Y`) of the already-published bitmap.
-   Nothing is rendered or published while pointers are down.
+   (`accumulatedScale`, `positionX/Y`, live `focus` / `startFocus`) of the
+   already-published bitmap. Pinch scales about the finger midpoint so
+   content walks with the pinch (issue #3). Nothing is rendered or published
+   while pointers are down.
 2. The logical viewport (`centerX/Y/scale`) keeps describing the published
    bitmap until the last finger lifts.
 3. On last-pointer-up, `commitGestureAndRender()` folds preview + gesture into
-   a pending target and starts the render against it.
+   a pending target (`commitAffinePreview`) and starts the render against it.
 4. When the render finishes, one atomic `post()` publishes the new bitmap AND
-   the new viewport AND clears the preview — the old bitmap is never exposed.
+   the new viewport AND clears the preview (including focus anchors) — the
+   old bitmap is never exposed, and pinch-drag is not applied twice.
 
 This model exists because six earlier approaches flickered; see
-[POSTMORTEM-viewport-flicker.md](POSTMORTEM-viewport-flicker.md) before
-changing anything. Hard requirements live in
+[POSTMORTEM-viewport-flicker.md](POSTMORTEM-viewport-flicker.md) and
+[POSTMORTEM-pinch-anchor.md](POSTMORTEM-pinch-anchor.md) before changing
+anything. Hard requirements live in
 [`.cursor/rules/viewport-smooth-transition.mdc`](../.cursor/rules/viewport-smooth-transition.mdc)
 and regression tests in `MandelbrotViewGestureTest`.
 

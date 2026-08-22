@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3 - 2026-08-22
+
+- Anchor pinch zoom on the finger midpoint (issue #3): preview and committed
+  bitmap keep the content under your fingers; pinch+drag walks with the focus.
+- Preserve the v1.0.2 deferred-commit + atomic-handoff model (no flicker).
+- Reset focus state on bitmap publish so pinch-drag is not applied twice.
+- Preview may show edge gaps while transforming the stale bitmap; the new
+  render always fills the screen.
+
 ## 1.0.2 - 2026-08-22
 
 Stable release. Same fixes as 1.0.2-alpha2, validated on device.

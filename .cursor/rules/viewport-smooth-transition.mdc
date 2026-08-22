@@ -9,25 +9,33 @@ Requisito **obrigatório** do produto (solicitado pelo usuário): gestos de pan/
 devem manter **transição suave** — sem salto visível ao soltar o dedo ou ao trocar
 de gesto.
 
-## Modelo vigente (v1.0.2 — validado no dispositivo e publicado)
+## Modelo vigente (v1.0.3 — deferred commit + atomic handoff + focus pinch)
 
 O modelo "publicar no step=8" foi **substituído**. O atual é **deferred commit +
-atomic handoff**, implementado em `MandelbrotView`:
+atomic handoff**, implementado em `MandelbrotView` (flicker fix em v1.0.2;
+pinch no foco em v1.0.3):
 
-1. **Durante o gesto**: preview no canvas (`accumulatedScale`, `positionX/Y` —
-   scale/translate sobre o bitmap publicado). Nenhum bitmap novo é publicado.
+1. **Durante o gesto**: preview no canvas (`accumulatedScale`, `positionX/Y`,
+   `focus`/`startFocus` — scale/translate afim sobre o bitmap publicado).
+   Pinch ancora no ponto médio dos dedos. Nenhum bitmap novo é publicado.
 2. **Nada é calculado nem publicado durante o gesto**: `start()` não inicia
    render com ponteiro ativo; o loop de render aborta se um gesto começar.
 3. **Commit adiado para o último dedo**: `onScaleEnd` prematuro (dedos próximos)
    é ignorado — só `ACTION_UP`/`ACTION_CANCEL` do último ponteiro chama
    `commitGestureAndRender()`, que dobra preview + gesto em
-   `targetCenterX/Y/scale` (`hasPendingTarget`). O viewport lógico
-   (`centerX/centerY/scale`) continua descrevendo o bitmap publicado até a troca.
+   `targetCenterX/Y/scale` (`hasPendingTarget` via `commitAffinePreview`). O
+   viewport lógico (`centerX/centerY/scale`) continua descrevendo o bitmap
+   publicado até a troca.
 4. **Atomic handoff na publicação**: quando o render do target termina, o
    `post()` publica **de uma vez**: `bitmap = rendered` + `centerX/Y/scale =
-   target*` + reset de `accumulatedScale`/`positionX/Y`. O preview nunca some
+   target*` + reset de `accumulatedScale`/`positionX/Y` **e**
+   `focus`/`startFocus` para o centro da tela. Sem reset do foco, o drag do
+   pinch era reaplicado em cima do bitmap novo (~2x). O preview nunca some
    antes do bitmap novo estar na tela — sem flash do bitmap velho.
 5. Renders obsoletos são ignorados por geração.
+
+Gaps na borda durante a prévia (bitmap velho transformado) são aceitáveis;
+o bitmap recalculado sempre preenche a janela.
 
 ## Por que o modelo anterior falhou (não repetir)
 

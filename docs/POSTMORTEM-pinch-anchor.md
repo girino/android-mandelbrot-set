@@ -1,8 +1,10 @@
 # Postmortem — pinch anchor (issue #3) attempts
 
-Status: **rolled back to v1.0.2 behavior on 2026-08-22**. Issue #3 remains open.
-This document records what was tried, why each attempt failed, and what any
-future fix must respect. Read it together with
+Status: **resolved and shipped in v1.0.3** (2026-08-22).
+Closes [#3 — Pinch zoom is anchored to screen center](https://github.com/girino/android-mandelbrot-set/issues/3).
+
+This document records what was tried, why early attempts failed, and the
+constraints of the fix that shipped. Read it together with
 [POSTMORTEM-viewport-gestures.md](POSTMORTEM-viewport-gestures.md) and
 [POSTMORTEM-viewport-flicker.md](POSTMORTEM-viewport-flicker.md).
 
@@ -96,14 +98,30 @@ Final state: 90/90 tests green, including field-equality probes
   covering-constraint rejection no longer applies. Revisit the Affine/
   Matrix focus-following approach with that constraint relaxed.
 
-## Rollback
+## Rollback (historical)
 
 `git checkout v1.0.2 -- app/src` restored `MandelbrotView.java`,
-`ViewportTransforms.java`, and both test files to the released state. Tests
-and build verified, APK installed on device. Commits 366c066 and 4a42593
-remain in history but their code changes are reverted in a follow-up commit.
+`ViewportTransforms.java`, and both test files to the released state after
+failed attempts. Tag `pre-issue3-focus-anchor` marked the tree immediately
+before the successful re-implementation.
 
-## Lessons / rules for the next attempt
+## What shipped in v1.0.3
+
+Affine focus-following preview (Matrix-style):
+
+```text
+q = position + focus + s * (p - startFocus)
+```
+
+`ViewportTransforms.commitAffinePreview` derives the pending target from the
+same map so preview and commit agree everywhere. Detector restarts shift
+`startFocus` to keep the map continuous. Atomic handoff resets
+`focus`/`startFocus` to screen center with the rest of the preview — otherwise
+with `s=1` the leftover `(focus - startFocus)` re-applies pinch-drag on top of
+the new bitmap (~2x movement). Gaps during the stale-bitmap preview are
+accepted; the published render fills the window.
+
+## Lessons
 
 1. **Gaps during stale-bitmap preview are OK** (issue #3 clarification).
    Only the new published render must fill the window. Do not reject a
@@ -115,7 +133,8 @@ remain in history but their code changes are reverted in a follow-up commit.
    first-MOVE-bundles-motion. Use warm-up MOVEs in simulators; do not assume
    `onScaleBegin` sees the touch-down geometry.
 4. **Do not re-anchor a live preview** on detector restart; shift the map's
-   parameters to stay continuous (the continuity piece of attempt 3 is worth
-   keeping).
-5. **User-visible acceptance beats green tests**: encode product constraints
+   parameters to stay continuous.
+5. **Clear ALL preview state on atomic handoff** — including focus anchors,
+   not only `accumulatedScale`/`positionX/Y`.
+6. **User-visible acceptance beats green tests**: encode product constraints
    (gaps OK / fill after publish) explicitly so agents do not invent blockers.
