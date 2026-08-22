@@ -20,12 +20,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Fractal viewport — v1.0.0 gestures with two fixes:
- * 1. Commit is deferred: {@code centerX/scale} always describe the published bitmap;
+ * Fractal viewport — v1.0.0 gestures with two fixes.
+ * 1. Commit is deferred: centerX and scale always describe the published bitmap;
  *    gesture deltas stay as a frozen canvas preview and are folded into a pending
  *    target on full release. The preview is cleared only when the matching bitmap
  *    publishes (atomic handoff, no flash of the stale bitmap).
- * 2. Premature {@code onScaleEnd} (finger proximity) is ignored — commit happens
+ * 2. Premature onScaleEnd (finger proximity) is ignored — commit happens
  *    only when the last finger leaves the screen.
  */
 public class MandelbrotView extends View {
@@ -44,7 +44,7 @@ public class MandelbrotView extends View {
 
     private int width = 320;
     private int height = 480;
-    /** Viewport of the currently displayed {@link #bitmap}. */
+    /** Viewport of the currently displayed bitmap. */
     private double centerX;
     private double centerY;
     private double scale = 100.0 * 300.0 / width;

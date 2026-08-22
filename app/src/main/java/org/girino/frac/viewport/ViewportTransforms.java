@@ -75,8 +75,9 @@ public final class ViewportTransforms {
     }
 
     /**
-     * Canvas preview bridge: stale bitmap at {@code published*} drawn with scale-about-center
-     * then translate must match {@code target*} on screen (same convention as MandelbrotView).
+     * Canvas preview bridge: stale bitmap at published coordinates drawn with
+     * scale-about-center then translate must match target coordinates on screen
+     * (same convention as MandelbrotView).
      */
     public static final class PreviewBridge {
         public final float scale;
@@ -111,7 +112,7 @@ public final class ViewportTransforms {
                 (float) ((publishedCenterY - targetCenterY) * publishedScale));
     }
 
-    /** Complex coords visible at a screen pixel after applying {@link PreviewBridge} on a published bitmap. */
+    /** Complex coords visible at a screen pixel after applying PreviewBridge on a published bitmap. */
     public static double[] complexAtScreen(
             float screenX,
             float screenY,
