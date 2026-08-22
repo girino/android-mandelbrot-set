@@ -76,6 +76,8 @@ public class MandelbrotView extends View {
     private float lastPinchSpan = -1f;
     /** Latest progressive frame waiting while a gesture is active. */
     private volatile Bitmap deferredBitmap;
+    private int deferredGeneration = -1;
+    private int deferredStep = -1;
 
     /** Committed by gesture but applied to center/scale only when the matching bitmap publishes. */
     private boolean hasPendingViewport;
@@ -301,11 +303,22 @@ public class MandelbrotView extends View {
 
     private void clearDeferredPublish() {
         deferredBitmap = null;
+        deferredGeneration = -1;
+        deferredStep = -1;
+    }
+
+    private void flushDeferredPublishIfReady() {
+        if (deferredBitmap != null && deferredStep == 1) {
+            publishRenderFrame(deferredBitmap, deferredGeneration, deferredStep);
+        }
+        clearDeferredPublish();
     }
 
     private void publishRenderFrame(Bitmap rendered, int generation, int step) {
         if (isGestureActive()) {
             deferredBitmap = rendered;
+            deferredGeneration = generation;
+            deferredStep = step;
             debugViewport("publish deferred gen=" + generation + " step=" + step);
             invalidate();
             return;
@@ -313,6 +326,10 @@ public class MandelbrotView extends View {
         if (hasPendingViewport && generation != pendingViewportGeneration) {
             debugViewport(
                     "publish skip stale gen=" + generation + " pendingGen=" + pendingViewportGeneration);
+            return;
+        }
+        if (hasPendingViewport && step != 1) {
+            debugViewport("publish hold preview gen=" + generation + " step=" + step);
             return;
         }
         if (hasPendingViewport) {
@@ -325,7 +342,7 @@ public class MandelbrotView extends View {
         bitmap = rendered;
         applyPendingViewport();
         clearPreviewTransform();
-        deferredBitmap = null;
+        clearDeferredPublish();
         debugViewport("publish applied gen=" + generation + " step=" + step);
         invalidate();
     }
@@ -340,8 +357,6 @@ public class MandelbrotView extends View {
         lastPinchSpan = -1f;
         activePointerId = INVALID_POINTER_ID;
 
-        clearDeferredPublish();
-
         boolean viewportChanged = false;
         if (commitPinch) {
             viewportChanged = commitScaleIfNeeded();
@@ -350,7 +365,10 @@ public class MandelbrotView extends View {
             viewportChanged = true;
         }
         if (viewportChanged) {
+            clearDeferredPublish();
             start();
+        } else {
+            flushDeferredPublishIfReady();
         }
         debugViewport("finishTouchGesture changed=" + viewportChanged);
     }
