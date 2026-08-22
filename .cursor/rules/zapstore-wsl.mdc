@@ -12,37 +12,58 @@ O CLI [`zsp`](https://github.com/zapstore/zsp) **não compila no Windows** (`sys
 
 Config: [`zapstore.yaml`](zapstore.yaml) (npub, Fastlane). APK vem do GitHub Release.
 
-## 1. Abrir WSL na raiz do repo
+## Fluxo completo de release (validado em 1.0.2)
+
+1. Subir `versionCode`/`versionName` em [`app/build.gradle.kts`](../app/build.gradle.kts) + entrada no [`CHANGELOG.md`](../CHANGELOG.md).
+2. Rodar local: lint + testes + build (ver [local-android-sdk.mdc](local-android-sdk.mdc)).
+3. Commitar, criar tag `vX.Y.Z` e **pushar** (pedir aprovação do usuário para push).
+4. Push da tag dispara o workflow *Android release* → publica APK assinado na GitHub Release.
+5. Publicar no Zapstore com `zsp` (abaixo), apontando pra config com **caminho absoluto**.
+
+## 1. Abrir o WSL
 
 ```bash
+# caminho do repo no WSL
 cd /mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
-# ou o caminho equivalente no seu WSL
 ```
 
 ## 2. Instalar zsp (uma vez)
 
 ```bash
-# Go 1.21+ no WSL (ex.: sudo apt install golang-go)
+# Go no WSL (snap funciona; se der erro XDG_RUNTIME_DIR, veja seção Troubleshooting)
 go install github.com/zapstore/zsp@latest
 export PATH="$HOME/go/bin:$PATH"
 zsp --version
 ```
 
-## 3. Credenciais (só no shell WSL, nunca no chat)
+## 3. Credenciais (só no ambiente do processo, nunca em arquivo nem log)
 
 ```bash
-export SIGN_WITH='bunker://...'   # ou nsec — variável local, não GitHub secret
-export GITHUB_TOKEN='...'         # opcional, se o fetch do release exigir token
+export SIGN_WITH='bunker://...'   # ou nsec — variável de ambiente local, não GitHub secret
 ```
 
-## 4. Verificar e publicar
+## 4. Verificar e publicar — SEMPRE caminho absoluto
+
+**Importante:** com stdin vindo de pipe (ex.: heredoc no `wsl -e bash`), o `zsp`
+**falha ao resolver caminhos relativos** ("no such file or directory" mesmo com
+o arquivo presente e cwd correto). Sempre passe a config como **caminho absoluto**:
 
 ```bash
-zsp publish --check zapstore.yaml
-zsp publish -q zapstore.yaml
+zsp publish --check /caminho/absoluto/zapstore.yaml   # dry-run: valida config e busca o release
+zsp publish -q /caminho/absoluto/zapstore.yaml        # publica de fato
 ```
 
-Na **primeira** publicação, o `zsp` pode pedir para vincular o certificado de assinatura do APK à identidade Nostr (keystore `.jks`).
+Alternativa sem pipe: rodar direto num shell interativo do WSL (aí caminho relativo funciona).
+
+## 5. Confirmar publicação
+
+```bash
+zsp utils has-new-release /caminho/absoluto/zapstore.yaml
+# {"has_new_release":false,"release_version":"X.Y.Z"} = publicado e em dia
+```
+
+Na **primeira** publicação, o `zsp` pode pedir para vincular o certificado de
+assinatura do APK à identidade Nostr (keystore `.jks`).
 
 ## Windows vs WSL
 
@@ -50,3 +71,13 @@ Na **primeira** publicação, o `zsp` pode pedir para vincular o certificado de 
 |--------|------|
 | Gradle, Android SDK, JDK | Windows — pastas `.jdk/` e `.android-sdk/` do repo |
 | `zsp publish` | **WSL** |
+
+## Troubleshooting (já visto na prática)
+
+- **`cannot create XDG_RUNTIME_DIR "/run/user/1000"`** ao rodar `go` via `wsl -e`:
+  corrigir uma vez com root:
+  ```bash
+  wsl -u root -e bash -lc "mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000"
+  ```
+- **"failed to open config file"** com arquivo existente: é o bug de stdin/caminho
+  relativo acima — use caminho absoluto.

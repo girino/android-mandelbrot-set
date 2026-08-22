@@ -9,31 +9,41 @@ Requisito **obrigatório** do produto (solicitado pelo usuário): gestos de pan/
 devem manter **transição suave** — sem salto visível ao soltar o dedo ou ao trocar
 de gesto.
 
-## O que isso significa
+## Modelo vigente (v1.0.2 — validado no dispositivo e publicado)
 
-1. **Durante o gesto**: preview no canvas (scale/translate sobre o bitmap atual).
-2. **Ao soltar**: na **primeira iteração do render (step=8)**, publicar o bitmap
-   coarse nas coordenadas corretas e **só então** remover o preview; steps 4→2→1
-   refinam in-place.
-3. **Correções de coordenadas ou concorrência** não podem atrasar essa publicação
-   até step=1 nem zerar o preview antes do step=8 correspondente.
+O modelo "publicar no step=8" foi **substituído**. O atual é **deferred commit +
+atomic handoff**, implementado em `MandelbrotView`:
 
-## Concorrência (render vs gesto novo)
+1. **Durante o gesto**: preview no canvas (`accumulatedScale`, `positionX/Y` —
+   scale/translate sobre o bitmap publicado). Nenhum bitmap novo é publicado.
+2. **Nada é calculado nem publicado durante o gesto**: `start()` não inicia
+   render com ponteiro ativo; o loop de render aborta se um gesto começar.
+3. **Commit adiado para o último dedo**: `onScaleEnd` prematuro (dedos próximos)
+   é ignorado — só `ACTION_UP`/`ACTION_CANCEL` do último ponteiro chama
+   `commitGestureAndRender()`, que dobra preview + gesto em
+   `targetCenterX/Y/scale` (`hasPendingTarget`). O viewport lógico
+   (`centerX/centerY/scale`) continua descrevendo o bitmap publicado até a troca.
+4. **Atomic handoff na publicação**: quando o render do target termina, o
+   `post()` publica **de uma vez**: `bitmap = rendered` + `centerX/Y/scale =
+   target*` + reset de `accumulatedScale`/`positionX/Y`. O preview nunca some
+   antes do bitmap novo estar na tela — sem flash do bitmap velho.
+5. Renders obsoletos são ignorados por geração.
 
-Se um **novo gesto começa antes** do render anterior terminar:
+## Por que o modelo anterior falhou (não repetir)
 
-- O **viewport lógico** (`centerX` / `centerY` / `scale`) deve refletir o commit
-  mais recente **na hora do commit**, para o gesto seguinte não reutilizar
-  coordenadas do bitmap antigo.
-- O **bitmap na tela** atualiza no **step=8** (preview some); refinamento continua
-  até step=1. O preview cobre só o intervalo commit→step=8.
-- Renders obsoletos devem ser **cancelados ou ignorados** (`generation` /
-  `pendingViewportGeneration`), nunca aplicados por cima do viewport atual.
+- Publicar bitmaps intermediários (steps 8→4→2→1) durante/após gesto causava o
+  flicker: bitmap coarse ou velho substituía a tela antes da hora.
+- Zerar preview em `onScaleEnd`/`applyTranslation()` expunha o bitmap stale.
+- Confiar no `onScaleEnd` do `ScaleGestureDetector` commitava zoom pela metade
+  (ele dispara cedo quando os dedos chegam perto ~1cm).
+- Histórico completo: [`docs/POSTMORTEM-viewport-gestures.md`](../docs/POSTMORTEM-viewport-gestures.md).
 
 ## Ao alterar `MandelbrotView`
 
-- Preservar preview + publicação atômica (bitmap + fim do preview).
-- Testar no dispositivo: pan, pinch, gestos rápidos encadeados antes do render
-  terminar.
-- Não tratar salto como “só resolução grossa” se o usuário reportar coordenadas
+- Preservar o gate: **sem publish e sem start de render com gesto ativo**.
+- Preservar o commit só no último dedo e a troca atômica bitmap+preview.
+- Rodar `MandelbrotViewGestureTest` (ver [headless-gesture-tests.mdc](headless-gesture-tests.mdc))
+  e testar no dispositivo: pan, pinch, zoom out com dedos chegando juntos,
+  gestos rápidos encadeados antes do render terminar.
+- Não tratar salto como "só resolução grossa" se o usuário reportar coordenadas
   erradas — verificar base de commit e corrida render/gesto.

@@ -69,3 +69,17 @@ JDK: defina `JAVA_HOME` para `.jdk` na raiz (como no exemplo acima). Não grave
   estiver incompleto, reinstalar **aqui** (Platform 36, Build-Tools 36.0.0).
 - Se `.jdk/` faltar, instalar um JDK 17+ **aqui** (Temurin/OpenJDK portátil).
 - Não commitar `.android-sdk/`, `.jdk/` nem `local.properties`.
+
+## Lint (CI exige `lintRelease` verde)
+
+O workflow *Android release* roda `testDebugUnitTest lintRelease assembleRelease`
+— **lint quebra a release**. Já houve crash do parser JavaDoc do lint
+(`NoSuchMethodError: JavaDocParser.parseDataItem`) com comentários contendo
+`{@code ...}`, `{@link ...}` em arquivos Java. O parser do lint não tolera esses
+tags neste setup:
+
+- **Nunca** usar `{@code}`, `{@link}` nem outros tags JDoc inline em comentários
+  de `app/src/main/**`. Escrever texto plano (ex.: "centerX and scale" em vez de
+  `{@code centerX/scale}`).
+- Antes de taggear release, rodar local: `.\gradlew.bat lintRelease testDebugUnitTest`.
+- Fix de referência: commits `d2e262a` e `bae4e88`.

@@ -1,9 +1,9 @@
 ---
-description: Commit automático; push só quando o usuário pedir
+description: Commit automático; push e publicação só quando o usuário pedir
 alwaysApply: true
 ---
 
-# Git — commit sempre; push só sob pedido
+# Git — commit sempre; push/publicação só sob pedido
 
 ## Commit (automático)
 
@@ -16,3 +16,24 @@ alwaysApply: true
 - **Nunca** executar `git push` por iniciativa própria.
 - Push **somente** quando o usuário pedir explicitamente (ex.: "dá push", "envia pro GitHub").
 - Após commit, informar hash e que o remoto está pendente se houver commits locais.
+
+## Release / tag (pedido explícito)
+
+Quando o usuário pedir uma release (ex.: "vamos lançar a 1.0.3"):
+
+1. Atualizar `versionCode`/`versionName` + [`CHANGELOG.md`](../CHANGELOG.md), rodar lint+testes local.
+2. Commitar, criar a tag, e **pushar branch + tag** (a tag dispara o workflow
+   *Android release*, que publica o APK assinado na GitHub Release).
+3. Se o pedido incluir Zapstore, seguir [zapstore-wsl.mdc](zapstore-wsl.mdc)
+   (WSL + `zsp`, caminho absoluto da config, `SIGN_WITH` no ambiente).
+4. Confirmar a GitHub Release publicada (`gh release view <tag>`) antes de anunciar.
+
+Push de branch/tag conta como parte do pedido de release — não precisa pedir
+autorização duas vezes, mas nunca pushar sem que a release tenha sido pedida.
+
+## Autenticação
+
+Push roda sem janelas via token do `gh` no keyring (ver
+[git-credentials-github.mdc](git-credentials-github.mdc)). Se abrir popup de
+autenticação, é sintoma de token expirado ou processo git órfão — não aceitar o
+diálogo; diagnosticar primeiro.
