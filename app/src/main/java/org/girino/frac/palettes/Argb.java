@@ -1,8 +1,8 @@
 package org.girino.frac.palettes;
 
 /**
- * Pure-Java ARGB helpers matching the packing used by {@code android.graphics.Color}
- * for the subset this app needs, so palettes stay unit-testable on the JVM.
+ * Pure-Java ARGB helpers matching android.graphics.Color packing for the subset
+ * this app needs, so palettes stay unit-testable on the JVM.
  */
 public final class Argb {
     public static final int BLACK = 0xFF000000;
@@ -18,9 +18,9 @@ public final class Argb {
     }
 
     /**
-     * Converts HSV to opaque ARGB. {@code hsv[0]} is hue in degrees [0, 360),
-     * {@code hsv[1]} saturation and {@code hsv[2]} value in [0, 1], matching
-     * {@code android.graphics.Color#HSVToColor(float[])}.
+     * Converts HSV to opaque ARGB.
+     * hsv[0] is hue in degrees 0..360, hsv[1] saturation and hsv[2] value in 0..1,
+     * matching android.graphics.Color.HSVToColor.
      */
     public static int hsvToColor(float[] hsv) {
         float h = hsv[0];

@@ -1,9 +1,9 @@
 package org.girino.frac.viewport;
 
 /**
- * Pure viewport math shared by {@code MandelbrotView} and unit tests.
- * Screen → complex mapping matches the fractal renderer:
- * {@code (screen - size/2) / scale + center}.
+ * Pure viewport math shared by MandelbrotView and unit tests.
+ * Screen to complex mapping matches the fractal renderer:
+ * (screen - size/2) / scale + center.
  */
 public final class ViewportTransforms {
     private ViewportTransforms() {
@@ -41,9 +41,9 @@ public final class ViewportTransforms {
     }
 
     /**
-     * Commits a pinch zoom around {@code (focusX, focusY)}, folding any outstanding
+     * Commits a pinch zoom around (focusX, focusY), folding any outstanding
      * pan at the pre-zoom scale first. This keeps the complex point under the focus
-     * stable for the transform order used by {@code MandelbrotView} (translate then
+     * stable for the transform order used by MandelbrotView (translate then
      * scale-around-focus in geometry space).
      */
     public static State commitPinch(
