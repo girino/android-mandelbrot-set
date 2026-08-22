@@ -66,24 +66,20 @@ Keep the historical signing key if releases must update existing installations.
 ## Zapstore
 
 Stable GitHub releases can be published to [Zapstore](https://zapstore.dev) with
-[`zsp`](https://github.com/zapstore/zsp). The repo root already contains
+[`zsp`](https://github.com/zapstore/zsp). The repo root contains
 [`zapstore.yaml`](zapstore.yaml) with the publisher npub and Fastlane metadata
 sources.
 
-Configure one of these GitHub Actions repository secrets:
-
-- `ZAPSTORE_BUNKER_URL` (recommended for CI): NIP-46 bunker URL for signing
-- `ZAPSTORE_NSEC`: publisher Nostr private key (avoid on shared machines)
-
-On the first publish, `zsp` may prompt to link the Android signing certificate
-to the Nostr identity; run locally once if CI cannot complete that step:
+Publish manually from WSL (see [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc)):
 
 ```shell
-SIGN_WITH=bunker://... zsp publish -q zapstore.yaml
+export SIGN_WITH='bunker://...'   # or nsec — use your local env, not GitHub secrets
+export GITHUB_TOKEN='...'         # if release fetch requires a token
+zsp publish -q zapstore.yaml
 ```
 
-After secrets are set, run the **Publish Zapstore** workflow in GitHub Actions
-(manual `workflow_dispatch` only — tag pushes do not publish to Zapstore).
+On the first publish, `zsp` may prompt to link the Android signing certificate
+to your Nostr identity.
 
 ## License
 
