@@ -194,14 +194,28 @@ public class MandelbrotView extends View {
         invalidate();
     }
 
-    private void flushDeferredBitmapPublish() {
-        if (isGestureActive() || deferredBitmap == null) {
-            return;
+    /** Ends touch handling: commit viewport, then start one render with gesture flags already cleared. */
+    private void finishTouchGesture() {
+        final boolean commitPinch = pinchSessionStarted || pinchNeedsCommit;
+
+        pinchSessionStarted = false;
+        pinchNeedsCommit = false;
+        panInProgress = false;
+        lastPinchSpan = -1f;
+        activePointerId = INVALID_POINTER_ID;
+
+        clearDeferredPublish();
+
+        boolean viewportChanged = false;
+        if (commitPinch) {
+            viewportChanged = commitScaleIfNeeded();
         }
-        bitmap = deferredBitmap;
-        clearPreviewTransform();
-        deferredBitmap = null;
-        invalidate();
+        if (commitPanIfNeeded()) {
+            viewportChanged = true;
+        }
+        if (viewportChanged) {
+            start();
+        }
     }
 
     private void render(
@@ -313,6 +327,7 @@ public class MandelbrotView extends View {
                 pinchSessionStarted = false;
                 pinchNeedsCommit = false;
                 lastPinchSpan = -1f;
+                clearDeferredPublish();
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
                 activePointerId = event.getPointerId(0);
@@ -367,27 +382,11 @@ public class MandelbrotView extends View {
                 }
                 return true;
             case MotionEvent.ACTION_UP:
-                if (pinchSessionStarted || pinchNeedsCommit) {
-                    applyScale();
-                }
-                pinchSessionStarted = false;
-                pinchNeedsCommit = false;
-                lastPinchSpan = -1f;
-                panInProgress = false;
-                applyTranslation();
-                flushDeferredBitmapPublish();
+                finishTouchGesture();
                 performClick();
                 return true;
             case MotionEvent.ACTION_CANCEL:
-                if (pinchSessionStarted || pinchNeedsCommit) {
-                    applyScale();
-                }
-                pinchSessionStarted = false;
-                pinchNeedsCommit = false;
-                lastPinchSpan = -1f;
-                panInProgress = false;
-                applyTranslation();
-                flushDeferredBitmapPublish();
+                finishTouchGesture();
                 return true;
             default:
                 return true;
@@ -400,10 +399,9 @@ public class MandelbrotView extends View {
         return true;
     }
 
-    private void applyTranslation() {
-        activePointerId = INVALID_POINTER_ID;
+    private boolean commitPanIfNeeded() {
         if (positionX == 0f && positionY == 0f) {
-            return;
+            return false;
         }
         ViewportTransforms.State next = ViewportTransforms.commitPan(
                 new ViewportTransforms.State(centerX, centerY, scale),
@@ -411,17 +409,16 @@ public class MandelbrotView extends View {
                 positionY);
         centerX = next.centerX;
         centerY = next.centerY;
-        // Keep preview pan until progressive frames replace the bitmap.
         syncPreviewFromGesture();
         positionX = 0f;
         positionY = 0f;
-        start();
+        return true;
     }
 
-    private void applyScale() {
+    private boolean commitScaleIfNeeded() {
         double factor = accumulatedScale;
         if (factor == 1.0) {
-            return;
+            return false;
         }
         ViewportTransforms.State next = ViewportTransforms.commitPinch(
                 new ViewportTransforms.State(pinchStartCenterX, pinchStartCenterY, pinchStartScale),
@@ -439,7 +436,7 @@ public class MandelbrotView extends View {
         accumulatedScale = 1f;
         positionX = 0f;
         positionY = 0f;
-        start();
+        return true;
     }
 
     public void zoom() {
