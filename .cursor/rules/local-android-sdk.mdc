@@ -1,0 +1,57 @@
+---
+description: Usar Android SDK (.android-sdk/) e JDK (.jdk/) locais do repositório
+alwaysApply: true
+---
+
+# SDK e JDK locais do repositório
+
+Sempre usar o **Android SDK** e o **JDK deste repositório**, nunca os globais do
+sistema (`%LOCALAPPDATA%\Android\Sdk`, `C:\Android`, JDK do PATH do Windows, etc.).
+
+Pastas na raiz do projeto (caminhos **relativos** ao repositório — sem `F:/...`
+nem `C:\Users\...` em regras, exemplos ou `local.properties`):
+
+| Ferramenta | Pasta |
+|---|---|
+| Android SDK | [`.android-sdk/`](.android-sdk/) |
+| JDK 17+ | [`.jdk/`](.jdk/) |
+
+```text
+# ❌ BAD — absolutos ou SDK/JDK do sistema
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:JAVA_HOME = "D:\Tools\Java\temurin-25"
+.\gradlew.bat assembleDebug
+
+# ✅ GOOD — relativos à raiz do repo (cwd = raiz do git)
+$env:ANDROID_HOME = Join-Path $PWD ".android-sdk"
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+$env:JAVA_HOME = Join-Path $PWD ".jdk"
+.\gradlew.bat assembleDebug
+```
+
+Para exportar variáveis, `Join-Path $PWD ".jdk"` (ou `Resolve-Path`) pode resultar em
+path absoluto **só no ambiente do processo**; arquivos versionáveis e
+`local.properties` continuam com paths relativos.
+
+## Gradle / propriedades
+
+Em `local.properties` (gitignored):
+
+```properties
+sdk.dir=.android-sdk
+```
+
+JDK: defina `JAVA_HOME` para `.jdk` na raiz (como no exemplo acima). Não grave
+`org.gradle.java.home` em `gradle.properties` commitado (quebra CI sem `.jdk/`).
+
+## Ferramentas
+
+- `sdkmanager` / `adb`: `cmdline-tools/latest/bin` e `platform-tools` **dentro** de `.android-sdk`.
+- Compilação: `JAVA_HOME` apontando para `.jdk`.
+
+## Instalação / manutenção
+
+- Não instalar Platform/Build-Tools no SDK do usuário. Se `.android-sdk/` faltar ou
+  estiver incompleto, reinstalar **aqui** (Platform 36, Build-Tools 36.0.0).
+- Se `.jdk/` faltar, instalar um JDK 17+ **aqui** (Temurin/OpenJDK portátil).
+- Não commitar `.android-sdk/`, `.jdk/` nem `local.properties`.

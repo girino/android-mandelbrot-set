@@ -39,9 +39,24 @@ android {
                 keyPassword = releaseKeyPassword
             }
         }
-        buildTypes {
-            release {
+    }
+
+    buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
+        release {
+            if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+            all {
+                it.useJUnitPlatform()
             }
         }
     }
@@ -53,5 +68,7 @@ android {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

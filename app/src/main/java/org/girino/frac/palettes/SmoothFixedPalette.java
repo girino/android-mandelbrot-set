@@ -1,7 +1,5 @@
 package org.girino.frac.palettes;
 
-import android.graphics.Color;
-
 public class SmoothFixedPalette implements PaletteProvider {
 
 	protected static int[] colors;
@@ -34,14 +32,14 @@ public class SmoothFixedPalette implements PaletteProvider {
 		    {
 		        colorValueB = i;
 		    }
-		    colors[i] = Color.rgb(colorValueR, colorValueG, colorValueB);
+		    colors[i] = Argb.rgb(colorValueR, colorValueG, colorValueB);
 		}
 	}
 	
 	
 	public int getColor(double value) {
 		if (value < epsilon || (1.0-value) < epsilon) {
-			return Color.BLACK;
+			return Argb.BLACK;
 		}
 		return colors[(int)(colors.length * value)];
 	}

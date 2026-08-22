@@ -2,6 +2,8 @@
 .gradle/
 .idea/
 local.properties
+.android-sdk/
+.jdk/
 **/build/
 captures/
 .externalNativeBuild/

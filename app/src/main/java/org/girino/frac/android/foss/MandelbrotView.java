@@ -13,6 +13,7 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.palettes.HSBPalette;
 import org.girino.frac.palettes.PaletteProvider;
+import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,17 +40,40 @@ public class MandelbrotView extends View {
     private double centerY;
     private double scale = 100.0 * 300.0 / width;
 
+    /** Live gesture scale factor (1 while idle). */
     private float accumulatedScale = 1f;
+    private float focusX;
+    private float focusY;
     private float positionX;
     private float positionY;
     private float lastTouchX;
     private float lastTouchY;
     private int activePointerId = INVALID_POINTER_ID;
 
+    /**
+     * Preview transform kept until the first progressive frame of the matching
+     * render arrives, so the bitmap does not snap back before the new fractal.
+     */
+    private float previewScale = 1f;
+    private float previewFocusX;
+    private float previewFocusY;
+    private float previewPosX;
+    private float previewPosY;
+    private boolean previewResetPending;
+    /** Model snapshot before an unpublished gesture commit (for gesture restart). */
+    private double preCommitCenterX;
+    private double preCommitCenterY;
+    private double preCommitScale;
+    private boolean hasPreCommit;
+
     public MandelbrotView(Context context) {
         super(context);
         setBackgroundColor(0xff0a0a0a);
         scaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+        focusX = width / 2f;
+        focusY = height / 2f;
+        previewFocusX = focusX;
+        previewFocusY = focusY;
     }
 
     public void setOper(FractalOperator operator) {
@@ -133,10 +157,59 @@ public class MandelbrotView extends View {
             post(() -> {
                 if (generation == renderGeneration.get()) {
                     bitmap = rendered;
+                    if (previewResetPending) {
+                        clearPreviewTransform();
+                        previewResetPending = false;
+                        hasPreCommit = false;
+                    }
                     invalidate();
                 }
             });
         }
+    }
+
+    private void syncPreviewFromGesture() {
+        previewScale = accumulatedScale;
+        previewFocusX = focusX;
+        previewFocusY = focusY;
+        previewPosX = positionX;
+        previewPosY = positionY;
+    }
+
+    private void clearPreviewTransform() {
+        previewScale = 1f;
+        previewPosX = 0f;
+        previewPosY = 0f;
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+    }
+
+    private void rememberPreCommitIfNeeded() {
+        if (!hasPreCommit) {
+            preCommitCenterX = centerX;
+            preCommitCenterY = centerY;
+            preCommitScale = scale;
+            hasPreCommit = true;
+        }
+    }
+
+    private void restorePreCommitIfNeeded() {
+        if (!hasPreCommit) {
+            return;
+        }
+        centerX = preCommitCenterX;
+        centerY = preCommitCenterY;
+        scale = preCommitScale;
+        hasPreCommit = false;
+        previewResetPending = false;
+        accumulatedScale = previewScale;
+        positionX = previewPosX;
+        positionY = previewPosY;
+    }
+
+    private boolean hasUnpublishedPreview() {
+        return hasPreCommit || previewScale != 1f || previewPosX != 0f || previewPosY != 0f;
     }
 
     @Override
@@ -149,6 +222,10 @@ public class MandelbrotView extends View {
         scale *= w / (double) width;
         width = w;
         height = h;
+        focusX = width / 2f;
+        focusY = height / 2f;
+        previewFocusX = focusX;
+        previewFocusY = focusY;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         start();
     }
@@ -156,11 +233,10 @@ public class MandelbrotView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float dx = (1 - accumulatedScale) * width / 2f;
-        float dy = (1 - accumulatedScale) * height / 2f;
         canvas.save();
-        canvas.translate(positionX + dx, positionY + dy);
-        canvas.scale(accumulatedScale, accumulatedScale);
+        // Geometry sees translate first, then scale around focus (canvas applies in reverse).
+        canvas.scale(previewScale, previewScale, previewFocusX, previewFocusY);
+        canvas.translate(previewPosX, previewPosY);
         canvas.drawBitmap(bitmap, 0, 0, bitmapPaint);
         canvas.restore();
     }
@@ -183,9 +259,18 @@ public class MandelbrotView extends View {
                 }
                 float x = event.getX(pointerIndex);
                 float y = event.getY(pointerIndex);
-                if (!scaleDetector.isInProgress()) {
-                    positionX += x - lastTouchX;
-                    positionY += y - lastTouchY;
+                if (event.getPointerCount() == 1 && !scaleDetector.isInProgress()) {
+                    float dx = x - lastTouchX;
+                    float dy = y - lastTouchY;
+                    positionX += dx;
+                    positionY += dy;
+                    if (previewResetPending) {
+                        // Keep frozen pinch preview; only slide it with the new pan.
+                        previewPosX += dx;
+                        previewPosY += dy;
+                    } else {
+                        syncPreviewFromGesture();
+                    }
                     invalidate();
                 }
                 lastTouchX = x;
@@ -218,12 +303,60 @@ public class MandelbrotView extends View {
         return true;
     }
 
+    /**
+     * Commits outstanding pan into the fractal center. No-ops when scale commit
+     * already folded the same pan (live position counters were cleared there).
+     */
     private void applyTranslation() {
         activePointerId = INVALID_POINTER_ID;
-        centerX -= positionX / scale;
-        centerY -= positionY / scale;
-        positionX = 0;
-        positionY = 0;
+        if (positionX == 0f && positionY == 0f) {
+            return;
+        }
+        rememberPreCommitIfNeeded();
+        ViewportTransforms.State next = ViewportTransforms.commitPan(
+                new ViewportTransforms.State(centerX, centerY, scale),
+                positionX,
+                positionY);
+        centerX = next.centerX;
+        centerY = next.centerY;
+        if (!previewResetPending) {
+            // Freeze pan preview before clearing live counters.
+            syncPreviewFromGesture();
+        }
+        // If previewResetPending, previewPos was already updated during MOVE.
+        positionX = 0f;
+        positionY = 0f;
+        previewResetPending = true;
+        start();
+    }
+
+    /**
+     * Commits pinch zoom around the gesture focus, folding any outstanding pan
+     * at the pre-zoom scale. Keeps the preview transform until the new bitmap.
+     */
+    private void applyScale() {
+        float factor = accumulatedScale;
+        if (factor == 1f) {
+            return;
+        }
+        rememberPreCommitIfNeeded();
+        ViewportTransforms.State next = ViewportTransforms.commitPinch(
+                new ViewportTransforms.State(centerX, centerY, scale),
+                factor,
+                focusX,
+                focusY,
+                width,
+                height,
+                positionX,
+                positionY);
+        centerX = next.centerX;
+        centerY = next.centerY;
+        scale = next.scale;
+        syncPreviewFromGesture();
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+        previewResetPending = true;
         start();
     }
 
@@ -241,6 +374,9 @@ public class MandelbrotView extends View {
         centerX = 0;
         centerY = 0;
         scale = 100.0 * 300.0 / 320.0 * width / 320.0;
+        clearPreviewTransform();
+        previewResetPending = false;
+        hasPreCommit = false;
         start();
     }
 
@@ -255,22 +391,38 @@ public class MandelbrotView extends View {
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             stop();
-            accumulatedScale = 1f;
+            if (hasPreCommit) {
+                // Roll back unpublished model commit and resume from the frozen preview.
+                restorePreCommitIfNeeded();
+            } else if (!hasUnpublishedPreview()) {
+                accumulatedScale = 1f;
+            } else {
+                // Preview still reflects live pan/scale without a model commit yet.
+                accumulatedScale = previewScale;
+                positionX = previewPosX;
+                positionY = previewPosY;
+            }
+            focusX = detector.getFocusX();
+            focusY = detector.getFocusY();
+            syncPreviewFromGesture();
             return true;
         }
 
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
             accumulatedScale *= detector.getScaleFactor();
+            focusX = detector.getFocusX();
+            focusY = detector.getFocusY();
+            syncPreviewFromGesture();
             invalidate();
             return true;
         }
 
         @Override
         public void onScaleEnd(ScaleGestureDetector detector) {
-            scale *= accumulatedScale;
-            accumulatedScale = 1f;
-            start();
+            focusX = detector.getFocusX();
+            focusY = detector.getFocusY();
+            applyScale();
         }
     }
 }
