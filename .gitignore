@@ -11,3 +11,4 @@ captures/
 .cxx/
 *.jks
 *.keystore
+.credentials.env
