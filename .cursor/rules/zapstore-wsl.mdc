@@ -1,0 +1,42 @@
+---
+description: Publicar no Zapstore via WSL — zsp não compila no Windows nativo
+globs: zapstore.yaml,.github/workflows/zapstore-publish.yml,.github/workflows/android-release.yml
+alwaysApply: false
+---
+
+# Zapstore — compilar e publicar com WSL
+
+O CLI [`zsp`](https://github.com/zapstore/zsp) **não compila no Windows** (Go/`syscall`).
+Para publicação local, use **WSL** — não `go install` no PowerShell.
+
+## Instalar zsp (WSL)
+
+```bash
+# cwd = raiz do repo (ex.: /mnt/f/cygwin64/home/girino/git/android-mandelbrot-set)
+go install github.com/zapstore/zsp@latest
+export PATH="$HOME/go/bin:$PATH"
+zsp --version
+```
+
+## Publicar release
+
+Config do repo: [`zapstore.yaml`](zapstore.yaml). APK vem do GitHub Release.
+
+```bash
+export SIGN_WITH='bunker://...'   # ou nsec — nunca colar no chat; usar env/secret
+export GITHUB_TOKEN='...'         # se o fetch do release exigir token
+zsp publish -q zapstore.yaml
+```
+
+Verificação antes de publicar:
+
+```bash
+zsp publish --check zapstore.yaml
+```
+
+## Ordem de preferência
+
+1. **CI** — workflow `Publish Zapstore` ou job `publish-zapstore` em tag estável (secret `ZAPSTORE_BUNKER_URL` ou `ZAPSTORE_NSEC` no GitHub).
+2. **WSL local** — quando o usuário pedir publicação manual ou for a 1ª vez (ex.: link do certificado APK com keystore).
+
+No Windows host: Gradle/Android continuam com SDK/JDK locais do repo ([`local-android-sdk.mdc`](local-android-sdk.mdc)); só o `zsp` roda no WSL.
