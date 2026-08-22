@@ -54,9 +54,16 @@ public class MandelbrotView extends View {
     private float accumulatedScale = 1f;
     private float positionX;
     private float positionY;
-    /** Screen anchor of the live preview: pinch focus, or screen center for pan. */
+    /**
+     * Live pinch focus (screen midpoint of the fingers). The preview pans so
+     * that this point tracks the same complex coordinate it had at gesture
+     * start — the content walks with the fingers.
+     */
     private float focusX;
     private float focusY;
+    /** Focus at gesture start; the complex point it covers is the invariant. */
+    private float startFocusX;
+    private float startFocusY;
     /** Render target computed at full release; becomes published at first publish. */
     private double targetCenterX;
     private double targetCenterY;
@@ -183,6 +190,8 @@ public class MandelbrotView extends View {
         scale *= w / (double) width;
         width = w;
         height = h;
+        startFocusX = width / 2f;
+        startFocusY = height / 2f;
         focusX = width / 2f;
         focusY = height / 2f;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -196,11 +205,16 @@ public class MandelbrotView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float dx = (1 - accumulatedScale) * focusX;
-        float dy = (1 - accumulatedScale) * focusY;
+        // Affine preview: t(q) = s*(p - startFocus) + focus (+pan). The bitmap
+        // pixel where the gesture began always sits under the live focus, so
+        // content walks with the fingers. Commit (commitAffinePreview) uses the
+        // same transform, making the handoff seamless.
+        float s = accumulatedScale;
         canvas.save();
-        canvas.translate(positionX + dx, positionY + dy);
-        canvas.scale(accumulatedScale, accumulatedScale);
+        canvas.translate(positionX, positionY);
+        canvas.translate(focusX, focusY);
+        canvas.scale(s, s);
+        canvas.translate(-startFocusX, -startFocusY);
         canvas.drawBitmap(bitmap, 0, 0, bitmapPaint);
         canvas.restore();
     }
@@ -216,6 +230,8 @@ public class MandelbrotView extends View {
                 activePointers = 1;
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
+                startFocusX = width / 2f;
+                startFocusY = height / 2f;
                 focusX = width / 2f;
                 focusY = height / 2f;
                 activePointerId = event.getPointerId(0);
@@ -268,17 +284,27 @@ public class MandelbrotView extends View {
         return true;
     }
 
-    /** Last finger left the screen: fold frozen deltas into a pending render target. */
+    /**
+     * Last finger left the screen: fold the frozen preview into a pending
+     * render target. The preview transform (see onDraw) maps screen q to
+     * bitmap p via p = (q - d) / s with
+     * d = focus - startFocus + (1 - s) * (size/2 - focus).
+     * The target viewport must display, at every screen point q, the same
+     * complex coordinate: complex((q - d)/s) = complexTarget(q). Solving for
+     * the new center gives center' = center + (d + size/2 - s*size/2)/scale.
+     */
     private void commitGestureAndRender() {
         activePointerId = INVALID_POINTER_ID;
-        if (accumulatedScale != 1f || positionX != 0f || positionY != 0f) {
-            ViewportTransforms.State committed = ViewportTransforms.commitFrozenGesture(
+        if (accumulatedScale != 1f || positionX != 0f || positionY != 0f || movedFocus()) {
+            // Effective translation of the onDraw affine map:
+            // q = pos + focus + s*(p - startFocus)  =>  d = pos + focus - s*startFocus.
+            float dx = positionX + focusX - accumulatedScale * startFocusX;
+            float dy = positionY + focusY - accumulatedScale * startFocusY;
+            ViewportTransforms.State committed = ViewportTransforms.commitAffinePreview(
                     new ViewportTransforms.State(centerX, centerY, scale),
                     accumulatedScale,
-                    positionX,
-                    positionY,
-                    focusX,
-                    focusY,
+                    dx,
+                    dy,
                     width,
                     height);
             targetCenterX = committed.centerX;
@@ -287,6 +313,10 @@ public class MandelbrotView extends View {
             hasPendingTarget = true;
         }
         start();
+    }
+
+    private boolean movedFocus() {
+        return focusX != startFocusX || focusY != startFocusY;
     }
 
     private void requestRender(double newScale, double newCenterX, double newCenterY) {
@@ -320,6 +350,18 @@ public class MandelbrotView extends View {
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             stop();
+            float fx = detector.getFocusX();
+            float fy = detector.getFocusY();
+            // Detector (re)started at a different focus (late begin, extra
+            // finger). Shift the preview anchor so the affine map stays
+            // continuous — the content must not jump at the transition.
+            if (fx != focusX || fy != focusY) {
+                float inv = 1f / accumulatedScale;
+                startFocusX += (fx - focusX) * inv;
+                startFocusY += (fy - focusY) * inv;
+            }
+            focusX = fx;
+            focusY = fy;
             return true;
         }
 
@@ -400,6 +442,24 @@ public class MandelbrotView extends View {
     /** Publish gate: stale generations and mid-gesture steps must not swap the bitmap. */
     boolean testingWouldPublishBitmap(int generation) {
         return generation == renderGeneration.get() && activePointers == 0;
+    }
+
+    /**
+     * Complex coordinate currently displayed at screen (x, y) by the live
+     * preview — inverse of the onDraw affine transform.
+     */
+    double testingPreviewComplexX(float x, float y) {
+        float s = accumulatedScale;
+        float bitmapX = (x - positionX - focusX) / s + startFocusX;
+        return org.girino.frac.viewport.ViewportTransforms.complexX(
+                bitmapX, width, centerX, scale);
+    }
+
+    double testingPreviewComplexY(float x, float y) {
+        float s = accumulatedScale;
+        float bitmapY = (y - positionY - focusY) / s + startFocusY;
+        return org.girino.frac.viewport.ViewportTransforms.complexY(
+                bitmapY, height, centerY, scale);
     }
 
     // --- test-only state manipulation ---

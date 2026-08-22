@@ -109,46 +109,52 @@ public class MandelbrotViewGestureTest {
     }
 
     /**
-     * Regression for issue #3: the complex point under the pinch focus must be
-     * identical before the gesture (published viewport), during the preview
-     * (same point under the canvas transform) and after commit (pending target).
+     * Regression for issue #3: after the gesture, the pending target must show
+     * exactly what the preview showed — same complex coordinate at EVERY screen
+     * point, not just under the focus.
      */
     @Test
-    public void offCenterPinch_focusPointStableThroughPreviewAndCommit() {
+    public void offCenterPinch_previewAndCommitShowSameContent() {
         double scale0 = view.testingScale();
-        double centerX0 = view.testingCenterX();
         float focusX = 820f;
         float focusY = 1500f;
         float spanStart = 300f;
         float spanEnd = 540f;
 
-        // Complex point under the focus before any gesture.
-        double underFocusBefore = org.girino.frac.viewport.ViewportTransforms.complexX(
-                focusX, WIDTH, centerX0, scale0);
-
         PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
         sim.pinchDown(view, focusX, focusY, spanStart);
-        // First MOVE only begins the detector under Robolectric; second produces onScale.
-        sim.pinchMove(view, focusX, focusY, (spanStart + spanEnd) / 2f);
-        sim.pinchMove(view, focusX, focusY, spanEnd);
+        // Warm-up MOVE (no motion): guarantees the detector has begun with
+        // startFocus exactly at (focusX, focusY) under Robolectric's legacy
+        // detector, which only starts on the first MOVE.
+        sim.pinchMove(view, focusX, focusY, spanStart);
+        // Now real moves: scale grows and the focus drifts.
+        sim.pinchMove(view, focusX + 30f, focusY + 20f, (spanStart + spanEnd) / 2f);
+        sim.pinchMove(view, focusX + 60f, focusY + 45f, spanEnd);
+        assertTrue(view.testingAccumulatedScale() != 1f);
 
-        // During preview: screen(focus) shows bitmap p with q = s*p + pos + (1-s)*focus.
-        float accScale = view.testingAccumulatedScale();
-        assertTrue(accScale > 1.05);
-        float bitmapAtFocus =
-                (focusX - view.testingPositionX() - (1f - accScale) * focusX) / accScale;
-        double underFocusPreview = org.girino.frac.viewport.ViewportTransforms.complexX(
-                bitmapAtFocus, WIDTH, centerX0, scale0);
-        assertEquals(underFocusBefore, underFocusPreview, EPS * Math.max(1, scale0));
+        // Snapshot the live preview content at several screen points.
+        float[][] probes = {
+            {100f, 300f}, {540f, 960f}, {900f, 1500f}, {focusX + 60f, focusY + 45f}
+        };
+        double[] previewAt = new double[probes.length];
+        double[] previewAtY = new double[probes.length];
+        for (int i = 0; i < probes.length; i++) {
+            previewAt[i] = view.testingPreviewComplexX(probes[i][0], probes[i][1]);
+            previewAtY[i] = view.testingPreviewComplexY(probes[i][0], probes[i][1]);
+        }
 
-        sim.lastFingerUp(view, focusX, focusY);
-
-        // After commit: pending target keeps the same complex point under the focus,
-        // now rendered under identity transform.
+        sim.lastFingerUp(view, focusX + 60f, focusY + 45f);
         assertTrue(view.testingHasPendingTarget());
-        double underFocusAfter = org.girino.frac.viewport.ViewportTransforms.complexX(
-                focusX, WIDTH, view.testingTargetCenterX(), view.testingTargetScale());
-        assertEquals(underFocusBefore, underFocusAfter, EPS * Math.max(1, scale0));
+
+        // The committed viewport must display the identical content everywhere.
+        for (int i = 0; i < probes.length; i++) {
+            double targetCx = org.girino.frac.viewport.ViewportTransforms.complexX(
+                    probes[i][0], WIDTH, view.testingTargetCenterX(), view.testingTargetScale());
+            assertEquals(previewAt[i], targetCx, EPS * Math.max(1, scale0));
+            double targetCy = org.girino.frac.viewport.ViewportTransforms.complexY(
+                    probes[i][1], HEIGHT, view.testingTargetCenterY(), view.testingTargetScale());
+            assertEquals(previewAtY[i], targetCy, EPS * Math.max(1, scale0));
+        }
     }
 
     /**
@@ -174,5 +180,31 @@ public class MandelbrotViewGestureTest {
         assertTrue(view.testingTargetScale() > scale0);
         assertEquals(centerX0, view.testingTargetCenterX(), EPS);
         assertEquals(centerY0, view.testingTargetCenterY(), EPS);
+    }
+
+    /**
+     * Zoom-in preview must track the moving focus (content walks with the
+     * fingers): the complex coordinate under the focus stays the same while
+     * the focus moves and the scale grows.
+     */
+    @Test
+    public void zoomInPreviewTracksMovingFocus() {
+        double scale0 = view.testingScale();
+        double centerX0 = view.testingCenterX();
+        float midX = 820f;
+        float midY = HEIGHT / 2f;
+        PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
+        sim.pinchDown(view, midX, midY, 300f);
+        // Warm-up MOVE (no motion): starts the detector with startFocus at
+        // (midX, midY) exactly, avoiding Robolectric's first-MOVE start quirk.
+        sim.pinchMove(view, midX, midY, 300f);
+        sim.pinchMove(view, midX + 40f, midY + 20f, 400f);
+        double underFocusFirst = view.testingPreviewComplexX(midX + 40f, midY + 20f);
+
+        sim.pinchMove(view, midX + 80f, midY + 40f, 540f);
+        double underFocusSecond = view.testingPreviewComplexX(midX + 80f, midY + 40f);
+
+        // Content follows the fingers: same complex under the moved focus.
+        assertEquals(underFocusFirst, underFocusSecond, EPS * Math.max(1, scale0));
     }
 }

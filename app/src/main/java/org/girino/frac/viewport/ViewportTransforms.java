@@ -41,6 +41,27 @@ public final class ViewportTransforms {
     }
 
     /**
+     * Commits an affine preview into a target viewport so that the screen
+     * keeps showing exactly the same content. The preview draws the published
+     * bitmap with q = s*(p - startFocus) + focus (+ pan), i.e. total
+     * translation d = focus - startFocus (+pan) and scale s. Bitmap p covers
+     * complex (p - size/2)/scale + center; the target under identity transform
+     * must cover the same complex at every screen point, giving
+     * center' = center + ((1 - s) * size/2 - d) / (s * scale) and
+     * scale' = scale * s.
+     */
+    public static State commitAffinePreview(
+            State state, float accumulatedScale, float dx, float dy, int width, int height) {
+        double s = accumulatedScale;
+        double newScale = state.scale * s;
+        double newCenterX =
+                state.centerX + ((1.0 - s) * width / 2.0 - dx) / newScale;
+        double newCenterY =
+                state.centerY + ((1.0 - s) * height / 2.0 - dy) / newScale;
+        return new State(newCenterX, newCenterY, newScale);
+    }
+
+    /**
      * Commits a frozen gesture preview (accumulated scale about an anchor plus
      * translation) into a target viewport, keeping the complex point under the
      * anchor invariant. The preview draws the published bitmap with
