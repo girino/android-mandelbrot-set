@@ -67,8 +67,8 @@ public class MandelbrotView extends View {
     private float previewPosY;
 
     /**
-     * Preview transform already represented by {@link #pendingCenterX} etc. on the stale bitmap.
-     * Live {@link #accumulatedScale}/{@link #positionX} are incremental deltas on top.
+     * Preview transform already folded into logical {@link #centerX}/{@link #scale}
+     * but not yet in the stale bitmap. Live counters are incremental on top.
      */
     private float sessionBasePreviewScale = 1f;
     private float sessionBasePreviewPosX = 0f;
@@ -87,12 +87,9 @@ public class MandelbrotView extends View {
     private int deferredGeneration = -1;
     private int deferredStep = -1;
 
-    /** Committed by gesture but applied to center/scale only when the matching bitmap publishes. */
-    private boolean hasPendingViewport;
-    private double pendingCenterX;
-    private double pendingCenterY;
-    private double pendingScale;
-    /** Generation that must publish before pending viewport is discarded. */
+    /** Logical viewport committed; bitmap on screen may still be stale until publish. */
+    private boolean awaitingBitmapPublish;
+    /** Generation whose step=1 publish clears {@link #awaitingBitmapPublish}. */
     private int pendingViewportGeneration = -1;
 
     public MandelbrotView(Context context) {
@@ -130,7 +127,7 @@ public class MandelbrotView extends View {
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
 
-        if (hasPendingViewport) {
+        if (awaitingBitmapPublish) {
             pendingViewportGeneration = generation;
         }
 
@@ -140,7 +137,7 @@ public class MandelbrotView extends View {
                         + " renderScale=" + renderScale
                         + " bitmapCenter=(" + centerX + "," + centerY + ")"
                         + " bitmapScale=" + scale
-                        + " pending=" + hasPendingViewport);
+                        + " awaitingBitmap=" + awaitingBitmapPublish);
 
         renderTask = renderExecutor.submit(() -> render(
                 generation,
@@ -164,42 +161,32 @@ public class MandelbrotView extends View {
     }
 
     private double renderTargetCenterX() {
-        return hasPendingViewport ? pendingCenterX : centerX;
+        return centerX;
     }
 
     private double renderTargetCenterY() {
-        return hasPendingViewport ? pendingCenterY : centerY;
+        return centerY;
     }
 
     private double renderTargetScale() {
-        return hasPendingViewport ? pendingScale : scale;
+        return scale;
     }
 
     private ViewportTransforms.State effectiveViewportState() {
-        return new ViewportTransforms.State(
-                renderTargetCenterX(), renderTargetCenterY(), renderTargetScale());
+        return new ViewportTransforms.State(centerX, centerY, scale);
     }
 
-    private void setPendingViewport(ViewportTransforms.State state) {
-        pendingCenterX = state.centerX;
-        pendingCenterY = state.centerY;
-        pendingScale = state.scale;
-        hasPendingViewport = true;
+    /** Updates logical viewport immediately; bitmap + preview catch up on publish. */
+    private void commitViewportState(ViewportTransforms.State state) {
+        centerX = state.centerX;
+        centerY = state.centerY;
+        scale = state.scale;
+        awaitingBitmapPublish = true;
         pendingViewportGeneration = -1;
     }
 
-    private void applyPendingViewport() {
-        if (!hasPendingViewport) {
-            return;
-        }
-        centerX = pendingCenterX;
-        centerY = pendingCenterY;
-        scale = pendingScale;
-        clearPendingViewport();
-    }
-
-    private void clearPendingViewport() {
-        hasPendingViewport = false;
+    private void clearAwaitingBitmapPublish() {
+        awaitingBitmapPublish = false;
         pendingViewportGeneration = -1;
     }
 
@@ -213,7 +200,7 @@ public class MandelbrotView extends View {
                             + " focus=" + previewFocusX + "," + previewFocusY + ")"
                             + " gesture=" + isGestureActive()
                             + " committed=(" + centerX + "," + centerY + ") s=" + scale
-                            + " pending=" + hasPendingViewport);
+                            + " awaitingBitmap=" + awaitingBitmapPublish);
         }
     }
 
@@ -279,8 +266,8 @@ public class MandelbrotView extends View {
     private void beginPinchSession(MotionEvent event) {
         stop();
         pinchNeedsCommit = false;
-        if (hasPendingViewport && hasLivePreview()) {
-            // Pending viewport already matches sessionBase preview on the stale bitmap.
+        if (awaitingBitmapPublish && hasLivePreview()) {
+            // Logical viewport already committed; preview bridges stale bitmap.
             resetLiveGestureCounters();
         } else if (hasLivePreview()) {
             clearSessionBase();
@@ -335,24 +322,24 @@ public class MandelbrotView extends View {
             invalidate();
             return;
         }
-        if (hasPendingViewport && generation != pendingViewportGeneration) {
+        if (awaitingBitmapPublish && generation != pendingViewportGeneration) {
             debugViewport(
                     "publish skip stale gen=" + generation + " pendingGen=" + pendingViewportGeneration);
             return;
         }
-        if (hasPendingViewport && step != 1) {
+        if (awaitingBitmapPublish && step != 1) {
             debugViewport("publish hold preview gen=" + generation + " step=" + step);
             return;
         }
-        if (hasPendingViewport) {
+        if (awaitingBitmapPublish) {
             debugJumpCheck(
                     "publish gen=" + generation + " step=" + step,
-                    pendingCenterX,
-                    pendingCenterY,
-                    pendingScale);
+                    centerX,
+                    centerY,
+                    scale);
         }
         bitmap = rendered;
-        applyPendingViewport();
+        clearAwaitingBitmapPublish();
         clearPreviewTransform();
         clearDeferredPublish();
         debugViewport("publish applied gen=" + generation + " step=" + step);
@@ -381,6 +368,9 @@ public class MandelbrotView extends View {
             start();
         } else {
             flushDeferredPublishIfReady();
+            if (awaitingBitmapPublish) {
+                start();
+            }
         }
         debugViewport("finishTouchGesture changed=" + viewportChanged);
     }
@@ -489,7 +479,7 @@ public class MandelbrotView extends View {
         previewFocusY = focusY;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         clearPreviewTransform();
-        clearPendingViewport();
+        clearAwaitingBitmapPublish();
         start();
     }
 
@@ -515,7 +505,10 @@ public class MandelbrotView extends View {
                 pinchNeedsCommit = false;
                 lastPinchSpan = -1f;
                 clearDeferredPublish();
-                if (hasPendingViewport && hasLivePreview()) {
+                if (awaitingBitmapPublish) {
+                    stop();
+                }
+                if (awaitingBitmapPublish && hasLivePreview()) {
                     resetLiveGestureCounters();
                 } else {
                     clearSessionBase();
@@ -599,10 +592,10 @@ public class MandelbrotView extends View {
                 effectiveViewportState(),
                 positionX,
                 positionY);
-        setPendingViewport(next);
+        commitViewportState(next);
         syncPreviewFromGesture();
         captureSessionBaseFromPreview();
-        debugViewport("commitPan pendingCenter=(" + next.centerX + "," + next.centerY + ")");
+        debugViewport("commitPan center=(" + next.centerX + "," + next.centerY + ")");
         return true;
     }
 
@@ -620,23 +613,23 @@ public class MandelbrotView extends View {
                 height,
                 positionX,
                 positionY);
-        setPendingViewport(next);
+        commitViewportState(next);
         syncPreviewFromGesture();
         captureSessionBaseFromPreview();
-        debugViewport("commitPinch pendingCenter=(" + next.centerX + "," + next.centerY + ") scale=" + next.scale);
+        debugViewport("commitPinch center=(" + next.centerX + "," + next.centerY + ") scale=" + next.scale);
         return true;
     }
 
     public void zoom() {
         scale *= 1.5;
         clearPreviewTransform();
-        clearPendingViewport();
+        clearAwaitingBitmapPublish();
         start();
     }
 
     public void smooth() {
         smooth = !smooth;
-        clearPendingViewport();
+        clearAwaitingBitmapPublish();
         start();
     }
 
@@ -645,7 +638,7 @@ public class MandelbrotView extends View {
         centerY = 0;
         scale = 100.0 * 300.0 / 320.0 * width / 320.0;
         clearPreviewTransform();
-        clearPendingViewport();
+        clearAwaitingBitmapPublish();
         start();
     }
 

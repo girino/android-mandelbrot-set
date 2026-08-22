@@ -1,0 +1,38 @@
+---
+description: Transição suave de viewport (pan/pinch) é requisito obrigatório
+alwaysApply: true
+---
+
+# Viewport — transição suave obrigatória
+
+Requisito **obrigatório** do produto (solicitado pelo usuário): gestos de pan/pinch
+devem manter **transição suave** — sem salto visível ao soltar o dedo ou ao trocar
+de gesto.
+
+## O que isso significa
+
+1. **Durante o gesto**: preview no canvas (scale/translate sobre o bitmap atual).
+2. **Ao soltar**: a imagem continua estável; o preview só some quando o bitmap
+   renderizado corresponde ao viewport lógico commitado.
+3. **Correções de coordenadas ou concorrência** não podem remover nem enfraquecer
+   esse preview: não publicar bitmap “no seco” nem zerar transform antes da hora.
+
+## Concorrência (render vs gesto novo)
+
+Se um **novo gesto começa antes** do render anterior terminar:
+
+- O **viewport lógico** (`centerX` / `centerY` / `scale`) deve refletir o commit
+  mais recente **na hora do commit**, para o gesto seguinte não reutilizar
+  coordenadas do bitmap antigo.
+- O **bitmap na tela** pode ficar defasado até o step=1 do render correto; o
+  preview cobre essa lacuna.
+- Renders obsoletos devem ser **cancelados ou ignorados** (`generation` /
+  `pendingViewportGeneration`), nunca aplicados por cima do viewport atual.
+
+## Ao alterar `MandelbrotView`
+
+- Preservar preview + publicação atômica (bitmap + fim do preview).
+- Testar no dispositivo: pan, pinch, gestos rápidos encadeados antes do render
+  terminar.
+- Não tratar salto como “só resolução grossa” se o usuário reportar coordenadas
+  erradas — verificar base de commit e corrida render/gesto.
