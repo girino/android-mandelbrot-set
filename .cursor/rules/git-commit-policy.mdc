@@ -1,11 +1,18 @@
 ---
-description: Nunca commitar nem pushar sem pedido explícito do usuário
+description: Commit automático; push só quando o usuário pedir
 alwaysApply: true
 ---
 
-# Git — só commit quando o usuário pedir
+# Git — commit sempre; push só sob pedido
 
-- **Nunca** criar commit, amend ou push por iniciativa própria.
-- Alterações ficam no working tree até o usuário pedir explicitamente (ex.: "commita", "dá push").
-- Pode preparar mensagem de commit ou listar o que está pendente, mas **não** executar `git commit` / `git push`.
-- Exceção: instrução explícita do usuário na mesma conversa pedindo commit ou PR.
+## Commit (automático)
+
+- Após alterações concluídas, **sempre** criar commit com mensagem concisa.
+- Agrupar só arquivos relacionados à tarefa; excluir lixo de build e mudanças não relacionadas.
+- **Nunca** fazer amend/push destrutivo sem pedido explícito.
+
+## Push (manual)
+
+- **Nunca** executar `git push` por iniciativa própria.
+- Push **somente** quando o usuário pedir explicitamente (ex.: "dá push", "envia pro GitHub").
+- Após commit, informar hash e que o remoto está pendente se houver commits locais.
