@@ -176,6 +176,14 @@ public class MandelbrotView extends View {
                 accumulatedScale = 1f;
                 positionX = 0f;
                 positionY = 0f;
+                // Focus must return to screen center too: with s=1 the preview
+                // is q = p + (focus - startFocus). Leaving a leftover focus
+                // delta would re-apply the pinch-drag on top of the new bitmap
+                // (content jumps ~2x the preview drag).
+                startFocusX = width / 2f;
+                startFocusY = height / 2f;
+                focusX = startFocusX;
+                focusY = startFocusY;
                 invalidate();
             });
         }
@@ -401,6 +409,22 @@ public class MandelbrotView extends View {
         return accumulatedScale;
     }
 
+    float testingFocusX() {
+        return focusX;
+    }
+
+    float testingFocusY() {
+        return focusY;
+    }
+
+    float testingStartFocusX() {
+        return startFocusX;
+    }
+
+    float testingStartFocusY() {
+        return startFocusY;
+    }
+
     float testingPositionX() {
         return positionX;
     }
@@ -464,5 +488,19 @@ public class MandelbrotView extends View {
 
     void testingSimulateAllPointersUp() {
         activePointers = 0;
+    }
+
+    /**
+     * Applies the same preview clear as the atomic handoff on bitmap publish.
+     * Used to assert no residual focus delta doubles the committed drag.
+     */
+    void testingSimulateAtomicHandoffClear() {
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+        startFocusX = width / 2f;
+        startFocusY = height / 2f;
+        focusX = startFocusX;
+        focusY = startFocusY;
     }
 }

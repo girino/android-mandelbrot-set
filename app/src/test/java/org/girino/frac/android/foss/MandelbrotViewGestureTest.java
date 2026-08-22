@@ -191,4 +191,28 @@ public class MandelbrotViewGestureTest {
 
         assertEquals(underFocusFirst, underFocusSecond, EPS * Math.max(1, scale0));
     }
+
+    /**
+     * Regression: atomic handoff must clear focus back to screen center.
+     * Otherwise with s=1 the preview is q = p + (focus - startFocus) and the
+     * new bitmap (which already baked in the drag) is translated again (~2x).
+     */
+    @Test
+    public void atomicHandoff_resetsFocusToCenter() {
+        float midX = 820f;
+        float midY = 1500f;
+        PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
+        sim.pinchDown(view, midX, midY, 300f);
+        sim.pinchMove(view, midX, midY, 300f);
+        sim.pinchMove(view, midX + 60f, midY + 45f, 540f);
+        sim.lastFingerUp(view, midX + 60f, midY + 45f);
+
+        view.testingSimulateAtomicHandoffClear();
+        assertEquals(WIDTH / 2f, view.testingFocusX(), 0f);
+        assertEquals(HEIGHT / 2f, view.testingFocusY(), 0f);
+        assertEquals(view.testingFocusX(), view.testingStartFocusX(), 0f);
+        assertEquals(view.testingFocusY(), view.testingStartFocusY(), 0f);
+        assertEquals(0f, view.testingPositionX(), 0f);
+        assertEquals(1f, view.testingAccumulatedScale(), 0f);
+    }
 }
