@@ -57,6 +57,28 @@ final class PinchDragMotionSimulator {
         dispatch(view, singleTouch(MotionEvent.ACTION_UP, x0, midY));
     }
 
+    /** Lifts the first finger only — the second stays down (premature onScaleEnd case). */
+    void pinchMoveThenOneFingerUp(View view, float midX, float midY, float span) {
+        pinchMove(view, midX, midY, span);
+        float x0 = midX - span * 0.5f;
+        float x1 = midX + span * 0.5f;
+        dispatch(
+                view,
+                twoTouch(
+                        MotionEvent.ACTION_POINTER_UP
+                                | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                        x0,
+                        midY,
+                        x1,
+                        midY));
+    }
+
+    /** Lifts the remaining finger after {@link #pinchMoveThenOneFingerUp}. */
+    void lastFingerUp(View view, float x, float y) {
+        tick();
+        dispatch(view, singleTouch(MotionEvent.ACTION_UP, x, y));
+    }
+
     void panOnly(View view, float startX, float startY, float totalDx, float totalDy, int steps) {
         touchDown(view, startX, startY);
         for (int step = 1; step <= steps; step++) {

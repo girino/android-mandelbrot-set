@@ -20,7 +20,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Fractal viewport — gesture/render model matches tag {@code v1.0.0}.
+ * Fractal viewport — v1.0.0 gestures with two fixes:
+ * 1. Commit is deferred: {@code centerX/scale} always describe the published bitmap;
+ *    gesture deltas stay as a frozen canvas preview and are folded into a pending
+ *    target on full release. The preview is cleared only when the matching bitmap
+ *    publishes (atomic handoff, no flash of the stale bitmap).
+ * 2. Premature {@code onScaleEnd} (finger proximity) is ignored — commit happens
+ *    only when the last finger leaves the screen.
  */
 public class MandelbrotView extends View {
     private static final int INVALID_POINTER_ID = -1;
@@ -38,16 +44,25 @@ public class MandelbrotView extends View {
 
     private int width = 320;
     private int height = 480;
+    /** Viewport of the currently displayed {@link #bitmap}. */
     private double centerX;
     private double centerY;
     private double scale = 100.0 * 300.0 / width;
 
+    /** Frozen gesture deltas drawn over the stale bitmap (preview). */
     private float accumulatedScale = 1f;
     private float positionX;
     private float positionY;
+    /** Render target computed at full release; becomes published at first publish. */
+    private double targetCenterX;
+    private double targetCenterY;
+    private double targetScale;
+    private boolean hasPendingTarget;
+
     private float lastTouchX;
     private float lastTouchY;
     private int activePointerId = INVALID_POINTER_ID;
+    private int activePointers;
 
     public MandelbrotView(Context context) {
         super(context);
@@ -65,16 +80,17 @@ public class MandelbrotView extends View {
 
     public void start() {
         stop();
-        if (getWidth() <= 0 || getHeight() <= 0 || renderExecutor.isShutdown()) {
+        if (activePointers > 0 || renderExecutor.isShutdown()
+                || getWidth() <= 0 || getHeight() <= 0) {
             return;
         }
-
+        final boolean pending = hasPendingTarget;
         final int generation = renderGeneration.get();
         final int renderWidth = width;
         final int renderHeight = height;
-        final double renderScale = scale;
-        final double renderCenterX = centerX;
-        final double renderCenterY = centerY;
+        final double renderScale = pending ? targetScale : scale;
+        final double renderCenterX = pending ? targetCenterX : centerX;
+        final double renderCenterY = pending ? targetCenterY : centerY;
         final FractalOperator renderOperator = operator;
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
@@ -134,10 +150,21 @@ public class MandelbrotView extends View {
                 }
             }
             post(() -> {
-                if (generation == renderGeneration.get()) {
-                    bitmap = rendered;
-                    invalidate();
+                if (generation != renderGeneration.get() || activePointers > 0) {
+                    return;
                 }
+                // Atomic handoff: swap bitmap and clear the frozen preview together —
+                // the new bitmap under identity transform equals the old one under
+                // the frozen transform, so no flash is visible.
+                bitmap = rendered;
+                centerX = renderCenterX;
+                centerY = renderCenterY;
+                scale = renderScale;
+                hasPendingTarget = false;
+                accumulatedScale = 1f;
+                positionX = 0f;
+                positionY = 0f;
+                invalidate();
             });
         }
     }
@@ -153,6 +180,10 @@ public class MandelbrotView extends View {
         width = w;
         height = h;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        hasPendingTarget = false;
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
         start();
     }
 
@@ -175,9 +206,14 @@ public class MandelbrotView extends View {
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+                stop();
+                activePointers = 1;
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
                 activePointerId = event.getPointerId(0);
+                return true;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                activePointers = Math.max(activePointers, event.getPointerCount());
                 return true;
             case MotionEvent.ACTION_MOVE:
                 int pointerIndex = event.findPointerIndex(activePointerId);
@@ -195,6 +231,7 @@ public class MandelbrotView extends View {
                 lastTouchY = y;
                 return true;
             case MotionEvent.ACTION_POINTER_UP:
+                activePointers = Math.max(0, activePointers - 1);
                 int releasedIndex = event.getActionIndex();
                 if (event.getPointerId(releasedIndex) == activePointerId && event.getPointerCount() > 1) {
                     int newIndex = releasedIndex == 0 ? 1 : 0;
@@ -204,11 +241,13 @@ public class MandelbrotView extends View {
                 }
                 return true;
             case MotionEvent.ACTION_UP:
-                applyTranslation();
+                activePointers = 0;
+                commitGestureAndRender();
                 performClick();
                 return true;
             case MotionEvent.ACTION_CANCEL:
-                applyTranslation();
+                activePointers = 0;
+                commitGestureAndRender();
                 return true;
             default:
                 return true;
@@ -221,30 +260,37 @@ public class MandelbrotView extends View {
         return true;
     }
 
-    private void applyTranslation() {
+    /** Last finger left the screen: fold frozen deltas into a pending render target. */
+    private void commitGestureAndRender() {
         activePointerId = INVALID_POINTER_ID;
-        centerX -= positionX / scale;
-        centerY -= positionY / scale;
-        positionX = 0;
-        positionY = 0;
+        if (accumulatedScale != 1f || positionX != 0f || positionY != 0f) {
+            double newScale = scale * accumulatedScale;
+            targetCenterX = centerX - positionX / newScale;
+            targetCenterY = centerY - positionY / newScale;
+            targetScale = newScale;
+            hasPendingTarget = true;
+        }
+        start();
+    }
+
+    private void requestRender(double newScale, double newCenterX, double newCenterY) {
+        targetScale = newScale;
+        targetCenterX = newCenterX;
+        targetCenterY = newCenterY;
+        hasPendingTarget = true;
         start();
     }
 
     public void zoom() {
-        scale *= 1.5;
-        start();
+        requestRender(scale * 1.5, centerX, centerY);
     }
 
     public void smooth() {
-        smooth = !smooth;
         start();
     }
 
     public void reset() {
-        centerX = 0;
-        centerY = 0;
-        scale = 100.0 * 300.0 / 320.0 * width / 320.0;
-        start();
+        requestRender(100.0 * 300.0 / 320.0 * width / 320.0, 0, 0);
     }
 
     @Override
@@ -258,7 +304,6 @@ public class MandelbrotView extends View {
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             stop();
-            accumulatedScale = 1f;
             return true;
         }
 
@@ -269,11 +314,14 @@ public class MandelbrotView extends View {
             return true;
         }
 
+        /**
+         * Fires early when fingers get close (hardware drops a pointer) and on
+         * normal release. Either way the commit is deferred to full release, so
+         * this is intentionally a no-op — the detector restarting on a new
+         * POINTER_DOWN simply continues accumulating into the frozen preview.
+         */
         @Override
         public void onScaleEnd(ScaleGestureDetector detector) {
-            scale *= accumulatedScale;
-            accumulatedScale = 1f;
-            start();
         }
     }
 
@@ -295,6 +343,10 @@ public class MandelbrotView extends View {
         return scale;
     }
 
+    float testingAccumulatedScale() {
+        return accumulatedScale;
+    }
+
     float testingPositionX() {
         return positionX;
     }
@@ -303,7 +355,42 @@ public class MandelbrotView extends View {
         return positionY;
     }
 
-    float testingAccumulatedScale() {
-        return accumulatedScale;
+    int testingActivePointers() {
+        return activePointers;
+    }
+
+    boolean testingHasPendingTarget() {
+        return hasPendingTarget;
+    }
+
+    double testingTargetScale() {
+        return targetScale;
+    }
+
+    double testingTargetCenterX() {
+        return targetCenterX;
+    }
+
+    double testingTargetCenterY() {
+        return targetCenterY;
+    }
+
+    int testingRenderGeneration() {
+        return renderGeneration.get();
+    }
+
+    /** Publish gate: stale generations and mid-gesture steps must not swap the bitmap. */
+    boolean testingWouldPublishBitmap(int generation) {
+        return generation == renderGeneration.get() && activePointers == 0;
+    }
+
+    // --- test-only state manipulation ---
+
+    void testingSimulatePointersDown() {
+        activePointers = 1;
+    }
+
+    void testingSimulateAllPointersUp() {
+        activePointers = 0;
     }
 }
