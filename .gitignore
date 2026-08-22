@@ -12,3 +12,4 @@ captures/
 *.jks
 *.keystore
 .credentials.env
+.tmp-zsp-publish.sh
