@@ -13,6 +13,7 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.palettes.HSBPalette;
 import org.girino.frac.palettes.PaletteProvider;
+import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,6 +54,17 @@ public class MandelbrotView extends View {
     private float accumulatedScale = 1f;
     private float positionX;
     private float positionY;
+    /**
+     * Live pinch focus (midpoint of the fingers). Preview pans so the bitmap
+     * pixel under startFocus stays under this point — content walks with the
+     * fingers. Edge gaps during the stale-bitmap preview are acceptable;
+     * the new published render always fills the window.
+     */
+    private float focusX;
+    private float focusY;
+    /** Focus at gesture start (or last continuous restart); invariant bitmap pixel. */
+    private float startFocusX;
+    private float startFocusY;
     /** Render target computed at full release; becomes published at first publish. */
     private double targetCenterX;
     private double targetCenterY;
@@ -179,6 +191,10 @@ public class MandelbrotView extends View {
         scale *= w / (double) width;
         width = w;
         height = h;
+        startFocusX = width / 2f;
+        startFocusY = height / 2f;
+        focusX = startFocusX;
+        focusY = startFocusY;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         hasPendingTarget = false;
         accumulatedScale = 1f;
@@ -190,11 +206,14 @@ public class MandelbrotView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float dx = (1 - accumulatedScale) * width / 2f;
-        float dy = (1 - accumulatedScale) * height / 2f;
+        // Affine preview: q = pos + focus + s*(p - startFocus). Same map used
+        // by commitAffinePreview so the handoff shows identical content.
+        float s = accumulatedScale;
         canvas.save();
-        canvas.translate(positionX + dx, positionY + dy);
-        canvas.scale(accumulatedScale, accumulatedScale);
+        canvas.translate(positionX, positionY);
+        canvas.translate(focusX, focusY);
+        canvas.scale(s, s);
+        canvas.translate(-startFocusX, -startFocusY);
         canvas.drawBitmap(bitmap, 0, 0, bitmapPaint);
         canvas.restore();
     }
@@ -210,6 +229,10 @@ public class MandelbrotView extends View {
                 activePointers = 1;
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
+                startFocusX = width / 2f;
+                startFocusY = height / 2f;
+                focusX = startFocusX;
+                focusY = startFocusY;
                 activePointerId = event.getPointerId(0);
                 return true;
             case MotionEvent.ACTION_POINTER_DOWN:
@@ -260,17 +283,35 @@ public class MandelbrotView extends View {
         return true;
     }
 
-    /** Last finger left the screen: fold frozen deltas into a pending render target. */
+    /**
+     * Last finger left the screen: fold the frozen preview into a pending
+     * render target. Preview map: q = pos + focus + s*(p - startFocus), so
+     * effective translation d = pos + focus - s*startFocus. The pending
+     * viewport is chosen so identity draw matches that preview everywhere;
+     * the new render fills the whole window (preview edge gaps are OK).
+     */
     private void commitGestureAndRender() {
         activePointerId = INVALID_POINTER_ID;
-        if (accumulatedScale != 1f || positionX != 0f || positionY != 0f) {
-            double newScale = scale * accumulatedScale;
-            targetCenterX = centerX - positionX / newScale;
-            targetCenterY = centerY - positionY / newScale;
-            targetScale = newScale;
+        if (accumulatedScale != 1f || positionX != 0f || positionY != 0f || movedFocus()) {
+            float dx = positionX + focusX - accumulatedScale * startFocusX;
+            float dy = positionY + focusY - accumulatedScale * startFocusY;
+            ViewportTransforms.State committed = ViewportTransforms.commitAffinePreview(
+                    new ViewportTransforms.State(centerX, centerY, scale),
+                    accumulatedScale,
+                    dx,
+                    dy,
+                    width,
+                    height);
+            targetCenterX = committed.centerX;
+            targetCenterY = committed.centerY;
+            targetScale = committed.scale;
             hasPendingTarget = true;
         }
         start();
+    }
+
+    private boolean movedFocus() {
+        return focusX != startFocusX || focusY != startFocusY;
     }
 
     private void requestRender(double newScale, double newCenterX, double newCenterY) {
@@ -304,12 +345,25 @@ public class MandelbrotView extends View {
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             stop();
+            float fx = detector.getFocusX();
+            float fy = detector.getFocusY();
+            // Detector (re)started at a different focus (late begin / extra
+            // finger). Shift startFocus so the affine map stays continuous.
+            if (fx != focusX || fy != focusY) {
+                float inv = 1f / accumulatedScale;
+                startFocusX += (fx - focusX) * inv;
+                startFocusY += (fy - focusY) * inv;
+            }
+            focusX = fx;
+            focusY = fy;
             return true;
         }
 
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
             accumulatedScale *= detector.getScaleFactor();
+            focusX = detector.getFocusX();
+            focusY = detector.getFocusY();
             invalidate();
             return true;
         }
@@ -382,6 +436,24 @@ public class MandelbrotView extends View {
     /** Publish gate: stale generations and mid-gesture steps must not swap the bitmap. */
     boolean testingWouldPublishBitmap(int generation) {
         return generation == renderGeneration.get() && activePointers == 0;
+    }
+
+    /**
+     * Complex coordinate currently displayed at screen (x, y) by the live
+     * preview — inverse of the onDraw affine transform.
+     */
+    double testingPreviewComplexX(float x, float y) {
+        float s = accumulatedScale;
+        float bitmapX = (x - positionX - focusX) / s + startFocusX;
+        return org.girino.frac.viewport.ViewportTransforms.complexX(
+                bitmapX, width, centerX, scale);
+    }
+
+    double testingPreviewComplexY(float x, float y) {
+        float s = accumulatedScale;
+        float bitmapY = (y - positionY - focusY) / s + startFocusY;
+        return org.girino.frac.viewport.ViewportTransforms.complexY(
+                bitmapY, height, centerY, scale);
     }
 
     // --- test-only state manipulation ---

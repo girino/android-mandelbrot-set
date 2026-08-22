@@ -336,4 +336,41 @@ class ViewportTransformsTest {
         assertEquals(fromPanThenZoom.centerY, fromCommit.centerY, EPS);
         assertEquals(fromPanThenZoom.scale, fromCommit.scale, EPS);
     }
+
+    @Test
+    void affinePreviewCommitMatchesIdentityAtEveryProbe() {
+        ViewportTransforms.State before = new ViewportTransforms.State(-0.4, 0.15, 180.0);
+        float s = 1.75f;
+        float startFocusX = 820f;
+        float startFocusY = 1500f;
+        float focusX = 880f;
+        float focusY = 1545f;
+        float posX = 10f;
+        float posY = -5f;
+        float dx = posX + focusX - s * startFocusX;
+        float dy = posY + focusY - s * startFocusY;
+
+        ViewportTransforms.State after =
+                ViewportTransforms.commitAffinePreview(before, s, dx, dy, WIDTH, HEIGHT);
+
+        float[][] probes = {
+            {100f, 300f}, {540f, 960f}, {900f, 1500f}, {focusX, focusY}
+        };
+        for (float[] q : probes) {
+            float bitmapX = (q[0] - posX - focusX) / s + startFocusX;
+            float bitmapY = (q[1] - posY - focusY) / s + startFocusY;
+            double previewX =
+                    ViewportTransforms.complexX(bitmapX, WIDTH, before.centerX, before.scale);
+            double previewY =
+                    ViewportTransforms.complexY(bitmapY, HEIGHT, before.centerY, before.scale);
+            assertEquals(
+                    previewX,
+                    ViewportTransforms.complexX(q[0], WIDTH, after.centerX, after.scale),
+                    1e-6);
+            assertEquals(
+                    previewY,
+                    ViewportTransforms.complexY(q[1], HEIGHT, after.centerY, after.scale),
+                    1e-6);
+        }
+    }
 }

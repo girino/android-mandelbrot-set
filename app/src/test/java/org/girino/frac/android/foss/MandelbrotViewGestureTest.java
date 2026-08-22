@@ -107,4 +107,88 @@ public class MandelbrotViewGestureTest {
         assertTrue(view.testingTargetCenterX() != view.testingCenterX()
                 || view.testingTargetCenterY() != view.testingCenterY());
     }
+
+    /**
+     * Issue #3: pending target must show exactly what the preview showed —
+     * same complex at every probed screen point (gaps during preview OK;
+     * new bitmap fills the window after handoff).
+     */
+    @Test
+    public void offCenterPinch_previewAndCommitShowSameContent() {
+        double scale0 = view.testingScale();
+        float focusX = 820f;
+        float focusY = 1500f;
+        float spanStart = 300f;
+        float spanEnd = 540f;
+
+        PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
+        sim.pinchDown(view, focusX, focusY, spanStart);
+        // Warm-up MOVE: Robolectric detector begins on first MOVE.
+        sim.pinchMove(view, focusX, focusY, spanStart);
+        sim.pinchMove(view, focusX + 30f, focusY + 20f, (spanStart + spanEnd) / 2f);
+        sim.pinchMove(view, focusX + 60f, focusY + 45f, spanEnd);
+        assertTrue(view.testingAccumulatedScale() != 1f);
+
+        float[][] probes = {
+            {100f, 300f}, {540f, 960f}, {900f, 1500f}, {focusX + 60f, focusY + 45f}
+        };
+        double[] previewAt = new double[probes.length];
+        double[] previewAtY = new double[probes.length];
+        for (int i = 0; i < probes.length; i++) {
+            previewAt[i] = view.testingPreviewComplexX(probes[i][0], probes[i][1]);
+            previewAtY[i] = view.testingPreviewComplexY(probes[i][0], probes[i][1]);
+        }
+
+        sim.lastFingerUp(view, focusX + 60f, focusY + 45f);
+        assertTrue(view.testingHasPendingTarget());
+
+        for (int i = 0; i < probes.length; i++) {
+            double targetCx = org.girino.frac.viewport.ViewportTransforms.complexX(
+                    probes[i][0], WIDTH, view.testingTargetCenterX(), view.testingTargetScale());
+            assertEquals(previewAt[i], targetCx, EPS * Math.max(1, scale0));
+            double targetCy = org.girino.frac.viewport.ViewportTransforms.complexY(
+                    probes[i][1], HEIGHT, view.testingTargetCenterY(), view.testingTargetScale());
+            assertEquals(previewAtY[i], targetCy, EPS * Math.max(1, scale0));
+        }
+    }
+
+    /** Centered pinch keeps center; only scale changes (v1.0.2 special case). */
+    @Test
+    public void centeredPinch_keepsCenterInPendingTarget() {
+        double scale0 = view.testingScale();
+        double centerX0 = view.testingCenterX();
+        double centerY0 = view.testingCenterY();
+        float midX = WIDTH / 2f;
+        float midY = HEIGHT / 2f;
+
+        PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
+        sim.pinchDown(view, midX, midY, 320f);
+        sim.pinchMove(view, midX, midY, 320f);
+        sim.pinchMove(view, midX, midY, 400f);
+        sim.pinchMove(view, midX, midY, 480f);
+        sim.lastFingerUp(view, midX, midY);
+
+        assertTrue(view.testingHasPendingTarget());
+        assertTrue(view.testingTargetScale() > scale0);
+        assertEquals(centerX0, view.testingTargetCenterX(), EPS);
+        assertEquals(centerY0, view.testingTargetCenterY(), EPS);
+    }
+
+    /** Zoom-in preview tracks the moving focus (content walks with fingers). */
+    @Test
+    public void zoomInPreviewTracksMovingFocus() {
+        double scale0 = view.testingScale();
+        float midX = 820f;
+        float midY = HEIGHT / 2f;
+        PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
+        sim.pinchDown(view, midX, midY, 300f);
+        sim.pinchMove(view, midX, midY, 300f);
+        sim.pinchMove(view, midX + 40f, midY + 20f, 400f);
+        double underFocusFirst = view.testingPreviewComplexX(midX + 40f, midY + 20f);
+
+        sim.pinchMove(view, midX + 80f, midY + 40f, 540f);
+        double underFocusSecond = view.testingPreviewComplexX(midX + 80f, midY + 40f);
+
+        assertEquals(underFocusFirst, underFocusSecond, EPS * Math.max(1, scale0));
+    }
 }

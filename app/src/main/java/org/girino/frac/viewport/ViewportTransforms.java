@@ -41,6 +41,24 @@ public final class ViewportTransforms {
     }
 
     /**
+     * Commits an affine preview into a target viewport so the screen keeps
+     * showing the same content. Preview: q = s*p + d with d the total
+     * translation (pos + focus - s*startFocus). Target under identity:
+     * center' = center + ((1 - s) * size/2 - d) / (s * scale),
+     * scale' = scale * s. The new render fills the window; preview gaps OK.
+     */
+    public static State commitAffinePreview(
+            State state, float accumulatedScale, float dx, float dy, int width, int height) {
+        double s = accumulatedScale;
+        double newScale = state.scale * s;
+        double newCenterX =
+                state.centerX + ((1.0 - s) * width / 2.0 - dx) / newScale;
+        double newCenterY =
+                state.centerY + ((1.0 - s) * height / 2.0 - dy) / newScale;
+        return new State(newCenterX, newCenterY, newScale);
+    }
+
+    /**
      * Commits a pinch zoom around (focusX, focusY), folding any outstanding
      * pan at the pre-zoom scale first. This keeps the complex point under the focus
      * stable for the transform order used by MandelbrotView (translate then
