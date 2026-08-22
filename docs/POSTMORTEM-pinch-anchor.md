@@ -22,20 +22,22 @@ Any fix must satisfy ALL of these simultaneously:
 2. **Commit matches the preview exactly** — the rendered bitmap after release
    shows, at every screen pixel, the same complex coordinate the preview
    showed. No jump at handoff.
-3. **The bitmap fills the whole window at all times** — the preview is a
-   canvas transform of the *published* bitmap; the user rejects previews where
-   the bitmap no longer covers the viewport (background/gaps visible).
+3. **The NEW recalculated bitmap fills the whole window** — after deferred
+   commit + atomic handoff, the published render covers the viewport. Gaps
+   during the live preview (stale bitmap transformed on the canvas leaving
+   background at the edges) are **acceptable** (product clarification,
+   2026-08-22, recorded on issue #3). Do not reject a focus-following preview
+   only because it leaves gaps.
 4. **No rendering and no publishing mid-gesture** — flicker model of v1.0.2
    (deferred commit + atomic handoff) stays intact.
 5. **Premature `onScaleEnd` and detector restarts must not jump the preview**
    — the detector can end early when fingers get close (~1 cm) and a new
    POINTER_DOWN restarts it; accumulation continues into the same preview.
 
-Constraint 3 is the killer: a translated/scaled stale bitmap only covers the
-screen within bounds (`|translation| <= (s-1)/2 * size` per axis for zoom-in;
-zoom-out never covers unless anchored at center). A free focus-following
-transform violates it as soon as the midpoint drifts more than the zoom slack
-— which is exactly the gesture the feature is for.
+Earlier drafts treated "preview must always fill the window" as hard. That was
+wrong: it blocked the standard Matrix/`postScale(..., focus)` pattern and
+pushed attempt 3 into an unnecessary rejection. Gaps on the stale-bitmap
+preview are fine; only the new full-window render is mandatory.
 
 ## Timeline of attempts (all on top of v1.0.2)
 
@@ -86,10 +88,13 @@ Final state: 90/90 tests green, including field-equality probes
 (preview == target at many screen points) and moving-focus tracking.
 
 - **Result on device**: rejected by the user — the transformed stale bitmap
-  no longer filled the window (constraint 3). Behavior felt broken.
-- **Why it fails**: fundamental, not a bug. Constraint 1+2 are achievable
-  with a stale-bitmap transform; constraint 3 caps how far that transform may
-  translate/shrink the bitmap. A free focus-following gesture exceeds the cap.
+  no longer filled the window and the overall feel was wrong.
+- **Why it failed then / what changed**: at the time we treated "preview must
+  fill the window" as hard. Product clarification (issue #3, 2026-08-22) later
+  said gaps during preview are acceptable; only the new published bitmap must
+  fill the screen. Attempt 3's math (preview==commit) remains useful; the
+  covering-constraint rejection no longer applies. Revisit the Affine/
+  Matrix focus-following approach with that constraint relaxed.
 
 ## Rollback
 
@@ -100,25 +105,17 @@ remain in history but their code changes are reverted in a follow-up commit.
 
 ## Lessons / rules for the next attempt
 
-1. **Decide the covering constraint first.** If the preview must always fill
-   the window, the transform space is small: essentially scale about a point,
-   with translation clamped to the slack the scale factor provides. Either
-   clamp focus-following to that slack (content lags fingers at extremes), or
-   abandon the stale-bitmap preview.
-2. **The clean fix probably needs a different preview source**: render a
-   cheap coarse bitmap *of the target viewport* continuously (throttled)
-   during the gesture instead of transforming the old one — that satisfies
-   all five constraints by construction, at CPU cost. This mirrors what the
-   flicker postmortem called "publish intermediate steps", which failed for
-   flicker reasons; any revival must keep the generation gate and publish
-   atomically.
-3. **Property tests before pixels.** The preview==target field-equality probe
-   caught two algebra bugs immediately. Write it first for any new model.
-4. **Robolectric detector quirks are real**: late begin, begin-at-moved-focus,
+1. **Gaps during stale-bitmap preview are OK** (issue #3 clarification).
+   Only the new published render must fill the window. Do not reject a
+   focus-following transform for edge gaps alone.
+2. **Preview and commit must share one transform.** Property tests that
+   assert preview==target at many screen points catch algebra bugs that
+   pixel-looking tests miss.
+3. **Robolectric detector quirks are real**: late begin, begin-at-moved-focus,
    first-MOVE-bundles-motion. Use warm-up MOVEs in simulators; do not assume
    `onScaleBegin` sees the touch-down geometry.
-5. **Do not re-anchor a live preview** on detector restart; shift the map's
-   parameters to stay continuous (the one piece of attempt 3 worth keeping).
-6. **User-visible acceptance beats green tests**: all 90 tests passed and the
-   behavior was still wrong. Constraints came from product feedback, not
-   code. Encode them as tests only after the user confirms them.
+4. **Do not re-anchor a live preview** on detector restart; shift the map's
+   parameters to stay continuous (the continuity piece of attempt 3 is worth
+   keeping).
+5. **User-visible acceptance beats green tests**: encode product constraints
+   (gaps OK / fill after publish) explicitly so agents do not invent blockers.
