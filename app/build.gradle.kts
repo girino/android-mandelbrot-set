@@ -2,6 +2,9 @@ plugins {
     id("com.android.application")
 }
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 val releaseKeystoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
@@ -21,8 +24,8 @@ android {
         applicationId = "org.girino.frac.android.foss"
         minSdk = 21
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.1-alpha"
+        versionCode = 4
+        versionName = "1.0.1"
     }
 
     compileOptions {
@@ -44,6 +47,10 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            // Local dev builds: append compile timestamp (yyyyMMddHHmmss) to versionName.
+            val devVersionStamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                .format(LocalDateTime.now())
+            versionNameSuffix = "-$devVersionStamp"
         }
         release {
             if (hasReleaseSigning) {

@@ -31,7 +31,7 @@ public final class ViewportTransforms {
 
     /**
      * Commits a screen-space pan into the fractal center.
-     * Matches canvas translate-then-draw with identity scale.
+     * panX/panY are bitmap-space offsets (screen delta divided by any live preview scale).
      */
     public static State commitPan(State state, float panX, float panY) {
         return new State(
@@ -48,14 +48,14 @@ public final class ViewportTransforms {
      */
     public static State commitPinch(
             State state,
-            float factor,
+            double factor,
             float focusX,
             float focusY,
             int width,
             int height,
             float panX,
             float panY) {
-        if (factor == 1f) {
+        if (factor == 1.0) {
             if (panX == 0f && panY == 0f) {
                 return state;
             }

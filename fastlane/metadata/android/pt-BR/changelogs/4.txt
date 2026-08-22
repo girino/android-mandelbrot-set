@@ -1,0 +1,1 @@
+Corrige saltos de viewport no pinch-zoom (issue #2). Pinch e arraste mais suaves com re-render progressivo, pan correto durante preview de zoom e sem interrupção do gesto por troca de bitmap no meio do toque.

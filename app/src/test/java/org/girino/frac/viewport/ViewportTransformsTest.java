@@ -108,13 +108,74 @@ class ViewportTransformsTest {
     }
 
     @Test
+    void aggressiveZoomOutKeepsCornerFocusFixed() {
+        ViewportTransforms.State before = new ViewportTransforms.State(-0.75, 0.1, 400.0);
+        float focusX = 120f;
+        float focusY = 280f;
+        double factor = 0.35;
+
+        double beforeX = ViewportTransforms.complexX(
+                focusX, WIDTH, before.centerX, before.scale);
+        double beforeY = ViewportTransforms.complexY(
+                focusY, HEIGHT, before.centerY, before.scale);
+
+        ViewportTransforms.State after = ViewportTransforms.commitPinch(
+                before, factor, focusX, focusY, WIDTH, HEIGHT, 0f, 0f);
+
+        assertEquals(beforeX, ViewportTransforms.complexX(
+                focusX, WIDTH, after.centerX, after.scale), EPS);
+        assertEquals(beforeY, ViewportTransforms.complexY(
+                focusY, HEIGHT, after.centerY, after.scale), EPS);
+        assertEquals(before.scale * factor, after.scale, EPS);
+    }
+    @Test
+    void movingPivotDiffersFromFixedPivotCommit() {
+        ViewportTransforms.State start = new ViewportTransforms.State(0.0, 0.0, 200.0);
+        float initialPivotX = 400f;
+        float initialPivotY = 800f;
+        float driftedPivotX = 520f;
+        float driftedPivotY = 920f;
+        double factor = 0.6;
+
+        ViewportTransforms.State fixedPivot = ViewportTransforms.commitPinch(
+                start, factor, initialPivotX, initialPivotY, WIDTH, HEIGHT, 0f, 0f);
+        ViewportTransforms.State driftedPivot = ViewportTransforms.commitPinch(
+                start, factor, driftedPivotX, driftedPivotY, WIDTH, HEIGHT, 0f, 0f);
+
+        double fixedComplex = ViewportTransforms.complexX(
+                initialPivotX, WIDTH, fixedPivot.centerX, fixedPivot.scale);
+        double driftedAtInitial = ViewportTransforms.complexX(
+                initialPivotX, WIDTH, driftedPivot.centerX, driftedPivot.scale);
+        assertEquals(
+                ViewportTransforms.complexX(initialPivotX, WIDTH, start.centerX, start.scale),
+                fixedComplex,
+                EPS);
+        // Using the drifted focus at commit shifts what appears under the initial pinch point.
+        assertEquals(
+                (driftedPivotX - initialPivotX) * (1.0 - 1.0 / factor) / start.scale,
+                driftedAtInitial - fixedComplex,
+                EPS);
+    }
+
+    @Test
+    void panWithActivePreviewScaleUsesBitmapSpaceOffset() {
+        ViewportTransforms.State before = new ViewportTransforms.State(0.0, 0.0, 200.0);
+        float previewScale = 0.5f;
+        float screenDrag = 100f;
+        float bitmapPan = screenDrag / previewScale;
+
+        ViewportTransforms.State after = ViewportTransforms.commitPan(before, bitmapPan, 0f);
+        assertEquals(-bitmapPan / before.scale, after.centerX, EPS);
+    }
+
+    @Test
     void oldCenterZoomWouldMoveCornerFocus_regressionGuard() {
         // Documents the bug from issue #2: scaling scale only (center zoom) moves the
         // complex point under a corner focus; commitPinch must not.
         ViewportTransforms.State before = new ViewportTransforms.State(0.0, 0.0, 100.0);
         float focusX = 50f;
         float focusY = 50f;
-        float factor = 2f;
+        double factor = 2.0;
 
         double underFocusBefore =
                 ViewportTransforms.complexX(focusX, WIDTH, before.centerX, before.scale);

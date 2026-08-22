@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1 - 2026-08-22
+
+- Fix pinch-zoom viewport jumps and keep the fractal point under your fingers (issue #2).
+- Smooth pinch and pan: manual two-finger tracking, canvas preview during gestures, progressive re-render after release.
+- Fix pan speed when a zoom preview is active and avoid blank areas during gesture handoff.
+- Append a compile timestamp to debug build version names for on-device identification.
+
 ## 1.0.1-alpha - 2026-08-22
 
 - Fix abrupt viewport jumps during pinch zoom (issue #2).

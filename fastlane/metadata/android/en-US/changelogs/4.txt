@@ -1,0 +1,1 @@
+Fix pinch-zoom viewport jumps (issue #2). Smoother pinch and pan with progressive re-render, correct pan tracking during zoom preview, and no gesture interruption from mid-render bitmap updates.

@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
 
 import org.girino.frac.operators.Complex;
@@ -24,7 +23,6 @@ public class MandelbrotView extends View {
     private static final int INVALID_POINTER_ID = -1;
 
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
-    private final ScaleGestureDetector scaleDetector;
     private final ExecutorService renderExecutor = Executors.newSingleThreadExecutor();
     private final AtomicInteger renderGeneration = new AtomicInteger();
 
@@ -44,32 +42,40 @@ public class MandelbrotView extends View {
     private float accumulatedScale = 1f;
     private float focusX;
     private float focusY;
+    /** Pinch pivot and model snapshot captured at onScaleBegin (must stay fixed). */
+    private float pinchPivotX;
+    private float pinchPivotY;
+    private double pinchStartCenterX;
+    private double pinchStartCenterY;
+    private double pinchStartScale;
+    /** Pan offset in bitmap space (screen delta divided by current preview scale). */
     private float positionX;
     private float positionY;
     private float lastTouchX;
     private float lastTouchY;
     private int activePointerId = INVALID_POINTER_ID;
 
-    /**
-     * Preview transform kept until the first progressive frame of the matching
-     * render arrives, so the bitmap does not snap back before the new fractal.
-     */
+    /** Canvas preview until the matching render finishes. */
     private float previewScale = 1f;
     private float previewFocusX;
     private float previewFocusY;
     private float previewPosX;
     private float previewPosY;
-    private boolean previewResetPending;
-    /** Model snapshot before an unpublished gesture commit (for gesture restart). */
-    private double preCommitCenterX;
-    private double preCommitCenterY;
-    private double preCommitScale;
-    private boolean hasPreCommit;
+
+    /** Finger down / drag in progress (defer bitmap swaps until release). */
+    private boolean panInProgress;
+    /** Two-finger pinch active for this touch sequence. */
+    private boolean pinchSessionStarted;
+    /** Pinch ended (one finger lifted) but not yet committed on ACTION_UP. */
+    private boolean pinchNeedsCommit;
+    /** Last span between pointers for manual pinch tracking. */
+    private float lastPinchSpan = -1f;
+    /** Latest progressive frame waiting while a gesture is active. */
+    private volatile Bitmap deferredBitmap;
 
     public MandelbrotView(Context context) {
         super(context);
         setBackgroundColor(0xff0a0a0a);
-        scaleDetector = new ScaleGestureDetector(context, new ScaleListener());
         focusX = width / 2f;
         focusY = height / 2f;
         previewFocusX = focusX;
@@ -114,10 +120,88 @@ public class MandelbrotView extends View {
 
     public void stop() {
         renderGeneration.incrementAndGet();
+        clearDeferredPublish();
         if (renderTask != null) {
             renderTask.cancel(true);
             renderTask = null;
         }
+    }
+
+    private boolean isGestureActive() {
+        return panInProgress || pinchSessionStarted || pinchNeedsCommit;
+    }
+
+    private static float pinchSpan(MotionEvent event) {
+        float dx = event.getX(0) - event.getX(1);
+        float dy = event.getY(0) - event.getY(1);
+        return (float) Math.hypot(dx, dy);
+    }
+
+    private static float pinchMidX(MotionEvent event) {
+        return (event.getX(0) + event.getX(1)) * 0.5f;
+    }
+
+    private static float pinchMidY(MotionEvent event) {
+        return (event.getY(0) + event.getY(1)) * 0.5f;
+    }
+
+    private void beginPinchSession(MotionEvent event) {
+        stop();
+        pinchNeedsCommit = false;
+        if (hasLivePreview()) {
+            accumulatedScale = previewScale;
+            positionX = previewPosX;
+            positionY = previewPosY;
+        } else {
+            accumulatedScale = 1f;
+        }
+        pinchPivotX = pinchMidX(event);
+        pinchPivotY = pinchMidY(event);
+        pinchStartCenterX = centerX;
+        pinchStartCenterY = centerY;
+        pinchStartScale = scale;
+        focusX = pinchPivotX;
+        focusY = pinchPivotY;
+        lastPinchSpan = pinchSpan(event);
+        syncPreviewFromGesture();
+    }
+
+    private void updatePinch(MotionEvent event) {
+        float span = pinchSpan(event);
+        if (lastPinchSpan > 0f) {
+            accumulatedScale *= span / lastPinchSpan;
+            focusX = pinchPivotX;
+            focusY = pinchPivotY;
+            syncPreviewFromGesture();
+            invalidate();
+        }
+        lastPinchSpan = span;
+    }
+
+    private void clearDeferredPublish() {
+        deferredBitmap = null;
+    }
+
+    private void publishRenderFrame(Bitmap rendered) {
+        if (isGestureActive()) {
+            deferredBitmap = rendered;
+            invalidate();
+            return;
+        }
+        bitmap = rendered;
+        clearPreviewTransform();
+        deferredBitmap = null;
+        invalidate();
+    }
+
+    private void flushDeferredBitmapPublish() {
+        if (isGestureActive() || deferredBitmap == null) {
+            return;
+        }
+        bitmap = deferredBitmap;
+        clearPreviewTransform();
+        deferredBitmap = null;
+        invalidate();
     }
 
     private void render(
@@ -155,17 +239,17 @@ public class MandelbrotView extends View {
                 }
             }
             post(() -> {
-                if (generation == renderGeneration.get()) {
-                    bitmap = rendered;
-                    if (previewResetPending) {
-                        clearPreviewTransform();
-                        previewResetPending = false;
-                        hasPreCommit = false;
-                    }
-                    invalidate();
+                if (generation != renderGeneration.get()) {
+                    return;
                 }
+                publishRenderFrame(rendered);
             });
         }
+    }
+
+    private float previewScaleForPan() {
+        float s = previewScale;
+        return s != 0f ? s : 1f;
     }
 
     private void syncPreviewFromGesture() {
@@ -185,31 +269,8 @@ public class MandelbrotView extends View {
         positionY = 0f;
     }
 
-    private void rememberPreCommitIfNeeded() {
-        if (!hasPreCommit) {
-            preCommitCenterX = centerX;
-            preCommitCenterY = centerY;
-            preCommitScale = scale;
-            hasPreCommit = true;
-        }
-    }
-
-    private void restorePreCommitIfNeeded() {
-        if (!hasPreCommit) {
-            return;
-        }
-        centerX = preCommitCenterX;
-        centerY = preCommitCenterY;
-        scale = preCommitScale;
-        hasPreCommit = false;
-        previewResetPending = false;
-        accumulatedScale = previewScale;
-        positionX = previewPosX;
-        positionY = previewPosY;
-    }
-
-    private boolean hasUnpublishedPreview() {
-        return hasPreCommit || previewScale != 1f || previewPosX != 0f || previewPosY != 0f;
+    private boolean hasLivePreview() {
+        return previewScale != 1f || previewPosX != 0f || previewPosY != 0f;
     }
 
     @Override
@@ -227,14 +288,15 @@ public class MandelbrotView extends View {
         previewFocusX = focusX;
         previewFocusY = focusY;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        clearPreviewTransform();
         start();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        canvas.drawColor(0xff0a0a0a);
         canvas.save();
-        // Geometry sees translate first, then scale around focus (canvas applies in reverse).
         canvas.scale(previewScale, previewScale, previewFocusX, previewFocusY);
         canvas.translate(previewPosX, previewPosY);
         canvas.drawBitmap(bitmap, 0, 0, bitmapPaint);
@@ -243,40 +305,59 @@ public class MandelbrotView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        scaleDetector.onTouchEvent(event);
         int action = event.getActionMasked();
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+                panInProgress = true;
+                pinchSessionStarted = false;
+                pinchNeedsCommit = false;
+                lastPinchSpan = -1f;
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
                 activePointerId = event.getPointerId(0);
                 return true;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                if (event.getPointerCount() == 2) {
+                    if (!pinchSessionStarted) {
+                        beginPinchSession(event);
+                        pinchSessionStarted = true;
+                    } else {
+                        lastPinchSpan = pinchSpan(event);
+                    }
+                }
+                return true;
             case MotionEvent.ACTION_MOVE:
+                if (event.getPointerCount() >= 2 && pinchSessionStarted) {
+                    updatePinch(event);
+                    return true;
+                }
                 int pointerIndex = event.findPointerIndex(activePointerId);
                 if (pointerIndex < 0) {
                     return true;
                 }
                 float x = event.getX(pointerIndex);
                 float y = event.getY(pointerIndex);
-                if (event.getPointerCount() == 1 && !scaleDetector.isInProgress()) {
+                if (event.getPointerCount() == 1) {
                     float dx = x - lastTouchX;
                     float dy = y - lastTouchY;
-                    positionX += dx;
-                    positionY += dy;
-                    if (previewResetPending) {
-                        // Keep frozen pinch preview; only slide it with the new pan.
-                        previewPosX += dx;
-                        previewPosY += dy;
-                    } else {
-                        syncPreviewFromGesture();
-                    }
+                    float panScale = previewScaleForPan();
+                    positionX += dx / panScale;
+                    positionY += dy / panScale;
+                    syncPreviewFromGesture();
                     invalidate();
                 }
                 lastTouchX = x;
                 lastTouchY = y;
                 return true;
             case MotionEvent.ACTION_POINTER_UP:
+                if (event.getPointerCount() - 1 == 1 && pinchSessionStarted) {
+                    lastPinchSpan = -1f;
+                    pinchNeedsCommit = true;
+                    focusX = pinchPivotX;
+                    focusY = pinchPivotY;
+                    syncPreviewFromGesture();
+                }
                 int releasedIndex = event.getActionIndex();
                 if (event.getPointerId(releasedIndex) == activePointerId && event.getPointerCount() > 1) {
                     int newIndex = releasedIndex == 0 ? 1 : 0;
@@ -286,11 +367,27 @@ public class MandelbrotView extends View {
                 }
                 return true;
             case MotionEvent.ACTION_UP:
+                if (pinchSessionStarted || pinchNeedsCommit) {
+                    applyScale();
+                }
+                pinchSessionStarted = false;
+                pinchNeedsCommit = false;
+                lastPinchSpan = -1f;
+                panInProgress = false;
                 applyTranslation();
+                flushDeferredBitmapPublish();
                 performClick();
                 return true;
             case MotionEvent.ACTION_CANCEL:
+                if (pinchSessionStarted || pinchNeedsCommit) {
+                    applyScale();
+                }
+                pinchSessionStarted = false;
+                pinchNeedsCommit = false;
+                lastPinchSpan = -1f;
+                panInProgress = false;
                 applyTranslation();
+                flushDeferredBitmapPublish();
                 return true;
             default:
                 return true;
@@ -303,48 +400,34 @@ public class MandelbrotView extends View {
         return true;
     }
 
-    /**
-     * Commits outstanding pan into the fractal center. No-ops when scale commit
-     * already folded the same pan (live position counters were cleared there).
-     */
     private void applyTranslation() {
         activePointerId = INVALID_POINTER_ID;
         if (positionX == 0f && positionY == 0f) {
             return;
         }
-        rememberPreCommitIfNeeded();
         ViewportTransforms.State next = ViewportTransforms.commitPan(
                 new ViewportTransforms.State(centerX, centerY, scale),
                 positionX,
                 positionY);
         centerX = next.centerX;
         centerY = next.centerY;
-        if (!previewResetPending) {
-            // Freeze pan preview before clearing live counters.
-            syncPreviewFromGesture();
-        }
-        // If previewResetPending, previewPos was already updated during MOVE.
+        // Keep preview pan until progressive frames replace the bitmap.
+        syncPreviewFromGesture();
         positionX = 0f;
         positionY = 0f;
-        previewResetPending = true;
         start();
     }
 
-    /**
-     * Commits pinch zoom around the gesture focus, folding any outstanding pan
-     * at the pre-zoom scale. Keeps the preview transform until the new bitmap.
-     */
     private void applyScale() {
-        float factor = accumulatedScale;
-        if (factor == 1f) {
+        double factor = accumulatedScale;
+        if (factor == 1.0) {
             return;
         }
-        rememberPreCommitIfNeeded();
         ViewportTransforms.State next = ViewportTransforms.commitPinch(
-                new ViewportTransforms.State(centerX, centerY, scale),
+                new ViewportTransforms.State(pinchStartCenterX, pinchStartCenterY, pinchStartScale),
                 factor,
-                focusX,
-                focusY,
+                pinchPivotX,
+                pinchPivotY,
                 width,
                 height,
                 positionX,
@@ -356,12 +439,12 @@ public class MandelbrotView extends View {
         accumulatedScale = 1f;
         positionX = 0f;
         positionY = 0f;
-        previewResetPending = true;
         start();
     }
 
     public void zoom() {
         scale *= 1.5;
+        clearPreviewTransform();
         start();
     }
 
@@ -375,8 +458,6 @@ public class MandelbrotView extends View {
         centerY = 0;
         scale = 100.0 * 300.0 / 320.0 * width / 320.0;
         clearPreviewTransform();
-        previewResetPending = false;
-        hasPreCommit = false;
         start();
     }
 
@@ -385,44 +466,5 @@ public class MandelbrotView extends View {
         stop();
         renderExecutor.shutdownNow();
         super.onDetachedFromWindow();
-    }
-
-    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            stop();
-            if (hasPreCommit) {
-                // Roll back unpublished model commit and resume from the frozen preview.
-                restorePreCommitIfNeeded();
-            } else if (!hasUnpublishedPreview()) {
-                accumulatedScale = 1f;
-            } else {
-                // Preview still reflects live pan/scale without a model commit yet.
-                accumulatedScale = previewScale;
-                positionX = previewPosX;
-                positionY = previewPosY;
-            }
-            focusX = detector.getFocusX();
-            focusY = detector.getFocusY();
-            syncPreviewFromGesture();
-            return true;
-        }
-
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            accumulatedScale *= detector.getScaleFactor();
-            focusX = detector.getFocusX();
-            focusY = detector.getFocusY();
-            syncPreviewFromGesture();
-            invalidate();
-            return true;
-        }
-
-        @Override
-        public void onScaleEnd(ScaleGestureDetector detector) {
-            focusX = detector.getFocusX();
-            focusY = detector.getFocusY();
-            applyScale();
-        }
     }
 }
