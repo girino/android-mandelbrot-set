@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.2 - 2026-08-22
+
+Stable release. Same fixes as 1.0.2-alpha2, validated on device.
+
+- Eliminate flicker: gesture preview stays on screen until the new bitmap publishes (atomic handoff at first render step).
+- Ignore premature pinch end when fingers get close — zoom now commits only after the last finger lifts.
+- Block bitmap publication while a touch gesture is in progress; stale progressive frames never replace the screen.
+- Restore the simple v1.0.0 gesture model (`ScaleGestureDetector` + canvas preview) after complex handoff attempts regressed.
+
 ## 1.0.2-alpha2 - 2026-08-22
 
 - Eliminate flicker: gesture preview stays on screen until the new bitmap publishes (atomic handoff at first render step).
