@@ -13,7 +13,6 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.palettes.HSBPalette;
 import org.girino.frac.palettes.PaletteProvider;
-import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,9 +53,6 @@ public class MandelbrotView extends View {
     private float accumulatedScale = 1f;
     private float positionX;
     private float positionY;
-    /** Screen anchor of the live preview: pinch focus, or screen center for pan. */
-    private float focusX;
-    private float focusY;
     /** Render target computed at full release; becomes published at first publish. */
     private double targetCenterX;
     private double targetCenterY;
@@ -183,8 +179,6 @@ public class MandelbrotView extends View {
         scale *= w / (double) width;
         width = w;
         height = h;
-        focusX = width / 2f;
-        focusY = height / 2f;
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         hasPendingTarget = false;
         accumulatedScale = 1f;
@@ -196,8 +190,8 @@ public class MandelbrotView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float dx = (1 - accumulatedScale) * focusX;
-        float dy = (1 - accumulatedScale) * focusY;
+        float dx = (1 - accumulatedScale) * width / 2f;
+        float dy = (1 - accumulatedScale) * height / 2f;
         canvas.save();
         canvas.translate(positionX + dx, positionY + dy);
         canvas.scale(accumulatedScale, accumulatedScale);
@@ -216,8 +210,6 @@ public class MandelbrotView extends View {
                 activePointers = 1;
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
-                focusX = width / 2f;
-                focusY = height / 2f;
                 activePointerId = event.getPointerId(0);
                 return true;
             case MotionEvent.ACTION_POINTER_DOWN:
@@ -272,18 +264,10 @@ public class MandelbrotView extends View {
     private void commitGestureAndRender() {
         activePointerId = INVALID_POINTER_ID;
         if (accumulatedScale != 1f || positionX != 0f || positionY != 0f) {
-            ViewportTransforms.State committed = ViewportTransforms.commitFrozenGesture(
-                    new ViewportTransforms.State(centerX, centerY, scale),
-                    accumulatedScale,
-                    positionX,
-                    positionY,
-                    focusX,
-                    focusY,
-                    width,
-                    height);
-            targetCenterX = committed.centerX;
-            targetCenterY = committed.centerY;
-            targetScale = committed.scale;
+            double newScale = scale * accumulatedScale;
+            targetCenterX = centerX - positionX / newScale;
+            targetCenterY = centerY - positionY / newScale;
+            targetScale = newScale;
             hasPendingTarget = true;
         }
         start();
@@ -326,8 +310,6 @@ public class MandelbrotView extends View {
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
             accumulatedScale *= detector.getScaleFactor();
-            focusX = detector.getFocusX();
-            focusY = detector.getFocusY();
             invalidate();
             return true;
         }

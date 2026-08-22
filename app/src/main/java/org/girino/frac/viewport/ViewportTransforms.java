@@ -41,44 +41,6 @@ public final class ViewportTransforms {
     }
 
     /**
-     * Commits a frozen gesture preview (accumulated scale about an anchor plus
-     * translation) into a target viewport, keeping the complex point under the
-     * anchor invariant. The preview draws the published bitmap with
-     * q = s*p + pos + (1-s)*anchor; the target viewport renders under identity
-     * transform. Requiring q(f) to map to the same complex point in both gives:
-     * targetCenter = center + (f - pos/s - size/2)/scale - (f - size/2)/(scale*s)
-     * per axis. Pure pan (s=1) and centered pinch reduce to commitPan and
-     * center-preserving zoom respectively.
-     */
-    public static State commitFrozenGesture(
-            State state,
-            float accumulatedScale,
-            float positionX,
-            float positionY,
-            float focusX,
-            float focusY,
-            int width,
-            int height) {
-        if (accumulatedScale == 1f) {
-            if (positionX == 0f && positionY == 0f) {
-                return state;
-            }
-            return commitPan(state, positionX, positionY);
-        }
-        double s = accumulatedScale;
-        double totalScale = state.scale * s;
-        double newCenterX =
-                state.centerX
-                        + (focusX - positionX / s - width / 2.0) / state.scale
-                        - (focusX - width / 2.0) / totalScale;
-        double newCenterY =
-                state.centerY
-                        + (focusY - positionY / s - height / 2.0) / state.scale
-                        - (focusY - height / 2.0) / totalScale;
-        return new State(newCenterX, newCenterY, totalScale);
-    }
-
-    /**
      * Commits a pinch zoom around (focusX, focusY), folding any outstanding
      * pan at the pre-zoom scale first. This keeps the complex point under the focus
      * stable for the transform order used by MandelbrotView (translate then
