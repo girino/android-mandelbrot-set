@@ -3,8 +3,6 @@ package org.girino.frac.android.foss;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.ArrayAdapter;
@@ -26,7 +24,8 @@ import java.util.Locale;
  * palette, smooth coloring, reset, and zoom. Material dark theme and
  * bottom-sheet pickers (issues #10 / #13). Thin top progress bar tracks
  * progressive render samples (issue #9). Long-press shows complex
- * coordinates (issue #11).
+ * coordinates (issue #11). Options menu removed with NoActionBar (issue #12);
+ * exit via system back / recents.
  */
 public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
@@ -189,60 +188,6 @@ public class MandelbrotActivity extends AppCompatActivity {
         view.stop();
         onRenderBusy(false);
         super.onPause();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, Menu.FIRST, 0, R.string.menu_formula);
-        menu.add(0, Menu.FIRST + 1, 1, R.string.menu_palette);
-        menu.add(0, Menu.FIRST + 2, 2, R.string.menu_smooth_palette)
-                .setCheckable(true)
-                .setChecked(view.isSmooth());
-        menu.add(0, Menu.FIRST + 3, 3, R.string.menu_zoom_in);
-        menu.add(0, Menu.FIRST + 4, 4, R.string.menu_zoom_out);
-        menu.add(0, Menu.FIRST + 5, 5, R.string.menu_reset);
-        menu.add(0, Menu.FIRST + 6, 6, R.string.menu_exit);
-        return true;
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem smoothItem = menu.findItem(Menu.FIRST + 2);
-        if (smoothItem != null) {
-            smoothItem.setChecked(view.isSmooth());
-        }
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId() - Menu.FIRST) {
-            case 0:
-                openFormulaPicker();
-                return true;
-            case 1:
-                openPalettePicker();
-                return true;
-            case 2:
-                view.smooth();
-                item.setChecked(view.isSmooth());
-                syncSmoothControls();
-                return true;
-            case 3:
-                view.zoomIn();
-                return true;
-            case 4:
-                view.zoomOut();
-                return true;
-            case 5:
-                view.reset();
-                return true;
-            case 6:
-                finish();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
     }
 
     private void openFormulaPicker() {

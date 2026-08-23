@@ -55,19 +55,8 @@ proportion to completed samples (steps 8→4→2→1, weighted by work). It
 disappears when the full-resolution frame is ready or when a new gesture
 cancels the render.
 
-## Overflow menu
-
-Open the options menu for the same actions plus:
-
-| Item | Action |
-|------|--------|
-| **Formula** / **Palette** / **Smooth** / **Reset** | Same as the HUD |
-| **Zoom in** / **Zoom out** | Same as HUD + / − |
-| **Exit** | Close the app |
-
-Formula and Palette open a Material bottom sheet with the active item checked,
-instead of a full-screen list.
-
+There is no options menu (Material NoActionBar + HUD). Leave the app with
+the system Back gesture or Recents.
 
 ## Privacy
 

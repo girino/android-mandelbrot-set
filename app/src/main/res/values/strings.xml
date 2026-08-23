@@ -9,7 +9,6 @@
     <string name="menu_zoom_in">Zoom in</string>
     <string name="menu_zoom_out">Zoom out</string>
     <string name="menu_reset">Reset</string>
-    <string name="menu_exit">Exit</string>
     <string name="hud_zoom_in">+</string>
     <string name="hud_zoom_out">−</string>
     <string name="hud_formula_cd">Choose fractal formula</string>
