@@ -47,6 +47,9 @@ public class MandelbrotView extends View {
     /** Long-press coordinate readout under the finger (issue #11). */
     public interface CoordinateReadoutListener {
         void onCoordinateReadout(double real, double imag);
+
+        /** Finger lifted (or cancelled) after a readout was shown. */
+        void onCoordinateReadoutDismiss();
     }
 
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -93,6 +96,8 @@ public class MandelbrotView extends View {
     private boolean hasPendingTarget;
     /** Set by double-tap zoom so the following ACTION_UP does not cancel it. */
     private boolean skipNextCommit;
+    /** True while a long-press coordinate Snackbar should stay up (issue #11). */
+    private boolean coordinateReadoutActive;
 
     private float lastTouchX;
     private float lastTouchY;
@@ -400,6 +405,7 @@ public class MandelbrotView extends View {
                 break;
             case MotionEvent.ACTION_UP:
                 activePointers = 0;
+                dismissCoordinateReadout();
                 if (skipNextCommit) {
                     skipNextCommit = false;
                     activePointerId = INVALID_POINTER_ID;
@@ -414,6 +420,7 @@ public class MandelbrotView extends View {
             case MotionEvent.ACTION_CANCEL:
                 activePointers = 0;
                 skipNextCommit = false;
+                dismissCoordinateReadout();
                 commitGestureAndRender();
                 break;
             default:
@@ -593,13 +600,26 @@ public class MandelbrotView extends View {
         @Override
         public void onLongPress(MotionEvent e) {
             // Readout only — does not change viewport or preview (issue #11).
+            // Stays visible until ACTION_UP / CANCEL dismisses it.
             CoordinateReadoutListener listener = coordinateReadoutListener;
             if (listener == null) {
                 return;
             }
+            coordinateReadoutActive = true;
             listener.onCoordinateReadout(
                     complexRealAt(e.getX(), e.getY()),
                     complexImagAt(e.getX(), e.getY()));
+        }
+    }
+
+    private void dismissCoordinateReadout() {
+        if (!coordinateReadoutActive) {
+            return;
+        }
+        coordinateReadoutActive = false;
+        CoordinateReadoutListener listener = coordinateReadoutListener;
+        if (listener != null) {
+            listener.onCoordinateReadoutDismiss();
         }
     }
 

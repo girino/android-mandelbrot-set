@@ -39,6 +39,7 @@ public class MandelbrotActivity extends AppCompatActivity {
     private MandelbrotView view;
     private ToggleButton hudSmooth;
     private ProgressBar renderProgress;
+    private Snackbar coordinateSnackbar;
     private int operatorIndex = DEFAULT_OPERATOR_INDEX;
     private int paletteIndex = DEFAULT_PALETTE_INDEX;
     private final Runnable showRenderProgress = () -> {
@@ -68,7 +69,17 @@ public class MandelbrotActivity extends AppCompatActivity {
                 MandelbrotActivity.this.onRenderProgress(completed, total);
             }
         });
-        view.setCoordinateReadoutListener(this::showCoordinateReadout);
+        view.setCoordinateReadoutListener(new MandelbrotView.CoordinateReadoutListener() {
+            @Override
+            public void onCoordinateReadout(double real, double imag) {
+                showCoordinateReadout(real, imag);
+            }
+
+            @Override
+            public void onCoordinateReadoutDismiss() {
+                dismissCoordinateReadout();
+            }
+        });
 
         Button hudFormula = findViewById(R.id.hud_formula);
         Button hudPalette = findViewById(R.id.hud_palette);
@@ -144,15 +155,22 @@ public class MandelbrotActivity extends AppCompatActivity {
     }
 
     private void showCoordinateReadout(double real, double imag) {
+        dismissCoordinateReadout();
         View root = findViewById(R.id.mandelbrot_root);
         String message = getString(
                 R.string.coord_readout,
                 formatCoordinate(real),
                 formatCoordinate(imag));
-        Snackbar.make(root, message, Snackbar.LENGTH_LONG)
-                .setAction(R.string.coord_readout_dismiss, v -> {
-                })
-                .show();
+        // Indefinite: stays while the finger is down; dismissed on lift.
+        coordinateSnackbar = Snackbar.make(root, message, Snackbar.LENGTH_INDEFINITE);
+        coordinateSnackbar.show();
+    }
+
+    private void dismissCoordinateReadout() {
+        if (coordinateSnackbar != null) {
+            coordinateSnackbar.dismiss();
+            coordinateSnackbar = null;
+        }
     }
 
     private static String formatCoordinate(double value) {

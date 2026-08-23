@@ -27,8 +27,8 @@ GitHub/Zapstore builds requires uninstalling first. Details in
   lift the *last* finger — bringing fingers close together does not end the
   gesture early.
 - **Double-tap**: tap twice quickly to zoom in about the point you tapped.
-- **Long-press**: hold to show the complex coordinates under your finger
-  (Snackbar; tap OK or wait for it to dismiss).
+- **Long-press**: hold to show the complex coordinates under your finger;
+  lift to dismiss.
 - **HUD − / +**: zoom out or in about the screen center without pinching.
 - During any gesture the picture stays smooth: the screen shows a transformed
   preview and never flashes an older bitmap. Brief gaps at the edges during
