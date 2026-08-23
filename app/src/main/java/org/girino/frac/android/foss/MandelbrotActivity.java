@@ -337,7 +337,25 @@ public class MandelbrotActivity extends AppCompatActivity {
                         + "\n"
                         + getString(smoothRes)
                         + "\n"
+                        + getString(overlayAlgorithmRes())
+                        + "\n"
                         + getString(R.string.status_overlay_iterations, view.effectiveMaxIter()));
+    }
+
+    private int overlayAlgorithmRes() {
+        IterationSettings settings = view.getIterationSettings();
+        IterationSettings.Mode mode = settings != null
+                ? settings.mode
+                : IterationSettings.Mode.FIXED;
+        switch (mode) {
+            case SCALE_WITH_ZOOM:
+                return R.string.status_overlay_algo_zoom;
+            case ADAPTIVE:
+                return R.string.status_overlay_algo_adaptive;
+            case FIXED:
+            default:
+                return R.string.status_overlay_algo_fixed;
+        }
     }
 
     private void onRenderBusy(boolean busy) {

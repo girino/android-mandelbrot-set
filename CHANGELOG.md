@@ -21,9 +21,9 @@
   (issue #15).
 - Palette picker rows show a color swatch strip from PaletteProvider (issue #16).
 - Palette labels: RGB (HSB hue sweep) and BGR (blue→green→red LUT) replace Rainbow 1/2.
-- Corner status overlay shows formula, palette, and smooth coloring on a more
-  transparent panel; tap to hide, tap the chip to show again (issue #17). HUD bar
-  background is more transparent too.
+- Corner status overlay shows formula, palette, smooth coloring, iteration
+  algorithm, and effective Iter on a more transparent panel; tap to hide, tap
+  the chip to show again (issue #17). HUD bar background is more transparent too.
 - Export current viewport as PNG: share sheet (FileProvider, no network) or save
   to Pictures/Fractals via MediaStore on Android 10+; older devices use the system
   save dialog (issue #18).

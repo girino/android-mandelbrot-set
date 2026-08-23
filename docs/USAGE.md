@@ -86,7 +86,8 @@ the system Back gesture or Recents. The fractal draws edge-to-edge under the
 status and navigation bars; the HUD stays above the nav bar.
 
 A small overlay in the top-left corner shows the current formula, palette,
-smooth coloring, and effective iteration cap. Tap the overlay to hide it; tap
+smooth coloring, iteration algorithm (Fixed / Scale with zoom / Adaptive), and
+effective iteration cap. Tap the overlay to hide it; tap
 the **···** chip in the same corner to show it again. Pan and pinch on the
 fractal are unchanged. The HUD bar uses a similar translucent background.
 
