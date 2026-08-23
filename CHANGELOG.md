@@ -17,6 +17,8 @@
   bars with light system icons; HUD and progress stay clear of chrome (issue #14).
 - **GAL-only** licensing; drop F-Droid distribution path and BSD dual-license
   (issue #23). GitHub Releases and Zapstore remain the supported channels.
+- Adaptive launcher icon with monochrome layer for Android 13+ themed icons
+  (issue #15).
 
 ## 1.0.4 - 2026-08-22
 
