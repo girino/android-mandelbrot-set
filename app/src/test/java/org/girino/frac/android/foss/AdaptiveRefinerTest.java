@@ -1,7 +1,6 @@
 package org.girino.frac.android.foss;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.girino.frac.operators.FractalOperator;
@@ -87,7 +86,7 @@ public class AdaptiveRefinerTest {
         assertTrue(AdaptiveRefiner.refine(
                 adaptive, interior, width, height, scale, 0, 0,
                 ops, palette, false, pass1, rounds, cap,
-                workers, null, done, width * height * 2, null));
+                workers, null, done, width * height * 2, null) >= pass1);
 
         OptimizedMandelbrotOperator probe = new OptimizedMandelbrotOperator();
         org.girino.frac.operators.Complex point = new org.girino.frac.operators.Complex();
@@ -130,12 +129,12 @@ public class AdaptiveRefinerTest {
                 interior, width, height, new int[width * height]);
         assertTrue("expected an interior/exterior border at low pass1", borderBefore > 0);
 
-        assertTrue(AdaptiveRefiner.refine(
+        int maxReached = AdaptiveRefiner.refine(
                 pixels, interior, width, height, scale, 0, 0,
                 ops, palette, false, pass1, 8, cap,
                 workers, null, done, width * height * 4, null,
-                (px, w, h, limit) -> publishes.incrementAndGet()));
-
+                (px, w, h, limit) -> publishes.incrementAndGet());
+        assertTrue(maxReached >= pass1);
         assertTrue("expected at least one border-fill publish", publishes.get() > 0);
         // After stabilize+doubling up to cap, classification matches brute at cap.
         OptimizedMandelbrotOperator probe = new OptimizedMandelbrotOperator();
@@ -173,13 +172,43 @@ public class AdaptiveRefinerTest {
                 ops, palette, false, 16,
                 workers, null, done, width * height, null, interior));
 
-        boolean finished = AdaptiveRefiner.refine(
+        int finished = AdaptiveRefiner.refine(
                 pixels, interior, width, height, scale, 0, 0,
                 ops, palette, false, 16, 8, 4096,
                 workers,
                 () -> true,
                 done, width * height * 4, null);
-        assertFalse(finished);
+        assertEquals(-1, finished);
+    }
+
+    @Test
+    public void refine_returnsMaxLimitReachedForCarryIntoNextZoom() {
+        int width = 32;
+        int height = 24;
+        double scale = homeScale(width);
+        int pass1 = 10;
+        int cap = 160;
+        PaletteProvider palette = new HSBPalette();
+        FractalOperator[] ops = {
+                new OptimizedMandelbrotOperator(),
+                new OptimizedMandelbrotOperator()
+        };
+        int[] pixels = new int[width * height];
+        boolean[] interior = new boolean[width * height];
+        Arrays.fill(pixels, 0xff0a0a0a);
+        AtomicInteger done = new AtomicInteger();
+        assertTrue(ParallelStepRenderer.fillStep(
+                pixels, width, height, 1, scale, 0, 0,
+                ops, palette, false, pass1,
+                workers, null, done, width * height, null, interior));
+        int maxReached = AdaptiveRefiner.refine(
+                pixels, interior, width, height, scale, 0, 0,
+                ops, palette, false, pass1, 8, cap,
+                workers, null, done, width * height * 4, null);
+        assertTrue(maxReached >= pass1);
+        assertTrue(maxReached <= cap);
+        // Carried pass-1 for the next zoom must be at least this high.
+        assertTrue(maxReached > pass1);
     }
 
     @Test

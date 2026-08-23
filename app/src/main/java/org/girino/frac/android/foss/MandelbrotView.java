@@ -78,6 +78,12 @@ public class MandelbrotView extends View {
     private PaletteProvider palette = new HSBPalette();
     private boolean smooth;
     private IterationSettings iterationSettings = IterationSettings.defaults();
+    /**
+     * Highest iteration limit proven by adaptive border refine on the last
+     * finished frame. Next Adaptive pass-1 (e.g. after zoom) starts at least
+     * this high so deep borders are not re-discovered from fixedMax (issue #28).
+     */
+    private int adaptiveCarryMaxIter;
     private RenderBusyListener renderBusyListener;
     private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
@@ -132,6 +138,7 @@ public class MandelbrotView extends View {
 
     public void setOper(FractalOperator operator) {
         this.operator = operator;
+        adaptiveCarryMaxIter = 0;
     }
 
     public void setPalette(PaletteProvider palette) {
@@ -141,6 +148,9 @@ public class MandelbrotView extends View {
     /** Escape-time iteration policy (issue #26). Triggers re-render. */
     public void setIterationSettings(IterationSettings settings) {
         this.iterationSettings = settings != null ? settings : IterationSettings.defaults();
+        if (this.iterationSettings.mode != IterationSettings.Mode.ADAPTIVE) {
+            adaptiveCarryMaxIter = 0;
+        }
         start();
     }
 
@@ -152,7 +162,26 @@ public class MandelbrotView extends View {
     public int effectiveMaxIter() {
         boolean pending = hasPendingTarget;
         double s = pending ? targetScale : scale;
-        return IterationPolicy.resolveMaxIter(iterationSettings, s, width);
+        return resolvePass1MaxIter(s, width);
+    }
+
+    /**
+     * Pass-1 max for Adaptive: at least settings.fixedMax, and at least the
+     * limit carried from the previous bitmap's border refine (for zoom).
+     */
+    private int resolvePass1MaxIter(double viewportScale, int viewWidth) {
+        int base = IterationPolicy.resolveMaxIter(iterationSettings, viewportScale, viewWidth);
+        if (iterationSettings != null
+                && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE
+                && adaptiveCarryMaxIter > base) {
+            return Math.min(adaptiveCarryMaxIter, iterationSettings.absoluteCap);
+        }
+        return base;
+    }
+
+    /** Last adaptive border max carried into the next pass-1 (0 if none). */
+    int testingAdaptiveCarryMaxIter() {
+        return adaptiveCarryMaxIter;
     }
 
     /** Issue #9: listener for progressive-render busy state (UI overlay). */
@@ -197,8 +226,7 @@ public class MandelbrotView extends View {
         final FractalOperator renderOperator = operator;
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
-        final int renderMaxIter = IterationPolicy.resolveMaxIter(
-                iterationSettings, renderScale, renderWidth);
+        final int renderMaxIter = resolvePass1MaxIter(renderScale, renderWidth);
 
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
@@ -385,7 +413,7 @@ public class MandelbrotView extends View {
                     invalidate();
                 });
             };
-            boolean refined = AdaptiveRefiner.refine(
+            int maxReached = AdaptiveRefiner.refine(
                     pixels,
                     interior,
                     renderWidth,
@@ -405,10 +433,11 @@ public class MandelbrotView extends View {
                     totalSamples,
                     progress,
                     roundListener);
-            if (!refined) {
+            if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
             }
+            adaptiveCarryMaxIter = maxReached;
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
@@ -690,6 +719,7 @@ public class MandelbrotView extends View {
     }
 
     public void reset() {
+        adaptiveCarryMaxIter = 0;
         requestRender(100.0 * 300.0 / 320.0 * width / 320.0, 0, 0);
     }
 

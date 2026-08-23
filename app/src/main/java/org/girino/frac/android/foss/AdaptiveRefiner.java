@@ -33,9 +33,12 @@ public final class AdaptiveRefiner {
     /**
      * Refines pixels and interior[] in place. interior[i] true means the
      * sample has not escaped at the limit last applied to that pixel.
-     * Returns false if cancelled before finishing.
+     *
+     * @return max iteration limit reached by border refinement (at least
+     *         pass1MaxIter), or -1 if cancelled. Callers can carry that
+     *         value into the next zoom pass-1 (issue #28).
      */
-    public static boolean refine(
+    public static int refine(
             int[] pixels,
             boolean[] interior,
             int width,
@@ -60,7 +63,7 @@ public final class AdaptiveRefiner {
                 workers, cancel, doneSamples, progressTotal, progress, null);
     }
 
-    public static boolean refine(
+    public static int refine(
             int[] pixels,
             boolean[] interior,
             int width,
@@ -81,13 +84,13 @@ public final class AdaptiveRefiner {
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
-            return false;
+            return -1;
         }
         if (palette == null || workerOperators == null || workerOperators.length == 0) {
-            return false;
+            return -1;
         }
         if (cancel != null && cancel.isCancelled()) {
-            return false;
+            return -1;
         }
 
         int currentLimit = Math.max(pass1MaxIter, IterationSettings.MIN_ITER);
@@ -97,7 +100,7 @@ public final class AdaptiveRefiner {
 
         for (int round = 0; round < roundsLimit; round++) {
             if (cancel != null && cancel.isCancelled()) {
-                return false;
+                return -1;
             }
             int nextLimit = currentLimit * 2;
             if (nextLimit > cap) {
@@ -112,11 +115,14 @@ public final class AdaptiveRefiner {
             boolean anyEscapedAtThisLimit = false;
             while (true) {
                 if (cancel != null && cancel.isCancelled()) {
-                    return false;
+                    return -1;
                 }
                 int borderCount = collectBorder(interior, width, height, border);
                 if (borderCount == 0) {
-                    return cancel == null || !cancel.isCancelled();
+                    if (cancel != null && cancel.isCancelled()) {
+                        return -1;
+                    }
+                    return currentLimit;
                 }
 
                 AtomicBoolean anyEscaped = new AtomicBoolean(false);
@@ -127,7 +133,7 @@ public final class AdaptiveRefiner {
                         workers, cancel, anyEscaped,
                         doneSamples, progressTotal, progress);
                 if (!finished) {
-                    return false;
+                    return -1;
                 }
                 if (!anyEscaped.get()) {
                     break;
@@ -145,7 +151,10 @@ public final class AdaptiveRefiner {
             }
             currentLimit = nextLimit;
         }
-        return cancel == null || !cancel.isCancelled();
+        if (cancel != null && cancel.isCancelled()) {
+            return -1;
+        }
+        return currentLimit;
     }
 
     /**
