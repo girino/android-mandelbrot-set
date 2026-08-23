@@ -289,7 +289,11 @@ public class MandelbrotView extends View {
         final boolean adaptive =
                 iterationSettings != null
                         && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE;
-        final int totalSamples = progressiveSampleCount(renderWidth, renderHeight);
+        final int progressiveSamples = progressiveSampleCount(renderWidth, renderHeight);
+        // Reserve headroom so the progress bar keeps moving during border rounds.
+        final int totalSamples = adaptive
+                ? progressiveSamples + renderWidth * renderHeight
+                : progressiveSamples;
         AtomicInteger doneSamples = new AtomicInteger(0);
         postRenderProgress(generation, 0, totalSamples);
 
@@ -371,6 +375,16 @@ public class MandelbrotView extends View {
         }
 
         if (adaptive) {
+            AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
+                rendered.setPixels(px, 0, w, 0, 0, w, h);
+                post(() -> {
+                    if (generation != renderGeneration.get() || activePointers > 0) {
+                        return;
+                    }
+                    bitmap = rendered;
+                    invalidate();
+                });
+            };
             boolean refined = AdaptiveRefiner.refine(
                     pixels,
                     interior,
@@ -388,8 +402,9 @@ public class MandelbrotView extends View {
                     workerPool,
                     cancel,
                     doneSamples,
-                    Math.max(totalSamples, doneSamples.get() + 1),
-                    progress);
+                    totalSamples,
+                    progress,
+                    roundListener);
             if (!refined) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;

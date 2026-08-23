@@ -7,12 +7,16 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
 
 1. Mark each pixel as **interior** if the orbit did not escape before that
    limit (`FractalOperator.EscapeSample.escaped == false`).
-2. Collect the **internal border**: interior pixels with at least one
+2. Double the limit (`next = min(2 × current, absoluteCap)`).
+3. Collect the **internal border**: interior pixels with at least one
    4-connected escaped neighbor.
-3. Re-test only those border pixels at `min(2 × currentLimit, absoluteCap)`.
-4. If **none** escape at the higher limit, stop.
-5. If **some** escape, update colors / interior flags and repeat from step 2
-   until `maxRounds` or the absolute cap is reached.
+4. Re-test only those border pixels at `next`.
+5. If **some** escape, update colors / interior flags, publish an intermediate
+   frame, and go back to step 3 **at the same limit** (stabilize until no new
+   border is filled).
+6. If **none** escape at this limit, stop further doubling (stable border).
+7. Otherwise advance `current` to `next` and repeat from step 2 until
+   `maxRounds` or the absolute cap is reached.
 
 Refinement runs only after step 1 so coarse progressive blocks are not
 re-tested. Cancellation still honors `renderGeneration` and thread interrupt

@@ -14,10 +14,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Border-doubling adaptive iteration after a full-resolution pass (issue #28).
- * Interior pixels (did not escape at the current limit) that touch an escaped
- * neighbor are re-tested at 2× the limit until none escape or caps are hit.
+ *
+ * At each doubled limit: keep finding the interior/exterior border and
+ * re-testing those pixels until a full pass finds no new escapes ("no new
+ * border filled"), then double again — or stop early if the first pass at
+ * that limit finds nothing. Caps: maxRounds of doublings and absoluteCap.
  */
 public final class AdaptiveRefiner {
+
+    /** Called after pixels change so the UI can show intermediate borders. */
+    public interface RoundListener {
+        void onRoundComplete(int[] pixels, int width, int height, int currentLimit);
+    }
 
     private AdaptiveRefiner() {
     }
@@ -46,6 +54,32 @@ public final class AdaptiveRefiner {
             AtomicInteger doneSamples,
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, null);
+    }
+
+    public static boolean refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return false;
         }
@@ -73,22 +107,40 @@ public final class AdaptiveRefiner {
                 break;
             }
 
-            int borderCount = collectBorder(interior, width, height, border);
-            if (borderCount == 0) {
-                break;
+            // Stabilize at nextLimit: re-collect border and retest until a
+            // full pass finds no new escapes (no new border filled).
+            boolean anyEscapedAtThisLimit = false;
+            while (true) {
+                if (cancel != null && cancel.isCancelled()) {
+                    return false;
+                }
+                int borderCount = collectBorder(interior, width, height, border);
+                if (borderCount == 0) {
+                    return cancel == null || !cancel.isCancelled();
+                }
+
+                AtomicBoolean anyEscaped = new AtomicBoolean(false);
+                boolean finished = retestBorder(
+                        pixels, interior, border, borderCount,
+                        width, height, scale, centerX, centerY,
+                        workerOperators, palette, smooth, nextLimit,
+                        workers, cancel, anyEscaped,
+                        doneSamples, progressTotal, progress);
+                if (!finished) {
+                    return false;
+                }
+                if (!anyEscaped.get()) {
+                    break;
+                }
+                anyEscapedAtThisLimit = true;
+                if (roundListener != null) {
+                    roundListener.onRoundComplete(pixels, width, height, nextLimit);
+                }
             }
 
-            AtomicBoolean anyEscaped = new AtomicBoolean(false);
-            boolean finished = retestBorder(
-                    pixels, interior, border, borderCount,
-                    width, height, scale, centerX, centerY,
-                    workerOperators, palette, smooth, nextLimit,
-                    workers, cancel, anyEscaped,
-                    doneSamples, progressTotal, progress);
-            if (!finished) {
-                return false;
-            }
-            if (!anyEscaped.get()) {
+            // Issue #28: if the first (and only) pass at 2x found no
+            // divergence, stop — further doubling of the same border is done.
+            if (!anyEscapedAtThisLimit) {
                 break;
             }
             currentLimit = nextLimit;
@@ -243,6 +295,12 @@ public final class AdaptiveRefiner {
                 return false;
             }
             int index = border[b];
+            // Skip pixels that already escaped in an earlier pass of this
+            // stabilize loop (border list can be stale across workers only
+            // within one pass; within one pass each index appears once).
+            if (!interior[index]) {
+                continue;
+            }
             int x = index % width;
             int y = index / width;
             point.set(
