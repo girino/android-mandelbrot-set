@@ -329,7 +329,11 @@ public class MandelbrotView extends View {
         if (w <= 0 || h <= 0) {
             return;
         }
-        scale *= w / (double) width;
+        if (oldw > 0) {
+            scale *= w / (double) oldw;
+        } else if (width > 0) {
+            scale *= w / (double) width;
+        }
         width = w;
         height = h;
         startFocusX = width / 2f;
@@ -342,6 +346,48 @@ public class MandelbrotView extends View {
         positionX = 0f;
         positionY = 0f;
         start();
+    }
+
+    /** Snapshot for activity recreate / rotation (issue #21). */
+    public ViewportSession captureSession() {
+        int operatorIndex = FormulaCatalog.indexOf(operator);
+        int paletteIndex = PaletteCatalog.indexOf(palette);
+        return new ViewportSession(
+                centerX,
+                centerY,
+                scale,
+                width,
+                height,
+                operatorIndex >= 0 ? operatorIndex : 0,
+                paletteIndex >= 0 ? paletteIndex : 0,
+                smooth);
+    }
+
+    /** Restore viewport and catalog choices before the next layout pass. */
+    public void restoreSession(ViewportSession session) {
+        if (session == null) {
+            return;
+        }
+        stop();
+        centerX = session.centerX;
+        centerY = session.centerY;
+        scale = session.scale;
+        width = Math.max(1, session.viewWidth);
+        height = Math.max(1, session.viewHeight);
+        int safeOperator = Math.max(0, Math.min(session.operatorIndex, FormulaCatalog.size() - 1));
+        int safePalette = Math.max(0, Math.min(session.paletteIndex, PaletteCatalog.size() - 1));
+        setOper(FormulaCatalog.get(safeOperator));
+        setPalette(PaletteCatalog.get(safePalette));
+        smooth = session.smooth;
+        hasPendingTarget = false;
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+        startFocusX = width / 2f;
+        startFocusY = height / 2f;
+        focusX = startFocusX;
+        focusY = startFocusY;
+        bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
     }
 
     @Override

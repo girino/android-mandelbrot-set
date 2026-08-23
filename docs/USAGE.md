@@ -49,6 +49,9 @@ opens share or save to gallery.
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
 
+Rotating the device keeps the same fractal region (viewport, formula, palette,
+and smooth setting). A full **Reset** still returns to the canonical initial view.
+
 While a progressive render is running after you lift your finger (or after
 zoom / reset / palette change), a thin progress bar at the top fills in
 proportion to completed samples (steps 8→4→2→1, weighted by work). It

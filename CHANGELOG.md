@@ -29,6 +29,8 @@
   save dialog (issue #18).
 - HUD icon bar (+, −, Reset, Smooth) and hamburger overflow menu with icon + label
   rows for all actions including Formula, Palette, and Export (issue #29).
+- Rotation and activity recreate restore viewport, formula, palette, and smooth
+  via saved instance state (issue #21).
 
 ## 1.0.4 - 2026-08-22
 

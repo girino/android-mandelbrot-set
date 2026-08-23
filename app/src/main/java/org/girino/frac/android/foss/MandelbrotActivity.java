@@ -35,8 +35,11 @@ import java.util.Locale;
  * (issue #14). Corner status overlay for formula + smooth (issue #17).
  * Export viewport as PNG via share sheet or gallery save (issue #18).
  * Icon HUD bar + hamburger overflow menu (issue #29).
+ * Saves viewport on rotation / process recreate (issue #21).
  */
 public class MandelbrotActivity extends AppCompatActivity {
+    private static final String STATE_VIEWPORT = "viewport_session";
+    private static final String STATE_OVERLAY_VISIBLE = "status_overlay_visible";
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
     private static final long RENDER_PROGRESS_SHOW_DELAY_MS = 150L;
     /** Default matches MandelbrotView initial operator (Mandelbrot Set). */
@@ -80,6 +83,8 @@ public class MandelbrotActivity extends AppCompatActivity {
 
         statusOverlay.setOnClickListener(v -> setStatusOverlayVisible(false));
         statusOverlayChip.setOnClickListener(v -> setStatusOverlayVisible(true));
+
+        restoreSessionState(savedInstanceState);
 
         view.setRenderBusyListener(new MandelbrotView.RenderBusyListener() {
             @Override
@@ -171,6 +176,36 @@ public class MandelbrotActivity extends AppCompatActivity {
         });
         dialog.setContentView(sheet);
         dialog.show();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (view != null) {
+            outState.putBundle(STATE_VIEWPORT, view.captureSession().toBundle());
+        }
+        if (statusOverlay != null) {
+            outState.putBoolean(
+                    STATE_OVERLAY_VISIBLE,
+                    statusOverlay.getVisibility() == View.VISIBLE);
+        }
+    }
+
+    private void restoreSessionState(Bundle savedInstanceState) {
+        if (savedInstanceState == null || view == null) {
+            return;
+        }
+        ViewportSession session =
+                ViewportSession.fromBundle(savedInstanceState.getBundle(STATE_VIEWPORT));
+        if (session == null) {
+            return;
+        }
+        view.restoreSession(session);
+        operatorIndex = Math.max(
+                0, Math.min(session.operatorIndex, FormulaCatalog.size() - 1));
+        paletteIndex = Math.max(
+                0, Math.min(session.paletteIndex, PaletteCatalog.size() - 1));
+        setStatusOverlayVisible(savedInstanceState.getBoolean(STATE_OVERLAY_VISIBLE, true));
     }
 
     /**
