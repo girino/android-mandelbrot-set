@@ -118,12 +118,12 @@ public final class AdaptiveRefiner {
     }
 
     /**
-     * @param seedMaxIter when greater than pass1MaxIter and the frame needs a
-     *         screen-edge seed (all interior, or zoomOutBoost), start doubling
-     *         from seedMaxIter (last Adaptive max) instead of pass1.
+     * @param seedMaxIter last Adaptive max from the previous zoom (0 if none).
+     *         Doubling always starts at pass1MaxIter. Early stop when a limit
+     *         finds no new border escapes only if the probed limit is already
+     *         >= seedMaxIter (so outer borders keep intermediate colors).
      * @param zoomOutBoost on zoom-out, always include the image perimeter in
-     *         the border set and allow seedMaxIter even if a fractal seam
-     *         already exists (zoom-in all-black still uses needsFrameSeed).
+     *         the border set even if a fractal seam already exists.
      */
     public static int refine(
             int[] pixels,
@@ -159,16 +159,15 @@ public final class AdaptiveRefiner {
 
         int currentLimit = Math.max(pass1MaxIter, IterationSettings.MIN_ITER);
         int cap = Math.max(absoluteCap, currentLimit);
-        boolean frameSeed = needsFrameSeed(interior, width, height);
-        if (seedMaxIter > currentLimit && (frameSeed || zoomOutBoost)) {
-            currentLimit = Math.min(seedMaxIter, cap);
-        }
+        // Floor from previous zoom: do not early-stop below this even if a
+        // double finds no new escapes (colors still climb through intermediates).
+        int minStopLimit = seedMaxIter > 0 ? Math.min(seedMaxIter, cap) : 0;
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
         int[] frameScratch = zoomOutBoost ? new int[width * height] : null;
         boolean[] onBorder = zoomOutBoost ? new boolean[width * height] : null;
 
-        for (int round = 0; round < roundsLimit; round++) {
+        for (int round = 0; round < roundsLimit || currentLimit < minStopLimit; round++) {
             if (cancel != null && cancel.isCancelled()) {
                 return -1;
             }
@@ -217,12 +216,12 @@ public final class AdaptiveRefiner {
                 }
             }
 
-            // Issue #28: if the first (and only) pass at 2x found no
-            // divergence, stop — further doubling of the same border is done.
-            if (!anyEscapedAtThisLimit) {
+            currentLimit = nextLimit;
+            // Stop only when no new border escapes AND we have reached the
+            // previous zoom's max (or there was no previous max).
+            if (!anyEscapedAtThisLimit && currentLimit >= minStopLimit) {
                 break;
             }
-            currentLimit = nextLimit;
         }
         if (cancel != null && cancel.isCancelled()) {
             return -1;

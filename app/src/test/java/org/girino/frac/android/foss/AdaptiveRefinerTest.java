@@ -71,9 +71,9 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
-    public void refine_frameSeed_startsFromSeedMaxIter() {
-        // All-interior field: with no escapes at 2x, refine returns currentLimit.
-        // Frame seed raises currentLimit from pass1 to seedMax before doubling.
+    public void refine_seedFloor_climbsFromPass1UntilPreviousMax() {
+        // No escapes: without seed, stop after first empty double (return 2*pass1).
+        // With seed floor, keep doubling through intermediates until >= seed.
         int width = 4;
         int height = 4;
         double deepScale = 1e12;
@@ -92,7 +92,7 @@ public class AdaptiveRefinerTest {
                 pixelsA, interiorA, width, height, deepScale, 0, 0,
                 ops, palette, false, pass1, 1, cap,
                 workers, null, doneA, width * height, null, null, 0);
-        assertEquals(pass1, withoutSeed);
+        assertEquals(pass1 * 2, withoutSeed);
 
         boolean[] interiorB = new boolean[width * height];
         Arrays.fill(interiorB, true);
@@ -127,7 +127,7 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
-    public void refine_zoomOutBoost_appliesSeedEvenWithSeam() {
+    public void refine_zoomOutBoost_seedFloorEvenWithSeam() {
         int width = 4;
         int height = 4;
         double deepScale = 1e12;
@@ -137,8 +137,7 @@ public class AdaptiveRefinerTest {
         int seed = 40;
         int cap = 80;
 
-        // One escaped pixel → needsFrameSeed false, but zoomOutBoost still
-        // raises currentLimit to seed when nothing escapes at 2x.
+        // One escaped pixel → not all-interior; seed floor still forces climb.
         boolean[] interior = new boolean[width * height];
         Arrays.fill(interior, true);
         interior[0] = false;

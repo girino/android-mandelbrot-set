@@ -13,15 +13,18 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
    still interior / "all black"), seed from the **image perimeter** instead
    so doubling can still probe from the edges. On **zoom out**, the image
    perimeter is always unioned into the border set (even when a fractal seam
-   already exists), and doubling may start from the last Adaptive max when
-   it is higher than pass-1 — zoom-in keeps the all-interior-only rule.
+   already exists).
 4. Re-test only those border pixels at `next`.
 5. If **some** escape, update colors / interior flags, publish an intermediate
    frame, and go back to step 3 **at the same limit** (stabilize until no new
    border is filled).
-6. If **none** escape at this limit, stop further doubling (stable border).
-7. Otherwise advance `current` to `next` and repeat from step 2 until
-   `maxRounds` or the absolute cap is reached.
+6. If **none** escape at this limit, advance `current` to `next`. Stop only
+   when that empty pass happens **and** `current >= lastAdaptiveMax` from the
+   previous zoom (or there was no previous max). Otherwise keep doubling so
+   outer borders still pick up intermediate colors instead of jumping straight
+   to the previous max.
+7. If escapes were found, repeat from step 2 until `maxRounds` or the absolute
+   cap is reached (empty passes below the previous-zoom floor also continue).
 8. The status overlay **Iter** line shows the highest limit from the last
    finished border round (display only). Pass-1 after zoom stays at the
    configured Fixed max — it is not raised from the previous frame.
