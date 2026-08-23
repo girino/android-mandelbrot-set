@@ -12,7 +12,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -25,7 +28,8 @@ import java.util.Locale;
  * bottom-sheet pickers (issues #10 / #13). Thin top progress bar tracks
  * progressive render samples (issue #9). Long-press shows complex
  * coordinates (issue #11). Options menu removed with NoActionBar (issue #12);
- * exit via system back / recents.
+ * exit via system back / recents. Edge-to-edge fractal under system bars
+ * (issue #14).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
@@ -49,8 +53,11 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mandelbrot);
+        applyLightSystemBarIcons();
+
         view = findViewById(R.id.mandelbrot_view);
         hudSmooth = findViewById(R.id.hud_smooth);
         renderProgress = findViewById(R.id.render_progress);
@@ -103,8 +110,19 @@ public class MandelbrotActivity extends AppCompatActivity {
     }
 
     /**
-     * Keep the HUD above the system navigation bar and the progress bar
-     * below the status bar (edge-to-edge otherwise overlaps system chrome).
+     * Light (white) status/nav icons on the dark fractal (issue #14).
+     * appearanceLight* = false means light-colored icons.
+     */
+    private void applyLightSystemBarIcons() {
+        WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(false);
+        controller.setAppearanceLightNavigationBars(false);
+    }
+
+    /**
+     * Fractal draws under system bars; pad HUD above the nav bar and keep
+     * the render progress hairline below the status icons (issue #14).
      */
     private void applyWindowInsets(View hudBar, View progressBar) {
         final int hudLeft = hudBar.getPaddingLeft();

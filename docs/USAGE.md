@@ -56,7 +56,8 @@ disappears when the full-resolution frame is ready or when a new gesture
 cancels the render.
 
 There is no options menu (Material NoActionBar + HUD). Leave the app with
-the system Back gesture or Recents.
+the system Back gesture or Recents. The fractal draws edge-to-edge under the
+status and navigation bars; the HUD stays above the nav bar.
 
 ## Privacy
 
