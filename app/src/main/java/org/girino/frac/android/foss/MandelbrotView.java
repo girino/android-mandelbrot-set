@@ -44,6 +44,11 @@ public class MandelbrotView extends View {
         void onRenderProgress(int completed, int total);
     }
 
+    /** Long-press coordinate readout under the finger (issue #11). */
+    public interface CoordinateReadoutListener {
+        void onCoordinateReadout(double real, double imag);
+    }
+
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final ScaleGestureDetector scaleDetector;
     private final GestureDetector gestureDetector;
@@ -56,6 +61,7 @@ public class MandelbrotView extends View {
     private PaletteProvider palette = new HSBPalette();
     private boolean smooth;
     private RenderBusyListener renderBusyListener;
+    private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
 
     private int width = 320;
@@ -115,6 +121,27 @@ public class MandelbrotView extends View {
     /** Issue #9: listener for progressive-render busy state (UI overlay). */
     public void setRenderBusyListener(RenderBusyListener listener) {
         renderBusyListener = listener;
+    }
+
+    /** Issue #11: listener for long-press complex-plane readout. */
+    public void setCoordinateReadoutListener(CoordinateReadoutListener listener) {
+        coordinateReadoutListener = listener;
+    }
+
+    /**
+     * Complex coordinate currently shown under screen (x, y), including any
+     * live affine preview (same inverse as onDraw).
+     */
+    public double complexRealAt(float screenX, float screenY) {
+        float s = accumulatedScale;
+        float bitmapX = (screenX - positionX - focusX) / s + startFocusX;
+        return ViewportTransforms.complexX(bitmapX, width, centerX, scale);
+    }
+
+    public double complexImagAt(float screenX, float screenY) {
+        float s = accumulatedScale;
+        float bitmapY = (screenY - positionY - focusY) / s + startFocusY;
+        return ViewportTransforms.complexY(bitmapY, height, centerY, scale);
     }
 
     public void start() {
@@ -562,6 +589,18 @@ public class MandelbrotView extends View {
             zoomAt(e.getX(), e.getY(), ZOOM_STEP);
             return true;
         }
+
+        @Override
+        public void onLongPress(MotionEvent e) {
+            // Readout only — does not change viewport or preview (issue #11).
+            CoordinateReadoutListener listener = coordinateReadoutListener;
+            if (listener == null) {
+                return;
+            }
+            listener.onCoordinateReadout(
+                    complexRealAt(e.getX(), e.getY()),
+                    complexImagAt(e.getX(), e.getY()));
+        }
     }
 
     // --- Robolectric gesture tests (same package) ---
@@ -648,17 +687,11 @@ public class MandelbrotView extends View {
      * preview — inverse of the onDraw affine transform.
      */
     double testingPreviewComplexX(float x, float y) {
-        float s = accumulatedScale;
-        float bitmapX = (x - positionX - focusX) / s + startFocusX;
-        return org.girino.frac.viewport.ViewportTransforms.complexX(
-                bitmapX, width, centerX, scale);
+        return complexRealAt(x, y);
     }
 
     double testingPreviewComplexY(float x, float y) {
-        float s = accumulatedScale;
-        float bitmapY = (y - positionY - focusY) / s + startFocusY;
-        return org.girino.frac.viewport.ViewportTransforms.complexY(
-                bitmapY, height, centerY, scale);
+        return complexImagAt(x, y);
     }
 
     // --- test-only state manipulation ---

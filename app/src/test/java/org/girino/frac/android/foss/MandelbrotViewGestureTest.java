@@ -283,6 +283,13 @@ public class MandelbrotViewGestureTest {
         assertTrue(view.testingTargetScale() > scale0);
     }
 
+    /** Issue #11: complexAt matches published viewport at screen center. */
+    @Test
+    public void complexAt_screenCenter_matchesPublishedCenter() {
+        assertEquals(view.testingCenterX(), view.complexRealAt(WIDTH / 2f, HEIGHT / 2f), EPS);
+        assertEquals(view.testingCenterY(), view.complexImagAt(WIDTH / 2f, HEIGHT / 2f), EPS);
+    }
+
     /** Issue #9: start marks busy; stop clears it. */
     @Test
     public void start_setsRenderBusy_stop_clears() {

@@ -17,12 +17,16 @@ import android.widget.ToggleButton;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.snackbar.Snackbar;
+
+import java.util.Locale;
 
 /**
  * Main screen: full-bleed fractal with a compact bottom HUD for formula,
  * palette, smooth coloring, reset, and zoom. Material dark theme and
  * bottom-sheet pickers (issues #10 / #13). Thin top progress bar tracks
- * progressive render samples (issue #9).
+ * progressive render samples (issue #9). Long-press shows complex
+ * coordinates (issue #11).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
@@ -64,6 +68,7 @@ public class MandelbrotActivity extends AppCompatActivity {
                 MandelbrotActivity.this.onRenderProgress(completed, total);
             }
         });
+        view.setCoordinateReadoutListener(this::showCoordinateReadout);
 
         Button hudFormula = findViewById(R.id.hud_formula);
         Button hudPalette = findViewById(R.id.hud_palette);
@@ -136,6 +141,22 @@ public class MandelbrotActivity extends AppCompatActivity {
             renderProgress.setMax(max);
         }
         renderProgress.setProgress(Math.min(completed, max));
+    }
+
+    private void showCoordinateReadout(double real, double imag) {
+        View root = findViewById(R.id.mandelbrot_root);
+        String message = getString(
+                R.string.coord_readout,
+                formatCoordinate(real),
+                formatCoordinate(imag));
+        Snackbar.make(root, message, Snackbar.LENGTH_LONG)
+                .setAction(R.string.coord_readout_dismiss, v -> {
+                })
+                .show();
+    }
+
+    private static String formatCoordinate(double value) {
+        return String.format(Locale.US, "%.10g", value);
     }
 
     @Override

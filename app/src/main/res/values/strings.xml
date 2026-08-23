@@ -19,4 +19,6 @@
     <string name="hud_zoom_in_cd">Zoom in</string>
     <string name="hud_zoom_out_cd">Zoom out</string>
     <string name="render_progress_cd">Rendering fractal</string>
+    <string name="coord_readout">re %1$s   im %2$s</string>
+    <string name="coord_readout_dismiss">OK</string>
 </resources>
