@@ -76,10 +76,12 @@ and smooth setting). A full **Reset** still returns to the canonical initial vie
 
 While a progressive render is running after you lift your finger (or after
 zoom / reset / palette change), a thin progress bar at the top fills in
-proportion to completed samples (steps 8→4→2→1, weighted by work). It
-disappears when the full-resolution frame is ready or when a new gesture
-cancels the render. Each progressive step is filled in parallel across CPU
-cores (up to eight workers); pan/pinch preview and handoff stay the same.
+proportion to completed samples (steps 8→4→2→1, weighted by work). In
+**Adaptive** mode, after step 1 the bar switches to an indeterminate
+animation while border refine runs. It disappears when the full-resolution
+frame is ready or when a new gesture cancels the render. Each progressive
+step is filled in parallel across CPU cores (up to eight workers); pan/pinch
+preview and handoff stay the same.
 
 There is no options menu (Material NoActionBar + HUD). Leave the app with
 the system Back gesture or Recents. The fractal draws edge-to-edge under the

@@ -44,6 +44,12 @@ public class MandelbrotView extends View {
         /** Completed fractal samples vs total across steps 8→4→2→1. */
         void onRenderProgress(int completed, int total);
 
+        /**
+         * Switch the top bar to indeterminate while Adaptive border refine
+         * runs (issue #31). Progressive steps stay determinate.
+         */
+        void onRenderIndeterminate(boolean indeterminate);
+
         /** Adaptive border limit (or other Iter display) changed for the overlay. */
         void onEffectiveMaxIterChanged();
     }
@@ -310,6 +316,18 @@ public class MandelbrotView extends View {
         });
     }
 
+    private void postRenderIndeterminate(int generation, boolean indeterminate) {
+        post(() -> {
+            if (generation != renderGeneration.get()) {
+                return;
+            }
+            RenderBusyListener listener = renderBusyListener;
+            if (listener != null) {
+                listener.onRenderIndeterminate(indeterminate);
+            }
+        });
+    }
+
     private void render(
             int generation,
             int renderWidth,
@@ -325,11 +343,7 @@ public class MandelbrotView extends View {
         final boolean adaptive =
                 iterationSettings != null
                         && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE;
-        final int progressiveSamples = progressiveSampleCount(renderWidth, renderHeight);
-        // Reserve headroom so the progress bar keeps moving during border rounds.
-        final int totalSamples = adaptive
-                ? progressiveSamples + renderWidth * renderHeight
-                : progressiveSamples;
+        final int totalSamples = progressiveSampleCount(renderWidth, renderHeight);
         AtomicInteger doneSamples = new AtomicInteger(0);
         postRenderProgress(generation, 0, totalSamples);
 
@@ -411,6 +425,8 @@ public class MandelbrotView extends View {
         }
 
         if (adaptive) {
+            // Border rounds have no fixed sample budget — indeterminate bar (issue #31).
+            postRenderIndeterminate(generation, true);
             AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
                 rendered.setPixels(px, 0, w, 0, 0, w, h);
                 // Same field the overlay reads — also the next zoom's stop-floor.
@@ -440,9 +456,9 @@ public class MandelbrotView extends View {
                     iterationSettings.absoluteCap,
                     workerPool,
                     cancel,
-                    doneSamples,
-                    totalSamples,
-                    progress,
+                    null,
+                    0,
+                    null,
                     roundListener,
                     adaptiveMinStopIter);
             if (maxReached < 0) {

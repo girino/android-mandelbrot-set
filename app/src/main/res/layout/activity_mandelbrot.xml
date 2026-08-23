@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Issue #9: determinate bar weighted by progressive samples. -->
+    <!-- Issue #9 / #31: determinate for progressive steps; indeterminate for Adaptive. -->
     <ProgressBar
         android:id="@+id/render_progress"
         style="?android:attr/progressBarStyleHorizontal"
@@ -19,6 +19,7 @@
         android:layout_gravity="top"
         android:contentDescription="@string/render_progress_cd"
         android:indeterminate="false"
+        android:indeterminateTint="#E6FFFFFF"
         android:max="100"
         android:maxHeight="3dp"
         android:minHeight="3dp"

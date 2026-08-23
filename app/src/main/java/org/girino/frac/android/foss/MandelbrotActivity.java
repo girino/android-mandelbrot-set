@@ -110,6 +110,11 @@ public class MandelbrotActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onRenderIndeterminate(boolean indeterminate) {
+                MandelbrotActivity.this.onRenderIndeterminate(indeterminate);
+            }
+
+            @Override
             public void onEffectiveMaxIterChanged() {
                 refreshStatusOverlay();
             }
@@ -365,16 +370,18 @@ public class MandelbrotActivity extends AppCompatActivity {
         renderProgress.removeCallbacks(showRenderProgress);
         if (busy) {
             refreshStatusOverlay();
+            renderProgress.setIndeterminate(false);
             renderProgress.setProgress(0);
             renderProgress.postDelayed(showRenderProgress, RENDER_PROGRESS_SHOW_DELAY_MS);
         } else {
             refreshStatusOverlay();
+            renderProgress.setIndeterminate(false);
             renderProgress.setVisibility(View.GONE);
         }
     }
 
     private void onRenderProgress(int completed, int total) {
-        if (renderProgress == null) {
+        if (renderProgress == null || renderProgress.isIndeterminate()) {
             return;
         }
         int max = Math.max(total, 1);
@@ -382,6 +389,20 @@ public class MandelbrotActivity extends AppCompatActivity {
             renderProgress.setMax(max);
         }
         renderProgress.setProgress(Math.min(completed, max));
+    }
+
+    /** Issue #31: Adaptive border refine has no fixed sample budget. */
+    private void onRenderIndeterminate(boolean indeterminate) {
+        if (renderProgress == null) {
+            return;
+        }
+        if (indeterminate) {
+            renderProgress.removeCallbacks(showRenderProgress);
+            renderProgress.setIndeterminate(true);
+            renderProgress.setVisibility(View.VISIBLE);
+        } else {
+            renderProgress.setIndeterminate(false);
+        }
     }
 
     private void showCoordinateReadout(double real, double imag) {
