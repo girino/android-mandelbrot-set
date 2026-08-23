@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 - 2026-08-22
+
+- Fix **Smooth palette** menu toggle (issue #4): continuous iteration coloring
+  now turns on/off as expected; the menu item shows a checkmark when enabled.
+
 ## 1.0.3 - 2026-08-22
 
 - Anchor pinch zoom on the finger midpoint (issue #3): preview and committed
