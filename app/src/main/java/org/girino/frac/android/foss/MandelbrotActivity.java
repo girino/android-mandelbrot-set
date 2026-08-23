@@ -399,17 +399,26 @@ public class MandelbrotActivity extends AppCompatActivity {
     }
 
     private void openFormulaPicker() {
-        showPickerSheet(
-                R.string.select_formula,
-                FormulaCatalog.labels(),
-                operatorIndex,
-                index -> {
-                    operatorIndex = index;
-                    view.setOper(FormulaCatalog.get(index));
-                    resetIterationSettingsToDefaults();
-                    view.reset();
-                    refreshStatusOverlay();
-                });
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(R.string.select_formula);
+        FormulaPickerAdapter adapter = new FormulaPickerAdapter(this, list);
+        list.setAdapter(adapter);
+        int safeChecked = Math.max(0, Math.min(operatorIndex, FormulaCatalog.size() - 1));
+        list.setItemChecked(safeChecked, true);
+        list.setSelection(safeChecked);
+        list.setOnItemClickListener((parent, view1, position, id) -> {
+            operatorIndex = position;
+            view.setOper(FormulaCatalog.get(position));
+            resetIterationSettingsToDefaults();
+            view.reset();
+            refreshStatusOverlay();
+            dialog.dismiss();
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
     }
 
     private void openPalettePicker() {

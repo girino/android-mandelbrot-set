@@ -37,6 +37,7 @@
   multiplier 1.2); values persist in SharedPreferences (issue #26).
 - Parallel progressive render: row-banded workers (up to min(8, CPU cores)) fill
   each step 8→4→2→1; gesture gate and atomic handoff unchanged (issue #25).
+- Formula picker rows show a mini fractal thumbnail preview (issue #30).
 
 ## 1.0.4 - 2026-08-22
 
