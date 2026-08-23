@@ -2,9 +2,12 @@ package org.girino.frac.android.foss;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.ToggleButton;
 
@@ -29,6 +32,8 @@ public class MandelbrotActivity extends Activity {
         setContentView(R.layout.activity_mandelbrot);
         view = findViewById(R.id.mandelbrot_view);
         hudSmooth = findViewById(R.id.hud_smooth);
+        View hudBar = findViewById(R.id.hud_bar);
+        applyHudNavigationInsets(hudBar);
 
         Button hudFormula = findViewById(R.id.hud_formula);
         Button hudPalette = findViewById(R.id.hud_palette);
@@ -46,6 +51,29 @@ public class MandelbrotActivity extends Activity {
             syncSmoothControls();
         });
         syncSmoothControls();
+    }
+
+    /**
+     * Keep the HUD above the system navigation bar / gesture inset
+     * (edge-to-edge on modern targets otherwise overlaps the nav buttons).
+     */
+    private void applyHudNavigationInsets(View hudBar) {
+        final int baseLeft = hudBar.getPaddingLeft();
+        final int baseTop = hudBar.getPaddingTop();
+        final int baseRight = hudBar.getPaddingRight();
+        final int baseBottom = hudBar.getPaddingBottom();
+        View root = findViewById(R.id.mandelbrot_root);
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            int navBottom;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                navBottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
+            } else {
+                navBottom = insets.getSystemWindowInsetBottom();
+            }
+            hudBar.setPadding(baseLeft, baseTop, baseRight, baseBottom + navBottom);
+            return insets;
+        });
+        root.requestApplyInsets();
     }
 
     @Override
