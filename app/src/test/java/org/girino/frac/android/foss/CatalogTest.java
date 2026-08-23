@@ -22,7 +22,8 @@ public class CatalogTest {
     public void paletteCatalog_defaultsAndLookup() {
         assertEquals(5, PaletteCatalog.size());
         assertEquals(3, PaletteCatalog.indexOf(new HSBPalette()));
-        assertEquals("Rainbow 1", PaletteCatalog.labels()[3]);
+        assertEquals("Rainbow", PaletteCatalog.labels()[3]);
+        assertEquals("Spectrum", PaletteCatalog.labels()[4]);
         assertTrue(PaletteCatalog.get(3) instanceof HSBPalette);
     }
 }

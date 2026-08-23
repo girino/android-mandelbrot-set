@@ -13,8 +13,8 @@ public final class PaletteCatalog {
             "Green",
             "Blue",
             "Red",
-            "Rainbow 1",
-            "Rainbow 2",
+            "Rainbow",
+            "Spectrum",
     };
 
     private static final PaletteProvider[] PALETTES = {
