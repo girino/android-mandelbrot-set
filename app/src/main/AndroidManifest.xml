@@ -31,6 +31,10 @@
             android:name=".AboutActivity"
             android:exported="false"
             android:label="@string/menu_about" />
+        <activity
+            android:name=".IterationSettingsActivity"
+            android:exported="false"
+            android:label="@string/menu_iterations" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

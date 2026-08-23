@@ -43,10 +43,24 @@ A compact bar at the bottom of the screen (icons only):
 | **☰** | Open the menu (all actions with icon + name) |
 
 The **menu** lists every action: zoom in/out, reset, smooth, formula, palette,
-export, **Help**, and **About**. Formula and palette open the same bottom sheets
-as before; export opens share or save to gallery. Help summarizes gestures and
+export, **Iterations**, **Help**, and **About**. Formula and palette open the same
+bottom sheets as before; export opens share or save to gallery. Iterations opens
+a settings screen for escape-time max iterations. Help summarizes gestures and
 the HUD; About shows the version, package id, and **Girino Anarchist License
 (GAL)** with a link to the full license text.
+
+## Iterations
+
+Menu → **Iterations** chooses how escape-time max iterations are computed:
+
+| Mode | Fields | Behavior |
+|------|--------|----------|
+| **Fixed max** (default) | Max iterations (default **40**) | Same cap for every pixel at every zoom |
+| **Scale with zoom** | Base (default **40**) and multiplier (default **1.2**) | At home zoom, maxIter = base. Each doubling of zoom multiplies by the multiplier: `round(base × multiplier^log2(scale/homeScale))`, clamped to 10–4096 |
+
+Settings survive process restart via SharedPreferences. Changing them re-renders
+(respecting the gesture gate). The status overlay shows the effective **Iter**
+value for the current viewport.
 
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
@@ -64,10 +78,10 @@ There is no options menu (Material NoActionBar + HUD). Leave the app with
 the system Back gesture or Recents. The fractal draws edge-to-edge under the
 status and navigation bars; the HUD stays above the nav bar.
 
-A small overlay in the top-left corner shows the current formula, palette, and
-whether smooth coloring is on. Tap the overlay to hide it; tap the **···** chip
-in the same corner to show it again. Pan and pinch on the fractal are unchanged.
-The HUD bar uses a similar translucent background.
+A small overlay in the top-left corner shows the current formula, palette,
+smooth coloring, and effective iteration cap. Tap the overlay to hide it; tap
+the **···** chip in the same corner to show it again. Pan and pinch on the
+fractal are unchanged. The HUD bar uses a similar translucent background.
 
 ## Export PNG
 

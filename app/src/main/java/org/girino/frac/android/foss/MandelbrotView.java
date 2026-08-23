@@ -63,6 +63,7 @@ public class MandelbrotView extends View {
     private FractalOperator operator = new OptimizedMandelbrotOperator();
     private PaletteProvider palette = new HSBPalette();
     private boolean smooth;
+    private IterationSettings iterationSettings = IterationSettings.defaults();
     private RenderBusyListener renderBusyListener;
     private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
@@ -123,6 +124,23 @@ public class MandelbrotView extends View {
         this.palette = palette;
     }
 
+    /** Escape-time iteration policy (issue #26). Triggers re-render. */
+    public void setIterationSettings(IterationSettings settings) {
+        this.iterationSettings = settings != null ? settings : IterationSettings.defaults();
+        start();
+    }
+
+    public IterationSettings getIterationSettings() {
+        return iterationSettings;
+    }
+
+    /** Effective maxIter for the current published or pending viewport. */
+    public int effectiveMaxIter() {
+        boolean pending = hasPendingTarget;
+        double s = pending ? targetScale : scale;
+        return IterationPolicy.resolveMaxIter(iterationSettings, s, width);
+    }
+
     /** Issue #9: listener for progressive-render busy state (UI overlay). */
     public void setRenderBusyListener(RenderBusyListener listener) {
         renderBusyListener = listener;
@@ -165,6 +183,8 @@ public class MandelbrotView extends View {
         final FractalOperator renderOperator = operator;
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
+        final int renderMaxIter = IterationPolicy.resolveMaxIter(
+                iterationSettings, renderScale, renderWidth);
 
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
@@ -176,7 +196,8 @@ public class MandelbrotView extends View {
                 renderCenterY,
                 renderOperator,
                 renderPalette,
-                renderSmooth));
+                renderSmooth,
+                renderMaxIter));
     }
 
     public void stop() {
@@ -249,7 +270,8 @@ public class MandelbrotView extends View {
             double renderCenterY,
             FractalOperator renderOperator,
             PaletteProvider renderPalette,
-            boolean renderSmooth) {
+            boolean renderSmooth,
+            int renderMaxIter) {
         Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
         Canvas renderCanvas = new Canvas(rendered);
         Paint renderPaint = new Paint(Paint.DITHER_FLAG);
@@ -272,7 +294,7 @@ public class MandelbrotView extends View {
                     point.set(
                             (x - renderWidth / 2.0) / renderScale + renderCenterX,
                             (y - renderHeight / 2.0) / renderScale + renderCenterY);
-                    double value = renderOperator.apply(point, 40, renderSmooth);
+                    double value = renderOperator.apply(point, renderMaxIter, renderSmooth);
                     renderPaint.setColor(renderPalette.getColor(value));
                     if (step == 1) {
                         renderCanvas.drawPoint(x, y, renderPaint);

@@ -38,6 +38,7 @@ import java.util.Locale;
  * Icon HUD bar + hamburger overflow menu (issue #29).
  * Saves viewport on rotation / process recreate (issue #21).
  * Help and About screens from the menu (issue #22).
+ * Iteration settings: fixed max or scale-with-zoom (issue #26).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     private static final String STATE_VIEWPORT = "viewport_session";
@@ -62,6 +63,14 @@ public class MandelbrotActivity extends AppCompatActivity {
             registerForActivityResult(
                     new ActivityResultContracts.CreateDocument("image/png"),
                     this::onLegacySaveResult);
+    private final ActivityResultLauncher<Intent> iterationSettingsLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK) {
+                            applyIterationSettings(IterationSettingsStore.load(this));
+                        }
+                    });
     private final Runnable showRenderProgress = () -> {
         if (renderProgress != null) {
             renderProgress.setVisibility(View.VISIBLE);
@@ -87,6 +96,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         statusOverlayChip.setOnClickListener(v -> setStatusOverlayVisible(true));
 
         restoreSessionState(savedInstanceState);
+        applyIterationSettings(IterationSettingsStore.load(this));
 
         view.setRenderBusyListener(new MandelbrotView.RenderBusyListener() {
             @Override
@@ -116,12 +126,26 @@ public class MandelbrotActivity extends AppCompatActivity {
         ImageButton hudReset = findViewById(R.id.hud_reset);
         ImageButton hudMenu = findViewById(R.id.hud_menu);
 
-        hudZoomIn.setOnClickListener(v -> view.zoomIn());
-        hudZoomOut.setOnClickListener(v -> view.zoomOut());
-        hudReset.setOnClickListener(v -> view.reset());
+        hudZoomIn.setOnClickListener(v -> {
+            view.zoomIn();
+            refreshStatusOverlay();
+        });
+        hudZoomOut.setOnClickListener(v -> {
+            view.zoomOut();
+            refreshStatusOverlay();
+        });
+        hudReset.setOnClickListener(v -> {
+            view.reset();
+            refreshStatusOverlay();
+        });
         hudSmooth.setOnClickListener(v -> toggleSmooth());
         hudMenu.setOnClickListener(v -> openHudMenu());
         syncSmoothControls();
+        refreshStatusOverlay();
+    }
+
+    private void applyIterationSettings(IterationSettings settings) {
+        view.setIterationSettings(settings);
         refreshStatusOverlay();
     }
 
@@ -149,6 +173,11 @@ public class MandelbrotActivity extends AppCompatActivity {
                 openExportSheet();
                 return;
             }
+            if (HudMenuAdapter.isIterations(position)) {
+                iterationSettingsLauncher.launch(
+                        new Intent(this, IterationSettingsActivity.class));
+                return;
+            }
             if (HudMenuAdapter.isHelp(position)) {
                 startActivity(new Intent(this, HelpActivity.class));
                 return;
@@ -164,12 +193,15 @@ public class MandelbrotActivity extends AppCompatActivity {
             switch (action) {
                 case ZOOM_IN:
                     view.zoomIn();
+                    refreshStatusOverlay();
                     break;
                 case ZOOM_OUT:
                     view.zoomOut();
+                    refreshStatusOverlay();
                     break;
                 case RESET:
                     view.reset();
+                    refreshStatusOverlay();
                     break;
                 case SMOOTH:
                     toggleSmooth();
@@ -291,7 +323,9 @@ public class MandelbrotActivity extends AppCompatActivity {
                         + "\n"
                         + palettes[safePalette]
                         + "\n"
-                        + getString(smoothRes));
+                        + getString(smoothRes)
+                        + "\n"
+                        + getString(R.string.status_overlay_iterations, view.effectiveMaxIter()));
     }
 
     private void onRenderBusy(boolean busy) {
@@ -300,6 +334,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         }
         renderProgress.removeCallbacks(showRenderProgress);
         if (busy) {
+            refreshStatusOverlay();
             renderProgress.setProgress(0);
             renderProgress.postDelayed(showRenderProgress, RENDER_PROGRESS_SHOW_DELAY_MS);
         } else {

@@ -41,6 +41,7 @@ final class HudMenuAdapter extends BaseAdapter {
 
     private enum Overflow {
         EXPORT(R.string.menu_export, R.drawable.ic_hud_export, R.string.hud_export_cd),
+        ITERATIONS(R.string.menu_iterations, R.drawable.ic_hud_iterations, R.string.hud_iterations_cd),
         HELP(R.string.menu_help, R.drawable.ic_hud_help, R.string.hud_help_cd),
         ABOUT(R.string.menu_about, R.drawable.ic_hud_about, R.string.hud_about_cd);
 
@@ -81,6 +82,10 @@ final class HudMenuAdapter extends BaseAdapter {
 
     static boolean isExport(int position) {
         return overflowAt(position) == Overflow.EXPORT;
+    }
+
+    static boolean isIterations(int position) {
+        return overflowAt(position) == Overflow.ITERATIONS;
     }
 
     static boolean isHelp(int position) {

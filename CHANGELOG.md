@@ -33,6 +33,8 @@
   via saved instance state (issue #21).
 - Help and About screens from the hamburger menu; About includes GAL license
   reference and optional external links (issue #22).
+- Iteration settings screen: fixed max (default 40) or scale-with-zoom (base 40,
+  multiplier 1.2); values persist in SharedPreferences (issue #26).
 
 ## 1.0.4 - 2026-08-22
 
