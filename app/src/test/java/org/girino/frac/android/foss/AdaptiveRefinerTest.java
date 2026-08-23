@@ -72,29 +72,42 @@ public class AdaptiveRefinerTest {
 
     @Test
     public void refine_frameSeed_startsFromSeedMaxIter() {
-        // Tiny all-interior field: without seed, first nextLimit is 2*pass1.
-        // With seedMax > pass1, first probe uses 2*seed (clamped by cap).
+        // All-interior field: with no escapes at 2x, refine returns currentLimit.
+        // Frame seed raises currentLimit from pass1 to seedMax before doubling.
         int width = 4;
         int height = 4;
-        boolean[] interior = new boolean[width * height];
-        Arrays.fill(interior, true);
-        int[] pixels = new int[width * height];
-        Arrays.fill(pixels, 0xff000000);
+        double deepScale = 1e12;
         PaletteProvider palette = new HSBPalette();
         FractalOperator[] ops = {new OptimizedMandelbrotOperator()};
-        AtomicInteger done = new AtomicInteger();
         int pass1 = 10;
         int seed = 40;
         int cap = 80;
-        // Deep interior point so frame stays black at these limits.
-        int maxReached = AdaptiveRefiner.refine(
-                pixels, interior, width, height,
-                1e12, 0, 0,
+
+        boolean[] interiorA = new boolean[width * height];
+        Arrays.fill(interiorA, true);
+        int[] pixelsA = new int[width * height];
+        Arrays.fill(pixelsA, 0xff000000);
+        AtomicInteger doneA = new AtomicInteger();
+        int withoutSeed = AdaptiveRefiner.refine(
+                pixelsA, interiorA, width, height, deepScale, 0, 0,
                 ops, palette, false, pass1, 1, cap,
-                workers, null, done, width * height, null, null, seed);
-        assertTrue(maxReached >= seed);
-        assertTrue(maxReached <= cap);
+                workers, null, doneA, width * height, null, null, 0);
+        assertEquals(pass1, withoutSeed);
+
+        boolean[] interiorB = new boolean[width * height];
+        Arrays.fill(interiorB, true);
+        int[] pixelsB = new int[width * height];
+        Arrays.fill(pixelsB, 0xff000000);
+        AtomicInteger doneB = new AtomicInteger();
+        int withSeed = AdaptiveRefiner.refine(
+                pixelsB, interiorB, width, height, deepScale, 0, 0,
+                ops, palette, false, pass1, 1, cap,
+                workers, null, doneB, width * height, null, null, seed);
+        assertEquals(seed, withSeed);
     }
+
+    @Test
+    public void collectBorder_allInterior_usesImageFrame() {
         boolean[] interior = {
                 true, true, true,
                 true, true, true,
