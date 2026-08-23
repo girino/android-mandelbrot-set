@@ -29,7 +29,7 @@ import java.util.Locale;
  * progressive render samples (issue #9). Long-press shows complex
  * coordinates (issue #11). Options menu removed with NoActionBar (issue #12);
  * exit via system back / recents. Edge-to-edge fractal under system bars
- * (issue #14).
+ * (issue #14). Corner status overlay for formula + smooth (issue #17).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
@@ -43,6 +43,8 @@ public class MandelbrotActivity extends AppCompatActivity {
     private ToggleButton hudSmooth;
     private ProgressBar renderProgress;
     private Snackbar coordinateSnackbar;
+    private TextView statusOverlay;
+    private TextView statusOverlayChip;
     private int operatorIndex = DEFAULT_OPERATOR_INDEX;
     private int paletteIndex = DEFAULT_PALETTE_INDEX;
     private final Runnable showRenderProgress = () -> {
@@ -61,8 +63,13 @@ public class MandelbrotActivity extends AppCompatActivity {
         view = findViewById(R.id.mandelbrot_view);
         hudSmooth = findViewById(R.id.hud_smooth);
         renderProgress = findViewById(R.id.render_progress);
+        statusOverlay = findViewById(R.id.status_overlay);
+        statusOverlayChip = findViewById(R.id.status_overlay_chip);
         View hudBar = findViewById(R.id.hud_bar);
-        applyWindowInsets(hudBar, renderProgress);
+        applyWindowInsets(hudBar, renderProgress, statusOverlay, statusOverlayChip);
+
+        statusOverlay.setOnClickListener(v -> setStatusOverlayVisible(false));
+        statusOverlayChip.setOnClickListener(v -> setStatusOverlayVisible(true));
 
         view.setRenderBusyListener(new MandelbrotView.RenderBusyListener() {
             @Override
@@ -105,8 +112,10 @@ public class MandelbrotActivity extends AppCompatActivity {
                 view.smooth();
             }
             syncSmoothControls();
+            refreshStatusOverlay();
         });
         syncSmoothControls();
+        refreshStatusOverlay();
     }
 
     /**
@@ -124,11 +133,16 @@ public class MandelbrotActivity extends AppCompatActivity {
      * Fractal draws under system bars; pad HUD above the nav bar and keep
      * the render progress hairline below the status icons (issue #14).
      */
-    private void applyWindowInsets(View hudBar, View progressBar) {
+    private void applyWindowInsets(
+            View hudBar, View progressBar, View statusOverlay, View statusChip) {
         final int hudLeft = hudBar.getPaddingLeft();
         final int hudTop = hudBar.getPaddingTop();
         final int hudRight = hudBar.getPaddingRight();
         final int hudBottom = hudBar.getPaddingBottom();
+        final int overlayStart = statusOverlay.getPaddingLeft();
+        final int overlayTop = statusOverlay.getPaddingTop();
+        final int overlayEnd = statusOverlay.getPaddingRight();
+        final int overlayBottom = statusOverlay.getPaddingBottom();
         View root = findViewById(R.id.mandelbrot_root);
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             int navBottom;
@@ -142,9 +156,34 @@ public class MandelbrotActivity extends AppCompatActivity {
             }
             hudBar.setPadding(hudLeft, hudTop, hudRight, hudBottom + navBottom);
             progressBar.setTranslationY(statusTop);
+            float margin = 8f * getResources().getDisplayMetrics().density;
+            statusOverlay.setTranslationX(margin);
+            statusOverlay.setTranslationY(statusTop + margin);
+            statusOverlay.setPadding(overlayStart, overlayTop, overlayEnd, overlayBottom);
+            statusChip.setTranslationX(margin);
+            statusChip.setTranslationY(statusTop + margin);
             return insets;
         });
         root.requestApplyInsets();
+    }
+
+    private void setStatusOverlayVisible(boolean visible) {
+        if (statusOverlay == null || statusOverlayChip == null) {
+            return;
+        }
+        statusOverlay.setVisibility(visible ? View.VISIBLE : View.GONE);
+        statusOverlayChip.setVisibility(visible ? View.GONE : View.VISIBLE);
+    }
+
+    private void refreshStatusOverlay() {
+        if (statusOverlay == null) {
+            return;
+        }
+        String formula = FormulaCatalog.labels()[operatorIndex];
+        int smoothRes = view.isSmooth()
+                ? R.string.status_overlay_smooth_on
+                : R.string.status_overlay_smooth_off;
+        statusOverlay.setText(formula + "\n" + getString(smoothRes));
     }
 
     private void onRenderBusy(boolean busy) {
@@ -198,6 +237,7 @@ public class MandelbrotActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         syncSmoothControls();
+        refreshStatusOverlay();
         view.start();
     }
 
@@ -217,6 +257,7 @@ public class MandelbrotActivity extends AppCompatActivity {
                     operatorIndex = index;
                     view.setOper(FormulaCatalog.get(index));
                     view.reset();
+                    refreshStatusOverlay();
                 });
     }
 
