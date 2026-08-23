@@ -43,6 +43,9 @@ public class MandelbrotView extends View {
 
         /** Completed fractal samples vs total across steps 8→4→2→1. */
         void onRenderProgress(int completed, int total);
+
+        /** Adaptive border limit (or other Iter display) changed for the overlay. */
+        void onEffectiveMaxIterChanged();
     }
 
     /** Long-press coordinate readout under the finger (issue #11). */
@@ -78,6 +81,13 @@ public class MandelbrotView extends View {
     private PaletteProvider palette = new HSBPalette();
     private boolean smooth;
     private IterationSettings iterationSettings = IterationSettings.defaults();
+    /**
+     * Adaptive iteration limit shown on the status overlay and used as the
+     * stop-floor for the next Adaptive refine (same source for both).
+     * Updated on the render thread when a border round publishes or refine
+     * completes; left unchanged on cancel so the next zoom keeps the floor.
+     */
+    private volatile int adaptiveMaxIter;
     private RenderBusyListener renderBusyListener;
     private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
@@ -132,6 +142,7 @@ public class MandelbrotView extends View {
 
     public void setOper(FractalOperator operator) {
         this.operator = operator;
+        adaptiveMaxIter = 0;
     }
 
     public void setPalette(PaletteProvider palette) {
@@ -141,6 +152,9 @@ public class MandelbrotView extends View {
     /** Escape-time iteration policy (issue #26). Triggers re-render. */
     public void setIterationSettings(IterationSettings settings) {
         this.iterationSettings = settings != null ? settings : IterationSettings.defaults();
+        if (this.iterationSettings.mode != IterationSettings.Mode.ADAPTIVE) {
+            adaptiveMaxIter = 0;
+        }
         start();
     }
 
@@ -148,11 +162,30 @@ public class MandelbrotView extends View {
         return iterationSettings;
     }
 
-    /** Effective maxIter for the current published or pending viewport. */
+    /**
+     * Value shown as Iter on the status overlay: Fixed / Scale-with-zoom
+     * resolve from the viewport; Adaptive shows adaptiveMaxIter when set
+     * (same value used as the next zoom's stop-floor).
+     */
     public int effectiveMaxIter() {
+        if (iterationSettings != null
+                && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE
+                && adaptiveMaxIter > 0) {
+            return adaptiveMaxIter;
+        }
         boolean pending = hasPendingTarget;
         double s = pending ? targetScale : scale;
         return IterationPolicy.resolveMaxIter(iterationSettings, s, width);
+    }
+
+    /** Pass-1 max from settings only (no zoom carry). */
+    private int resolvePass1MaxIter(double viewportScale, int viewWidth) {
+        return IterationPolicy.resolveMaxIter(iterationSettings, viewportScale, viewWidth);
+    }
+
+    /** Adaptive overlay / stop-floor value (0 if none yet). */
+    int testingAdaptiveMaxIter() {
+        return adaptiveMaxIter;
     }
 
     /** Issue #9: listener for progressive-render busy state (UI overlay). */
@@ -197,8 +230,9 @@ public class MandelbrotView extends View {
         final FractalOperator renderOperator = operator;
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
-        final int renderMaxIter = IterationPolicy.resolveMaxIter(
-                iterationSettings, renderScale, renderWidth);
+        final int renderMaxIter = resolvePass1MaxIter(renderScale, renderWidth);
+        // Overlay Adaptive Iter — minimum stop floor for this refine.
+        final int adaptiveMinStopIter = adaptiveMaxIter;
 
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
@@ -211,7 +245,8 @@ public class MandelbrotView extends View {
                 renderOperator,
                 renderPalette,
                 renderSmooth,
-                renderMaxIter));
+                renderMaxIter,
+                adaptiveMinStopIter));
     }
 
     public void stop() {
@@ -285,14 +320,23 @@ public class MandelbrotView extends View {
             FractalOperator renderOperator,
             PaletteProvider renderPalette,
             boolean renderSmooth,
-            int renderMaxIter) {
-        final int totalSamples = progressiveSampleCount(renderWidth, renderHeight);
+            int renderMaxIter,
+            int adaptiveMinStopIter) {
+        final boolean adaptive =
+                iterationSettings != null
+                        && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE;
+        final int progressiveSamples = progressiveSampleCount(renderWidth, renderHeight);
+        // Reserve headroom so the progress bar keeps moving during border rounds.
+        final int totalSamples = adaptive
+                ? progressiveSamples + renderWidth * renderHeight
+                : progressiveSamples;
         AtomicInteger doneSamples = new AtomicInteger(0);
         postRenderProgress(generation, 0, totalSamples);
 
         int[] pixels = new int[renderWidth * renderHeight];
         Arrays.fill(pixels, 0xff0a0a0a);
         Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
+        boolean[] interior = adaptive ? new boolean[renderWidth * renderHeight] : null;
 
         int workerCount = ParallelStepRenderer.defaultWorkerCount();
         FractalOperator[] workerOps = new FractalOperator[workerCount];
@@ -323,7 +367,8 @@ public class MandelbrotView extends View {
                     cancel,
                     doneSamples,
                     totalSamples,
-                    progress);
+                    progress,
+                    step == 1 ? interior : null);
             if (!finished) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
@@ -331,6 +376,7 @@ public class MandelbrotView extends View {
             postRenderProgress(generation, doneSamples.get(), totalSamples);
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             final int publishStep = step;
+            final boolean clearBusy = publishStep == 1 && !adaptive;
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
                     clearRenderBusyIfCurrent(generation);
@@ -356,10 +402,64 @@ public class MandelbrotView extends View {
                 focusX = startFocusX;
                 focusY = startFocusY;
                 invalidate();
-                // Progressive refine done only at step 1 (issue #9).
-                if (publishStep == 1) {
+                // Progressive refine done only at step 1 (issue #9), unless
+                // adaptive border rounds still need to run (issue #28).
+                if (clearBusy) {
                     clearRenderBusyIfCurrent(generation);
                 }
+            });
+        }
+
+        if (adaptive) {
+            AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
+                rendered.setPixels(px, 0, w, 0, 0, w, h);
+                // Same field the overlay reads — also the next zoom's stop-floor.
+                adaptiveMaxIter = limit;
+                post(() -> {
+                    if (generation != renderGeneration.get() || activePointers > 0) {
+                        return;
+                    }
+                    bitmap = rendered;
+                    invalidate();
+                    notifyEffectiveMaxIterChanged();
+                });
+            };
+            int maxReached = AdaptiveRefiner.refine(
+                    pixels,
+                    interior,
+                    renderWidth,
+                    renderHeight,
+                    renderScale,
+                    renderCenterX,
+                    renderCenterY,
+                    workerOps,
+                    renderPalette,
+                    renderSmooth,
+                    renderMaxIter,
+                    iterationSettings.maxRounds,
+                    iterationSettings.absoluteCap,
+                    workerPool,
+                    cancel,
+                    doneSamples,
+                    totalSamples,
+                    progress,
+                    roundListener,
+                    adaptiveMinStopIter);
+            if (maxReached < 0) {
+                post(() -> clearRenderBusyIfCurrent(generation));
+                return;
+            }
+            adaptiveMaxIter = maxReached;
+            rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
+            post(() -> {
+                if (generation != renderGeneration.get() || activePointers > 0) {
+                    clearRenderBusyIfCurrent(generation);
+                    return;
+                }
+                bitmap = rendered;
+                invalidate();
+                notifyEffectiveMaxIterChanged();
+                clearRenderBusyIfCurrent(generation);
             });
         }
     }
@@ -632,7 +732,15 @@ public class MandelbrotView extends View {
     }
 
     public void reset() {
+        adaptiveMaxIter = 0;
         requestRender(100.0 * 300.0 / 320.0 * width / 320.0, 0, 0);
+    }
+
+    private void notifyEffectiveMaxIterChanged() {
+        RenderBusyListener listener = renderBusyListener;
+        if (listener != null) {
+            listener.onEffectiveMaxIterChanged();
+        }
     }
 
     @Override

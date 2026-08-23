@@ -12,8 +12,30 @@ public abstract class FractalOperator {
 	protected static final double omega2 = omega*omega;
 	private static final double logEscapeRadius = Math.log(2.0);
 
+	/**
+	 * Escape-time sample: palette value plus whether the orbit escaped
+	 * before hitting maxiter (issue #28 adaptive border refinement).
+	 */
+	public static final class EscapeSample {
+		public final double value;
+		/** True when the orbit escaped (left the set) before maxiter. */
+		public final boolean escaped;
+		/** Iterations performed (maxiter means still interior). */
+		public final int iterations;
+
+		public EscapeSample(double value, boolean escaped, int iterations) {
+			this.value = value;
+			this.escaped = escaped;
+			this.iterations = iterations;
+		}
+	}
+
 	private Complex Z = new Complex();
 	public final double apply(Complex C, int maxiter, boolean isSmooth) {
+		return sample(C, maxiter, isSmooth).value;
+	}
+
+	public final EscapeSample sample(Complex C, int maxiter, boolean isSmooth) {
 		int i = 0;
 		Z.set(0, 0);
 		beforeIteration(i, Z, C, maxiter);
@@ -21,12 +43,11 @@ public abstract class FractalOperator {
 			step(i, Z, C, maxiter);
 		}
 		afterIteration(i, Z, C, maxiter);
-		
-		if (isSmooth) {
-			return produceSmoothResult(i, Z, C, maxiter);
-		} else {
-			return produceResult(i, Z, C, maxiter);
-		}
+		boolean escaped = i < maxiter;
+		double value = isSmooth
+				? produceSmoothResult(i, Z, C, maxiter)
+				: produceResult(i, Z, C, maxiter);
+		return new EscapeSample(value, escaped, i);
 	}
 	protected void beforeIteration(int step, Complex Z, Complex C, int maxiter) { ; }
 	protected void afterIteration(int step, Complex Z, Complex C, int maxiter) { ; }

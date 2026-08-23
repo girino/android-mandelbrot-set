@@ -57,11 +57,16 @@ Menu → **Iterations** chooses how escape-time max iterations are computed:
 | Mode | Fields | Behavior |
 |------|--------|----------|
 | **Fixed max** (default) | Max iterations (default **40**) | Same cap for every pixel at every zoom |
-| **Scale with zoom** | Base (default **40**) and multiplier (default **1.2**) | At home zoom, maxIter = base. Each doubling of zoom multiplies by the multiplier: `round(base × multiplier^log2(scale/homeScale))`, clamped to 10–4096 |
+| **Scale with zoom** | Base (default **40**) and multiplier (default **1.2**) | At home zoom, maxIter = base. Each doubling of zoom multiplies by the multiplier: `round(base × multiplier^log2(scale/homeScale))`, clamped to 10–1048576 (soft UI warning above 4096) |
+| **Adaptive** | Pass-1 max (same Fixed field, default **40**), max rounds (default **8**), absolute cap (default **4096**, hard max **1048576**) | Full progressive pass at pass-1 max, then only re-tests interior border pixels (4-connected to an escaped neighbor). At each doubled limit, keeps retesting newly exposed borders until a pass finds no new escapes, then doubles again (or stops if that first pass found nothing). Intermediate fills are painted on screen. The status overlay **Iter** shows the max from the last border round; zoom does not raise pass-1 from that value. Tip: lower pass-1 (e.g. 10–20) makes the first-frame border growth easier to see. |
 
 Settings survive process restart via SharedPreferences. Changing them re-renders
 (respecting the gesture gate). The status overlay shows the effective **Iter**
-value for the current viewport.
+value for the current viewport (Fixed / zoom-resolved base; Adaptive shows the
+last border-round limit when available).
+
+See [docs/ADAPTIVE-ITERATION.md](ADAPTIVE-ITERATION.md) for algorithm notes and
+why Mariani–Silver was not chosen for v1.
 
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
@@ -81,7 +86,8 @@ the system Back gesture or Recents. The fractal draws edge-to-edge under the
 status and navigation bars; the HUD stays above the nav bar.
 
 A small overlay in the top-left corner shows the current formula, palette,
-smooth coloring, and effective iteration cap. Tap the overlay to hide it; tap
+smooth coloring, iteration algorithm (Fixed / Scale with zoom / Adaptive), and
+effective iteration cap. Tap the overlay to hide it; tap
 the **···** chip in the same corner to show it again. Pan and pinch on the
 fractal are unchanged. The HUD bar uses a similar translucent background.
 

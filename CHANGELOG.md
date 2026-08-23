@@ -21,9 +21,9 @@
   (issue #15).
 - Palette picker rows show a color swatch strip from PaletteProvider (issue #16).
 - Palette labels: RGB (HSB hue sweep) and BGR (blue→green→red LUT) replace Rainbow 1/2.
-- Corner status overlay shows formula, palette, and smooth coloring on a more
-  transparent panel; tap to hide, tap the chip to show again (issue #17). HUD bar
-  background is more transparent too.
+- Corner status overlay shows formula, palette, smooth coloring, iteration
+  algorithm, and effective Iter on a more transparent panel; tap to hide, tap
+  the chip to show again (issue #17). HUD bar background is more transparent too.
 - Export current viewport as PNG: share sheet (FileProvider, no network) or save
   to Pictures/Fractals via MediaStore on Android 10+; older devices use the system
   save dialog (issue #18).
@@ -38,6 +38,14 @@
 - Parallel progressive render: row-banded workers (up to min(8, CPU cores)) fill
   each step 8→4→2→1; gesture gate and atomic handoff unchanged (issue #25).
 - Formula picker rows show a mini fractal thumbnail preview (issue #30).
+- Adaptive iteration mode: after progressive step 1, refine only interior
+  border pixels by doubling the limit each round (issue #28). Iteration
+  fields accept up to 1048576 (hard); values above 4096 show a soft warning.
+  Overlay Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
+  Adaptive recolors only retested border pixels (no full-frame palette remap).
+  Doubling always starts at pass-1; early-stop on an empty border pass only
+  after reaching the Adaptive max shown on the overlay (same field). maxRounds
+  Screen-edge perimeter is always part of the Adaptive border (every round).
 
 ## 1.0.4 - 2026-08-22
 

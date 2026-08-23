@@ -25,10 +25,28 @@ public class IterationSettingsStoreTest {
     @Test
     public void constructor_clampsOutOfRangeValues() {
         IterationSettings s = new IterationSettings(
-                IterationSettings.Mode.SCALE_WITH_ZOOM, 1, 99999, 0.5);
+                IterationSettings.Mode.SCALE_WITH_ZOOM, 1, 99999, 0.5, 0, 2_000_000);
         assertEquals(IterationSettings.MIN_ITER, s.fixedMax);
-        assertEquals(IterationSettings.MAX_ITER_CAP, s.baseMax);
+        assertEquals(99999, s.baseMax);
         assertEquals(IterationSettings.MIN_MULTIPLIER, s.multiplier, 1e-9);
+        assertEquals(IterationSettings.MIN_ROUNDS, s.maxRounds);
+        assertEquals(IterationSettings.MAX_ITER_CAP, s.absoluteCap);
+    }
+
+    @Test
+    public void constructor_allowsAboveSoftWarn() {
+        IterationSettings s = new IterationSettings(
+                IterationSettings.Mode.ADAPTIVE, 8192, 40, 1.2, 8, 65536);
+        assertEquals(8192, s.fixedMax);
+        assertEquals(65536, s.absoluteCap);
+        assertTrue(s.fixedMax > IterationSettings.SOFT_ITER_WARN);
+    }
+
+    @Test
+    public void defaults_includeAdaptiveCaps() {
+        IterationSettings d = IterationSettings.defaults();
+        assertEquals(IterationSettings.DEFAULT_MAX_ROUNDS, d.maxRounds);
+        assertEquals(IterationSettings.DEFAULT_ABSOLUTE_CAP, d.absoluteCap);
     }
 
     @Test
