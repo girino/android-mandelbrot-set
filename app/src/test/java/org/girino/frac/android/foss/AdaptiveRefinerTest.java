@@ -136,9 +136,9 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
-    public void collectBorder_zoomOutBoost_unionsFrameWithSeam() {
+    public void collectBorder_alsoFrame_unionsFrameWithSeam() {
         // Escaped center creates a seam at the four neighbors; alsoFrame
-        // adds remaining perimeter interior pixels.
+        // adds remaining perimeter interior pixels (first-round / zoom-out).
         boolean[] interior = {
                 true, true, true,
                 true, false, true,
@@ -153,6 +153,34 @@ public class AdaptiveRefinerTest {
                 interior, 3, 3, border2, true, new int[9], new boolean[9]);
         assertTrue(withFrame > seamOnly);
         assertEquals(8, withFrame);
+    }
+
+    @Test
+    public void refine_firstRound_includesFrameWithoutZoomOutBoost() {
+        // Seam exists (one escaped corner) and zoomOutBoost=false: first
+        // double must still probe the screen edge (includeFrame when round==0).
+        int width = 4;
+        int height = 4;
+        double deepScale = 1e12;
+        PaletteProvider palette = new HSBPalette();
+        FractalOperator[] ops = {new OptimizedMandelbrotOperator()};
+        boolean[] interior = new boolean[width * height];
+        Arrays.fill(interior, true);
+        interior[0] = false;
+        int[] pixels = new int[width * height];
+        Arrays.fill(pixels, 0xff000000);
+        AtomicInteger done = new AtomicInteger();
+        AtomicInteger publishes = new AtomicInteger();
+        int reached = AdaptiveRefiner.refine(
+                pixels, interior, width, height, deepScale, 0, 0,
+                ops, palette, false, 10, 1, 40,
+                workers, null, done, width * height, null,
+                (px, w, h, limit) -> publishes.incrementAndGet(),
+                0,
+                false);
+        assertTrue(reached >= 10);
+        // Deep interior: first empty double at 20, no escapes — still ran.
+        assertEquals(20, reached);
     }
 
     @Test

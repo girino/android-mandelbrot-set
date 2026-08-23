@@ -124,8 +124,9 @@ public final class AdaptiveRefiner {
      *         starts at pass1MaxIter; early stop only when probed limit is
      *         already >= seedMinStopIter (so outer borders keep intermediate
      *         colors).
-     * @param zoomOutBoost on zoom-out, always include the image perimeter in
-     *         the border set even if a fractal seam already exists.
+     * @param zoomOutBoost on zoom-out, keep unioning the image perimeter into
+     *         the border on later doubles as well (the first double always
+     *         includes the screen edge, for every zoom direction).
      */
     public static int refine(
             int[] pixels,
@@ -166,8 +167,9 @@ public final class AdaptiveRefiner {
         int minStopLimit = seedMinStopIter > 0 ? Math.min(seedMinStopIter, cap) : 0;
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
-        int[] frameScratch = zoomOutBoost ? new int[width * height] : null;
-        boolean[] onBorder = zoomOutBoost ? new boolean[width * height] : null;
+        // First double always unions the screen edge; zoom-out may keep doing so.
+        int[] frameScratch = new int[width * height];
+        boolean[] onBorder = new boolean[width * height];
 
         int round = 0;
         while (true) {
@@ -191,6 +193,12 @@ public final class AdaptiveRefiner {
                 break;
             }
 
+            // First doubling round: always treat the image perimeter as border
+            // (borderline zoom-out / near-edge cases). Later rounds: perimeter
+            // only when zoomOutBoost, or when collectBorder falls back to frame
+            // because there is no fractal seam.
+            boolean includeFrame = (round == 0) || zoomOutBoost;
+
             // Stabilize at nextLimit: re-collect border and retest until a
             // full pass finds no new escapes (no new border filled).
             boolean anyEscapedAtThisLimit = false;
@@ -199,7 +207,7 @@ public final class AdaptiveRefiner {
                     return -1;
                 }
                 int borderCount = collectBorder(
-                        interior, width, height, border, zoomOutBoost, frameScratch, onBorder);
+                        interior, width, height, border, includeFrame, frameScratch, onBorder);
                 if (borderCount == 0) {
                     if (cancel != null && cancel.isCancelled()) {
                         return -1;
@@ -231,7 +239,7 @@ public final class AdaptiveRefiner {
             round++;
 
             // Stop only when no new border escapes AND we have reached the
-            // previous zoom's max (or there was no previous max).
+            // previous zoom's min-stop floor (or there was no previous floor).
             if (!anyEscapedAtThisLimit) {
                 if (roundListener != null && currentLimit < minStopLimit) {
                     // Floor-only climb: refresh Iter on the overlay even though
