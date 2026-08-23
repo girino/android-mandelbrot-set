@@ -160,7 +160,10 @@ public final class AdaptiveRefiner {
 
     /**
      * Marks 4-connected interior-vs-escaped border indices into borderOut.
-     * Returns the count of border pixels.
+     * When the whole frame is still interior (no escaped neighbor anywhere —
+     * the "all black" case), uses the image perimeter as the seed border so
+     * doubling can still probe from the edges inward.
+     * Returns the count of border pixels (0 only when nothing remains interior).
      */
     static int collectBorder(boolean[] interior, int width, int height, int[] borderOut) {
         int count = 0;
@@ -173,6 +176,45 @@ public final class AdaptiveRefiner {
                 }
                 if (hasEscapedNeighbor(interior, width, height, x, y)) {
                     borderOut[count++] = i;
+                }
+            }
+        }
+        if (count > 0) {
+            return count;
+        }
+        return collectFrameInterior(interior, width, height, borderOut);
+    }
+
+    /**
+     * Interior pixels on the image edge (top/bottom rows and left/right
+     * columns). Used when Adaptive has no interior/exterior seam yet.
+     */
+    static int collectFrameInterior(boolean[] interior, int width, int height, int[] borderOut) {
+        int count = 0;
+        if (interior == null || width <= 0 || height <= 0 || borderOut == null) {
+            return 0;
+        }
+        for (int x = 0; x < width; x++) {
+            int top = x;
+            if (interior[top]) {
+                borderOut[count++] = top;
+            }
+            if (height > 1) {
+                int bottom = (height - 1) * width + x;
+                if (interior[bottom]) {
+                    borderOut[count++] = bottom;
+                }
+            }
+        }
+        for (int y = 1; y < height - 1; y++) {
+            int left = y * width;
+            if (interior[left]) {
+                borderOut[count++] = left;
+            }
+            if (width > 1) {
+                int right = left + (width - 1);
+                if (interior[right]) {
+                    borderOut[count++] = right;
                 }
             }
         }

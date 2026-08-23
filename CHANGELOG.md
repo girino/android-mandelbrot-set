@@ -43,6 +43,7 @@
   fields accept up to 1048576 (hard); values above 4096 show a soft warning.
   Overlay Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
   Adaptive recolors only retested border pixels (no full-frame palette remap).
+  All-interior frames seed Adaptive from the image perimeter.
 
 ## 1.0.4 - 2026-08-22
 

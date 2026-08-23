@@ -51,14 +51,48 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
-    public void collectBorder_skipsInteriorFarFromEdge() {
+    public void collectBorder_allInterior_usesImageFrame() {
         boolean[] interior = {
                 true, true, true,
                 true, true, true,
                 true, true, true
         };
         int[] border = new int[9];
+        int count = AdaptiveRefiner.collectBorder(interior, 3, 3, border);
+        // Perimeter only (8), center stays off the seed border.
+        assertEquals(8, count);
+        boolean[] seen = new boolean[9];
+        for (int i = 0; i < count; i++) {
+            seen[border[i]] = true;
+        }
+        assertTrue(seen[0] && seen[1] && seen[2]);
+        assertTrue(seen[3] && seen[5]);
+        assertTrue(seen[6] && seen[7] && seen[8]);
+        assertTrue(!seen[4]);
+    }
+
+    @Test
+    public void collectBorder_allEscaped_returnsEmpty() {
+        boolean[] interior = {
+                false, false, false,
+                false, false, false,
+                false, false, false
+        };
+        int[] border = new int[9];
         assertEquals(0, AdaptiveRefiner.collectBorder(interior, 3, 3, border));
+    }
+
+    @Test
+    public void collectFrameInterior_skipsAlreadyEscapedEdges() {
+        boolean[] interior = {
+                false, true, false,
+                true, true, true,
+                false, true, false
+        };
+        int[] border = new int[9];
+        int count = AdaptiveRefiner.collectFrameInterior(interior, 3, 3, border);
+        // Top mid, bottom mid, left mid, right mid (corners already escaped).
+        assertEquals(4, count);
     }
 
     @Test
