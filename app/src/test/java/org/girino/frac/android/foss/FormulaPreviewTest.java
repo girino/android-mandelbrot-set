@@ -1,5 +1,6 @@
 package org.girino.frac.android.foss;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.graphics.Bitmap;
@@ -49,6 +50,15 @@ public class FormulaPreviewTest {
             }
         }
         return false;
+    }
+
+    @Test
+    public void referenceScale_matchesHomeComplexExtent() {
+        double homeScaleAt320 = 100.0 * 300.0 / 320.0;
+        double homeHalfWidth = 160.0 / homeScaleAt320;
+        double thumbHalfWidth =
+                FormulaPreview.THUMB_WIDTH / 2.0 / FormulaPreview.referenceScale();
+        assertEquals(homeHalfWidth, thumbHalfWidth, 1e-9);
     }
 
     @Test

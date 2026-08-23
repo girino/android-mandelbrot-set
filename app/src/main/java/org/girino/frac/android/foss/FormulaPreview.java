@@ -24,9 +24,14 @@ public final class FormulaPreview {
     private FormulaPreview() {
     }
 
-    /** Home-like scale for the thumbnail width (same formula as the view). */
+    /**
+     * Scale so the thumbnail shows the same complex-plane extent as the
+     * MandelbrotView home viewport (reset at width 320), not a deep zoom.
+     * Using 100*300/THUMB_WIDTH alone would keep a full-screen scale on a
+     * tiny bitmap and paint almost only the set interior (black).
+     */
     static double referenceScale() {
-        return 100.0 * 300.0 / THUMB_WIDTH;
+        return 100.0 * 300.0 / 320.0 * THUMB_WIDTH / 320.0;
     }
 
     /**
