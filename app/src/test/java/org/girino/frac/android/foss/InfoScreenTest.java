@@ -34,6 +34,8 @@ public class InfoScreenTest {
         String xml = stringsXml();
         assertTrue(xml.contains("name=\"about_body_html\""));
         assertTrue(xml.contains("Girino Anarchist License (GAL)"));
+        assertTrue(xml.contains("Copyright"));
+        assertTrue(xml.contains("Girino Vey"));
         assertTrue(xml.contains("license.girino.org"));
         assertTrue(xml.contains("github.com/girino/android-mandelbrot-set"));
     }
