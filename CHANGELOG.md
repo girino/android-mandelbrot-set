@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Bottom HUD for formula, palette, smooth, zoom −/+, and reset (issue #5);
+  HUD sits above the system navigation bar.
+- Zoom in/out controls and double-tap zoom at the touch point (issue #6).
+- Determinate top progress bar while progressive render runs (issue #9),
+  weighted by samples across steps 8→4→2→1.
+- Material 3 dark theme with AppCompat; formula/palette pickers as bottom
+  sheets with the current item marked (issues #10 / #13). Removed full-screen
+  `ListActivity` pickers.
+- Long-press shows complex coordinates; lift the finger to dismiss (issue #11).
+- Removed the unreachable options menu / Exit item under NoActionBar (issue #12);
+  leave via system Back or Recents.
+- Edge-to-edge display: fractal draws under transparent status and navigation
+  bars with light system icons; HUD and progress stay clear of chrome (issue #14).
+
 ## 1.0.4 - 2026-08-22
 
 - Fix **Smooth palette** menu toggle (issue #4): continuous iteration coloring

@@ -52,6 +52,7 @@ All tests run headless on the JVM — no emulator needed.
 |-------|----------------|
 | `ViewportTransformsTest` | Pure viewport math (pan/pinch commits, preview bridge) — reliable |
 | `MandelbrotViewGestureTest` | Gesture flows via Robolectric + `PinchDragMotionSimulator` |
+| `CatalogTest` | Formula/palette catalog labels and index lookup |
 
 Known limitation: Robolectric's `ScaleGestureDetector` does not reproduce real
 pinch faithfully, so full-gesture tests are conservative. Always validate
@@ -80,10 +81,13 @@ If adb reports no devices: restart the server
 
 ## Code layout
 
+UI stack: AppCompat + Material Components (dark theme, bottom sheets,
+`EdgeToEdge`). Dependencies are declared in `app/build.gradle.kts`.
+
 ```
 app/src/main/java/org/girino/frac/
   android/foss/
-    MandelbrotActivity.java    main screen, HUD, Material bottom-sheet pickers
+    MandelbrotActivity.java    main screen, HUD, pickers, insets, edge-to-edge
     MandelbrotView.java        fractal rendering surface + gestures (the hot file)
     FormulaCatalog.java        formula labels + operators for the picker
     PaletteCatalog.java        palette labels + providers for the picker

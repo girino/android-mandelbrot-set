@@ -27,7 +27,7 @@
         android:progressTint="#E6FFFFFF"
         android:visibility="gone" />
 
-    <!-- Compact bottom HUD: common actions without the overflow menu. -->
+    <!-- Compact bottom HUD: common actions (no options menu). -->
     <LinearLayout
         android:id="@+id/hud_bar"
         android:layout_width="match_parent"

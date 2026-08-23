@@ -1,7 +1,9 @@
 Explore o conjunto de Mandelbrot e outros fractais diretamente no seu dispositivo Android.
 
-Arraste e use o gesto de pinça para navegar, escolha diferentes fórmulas fractais,
-troque a paleta de cores e ative a coloração suave. Todo o processamento acontece
-localmente no aparelho.
+Arraste, use pinça e toque duplo para navegar; mantenha pressionado para ver as
+coordenadas complexas. A barra inferior troca fórmulas e paletas (folhas
+inferiores), ativa a coloração suave, aplica zoom e redefine a vista. A
+renderização é progressiva e acontece só no aparelho. O fractal ocupa a tela
+inteira, inclusive sob as barras do sistema.
 
 O aplicativo não contém anúncios, rastreadores, análise de uso, acesso à rede nem coleta de dados.
