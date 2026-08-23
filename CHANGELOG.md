@@ -15,6 +15,8 @@
   leave via system Back or Recents.
 - Edge-to-edge display: fractal draws under transparent status and navigation
   bars with light system icons; HUD and progress stay clear of chrome (issue #14).
+- **GAL-only** licensing; drop F-Droid distribution path and BSD dual-license
+  (issue #23). GitHub Releases and Zapstore remain the supported channels.
 
 ## 1.0.4 - 2026-08-22
 

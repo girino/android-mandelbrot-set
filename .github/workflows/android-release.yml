@@ -92,9 +92,7 @@ jobs:
             Keep **Include prereleases** disabled for stable versions, or enable it
             to receive alpha, beta, and other test builds.
 
-            This APK is signed with the upstream author's key. It cannot update an
-            installation from the official F-Droid repository because F-Droid uses
-            a different signing key.
+            Signed with the upstream author's key (GitHub Releases and Zapstore).
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |

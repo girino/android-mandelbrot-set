@@ -26,10 +26,8 @@ If the link does not open automatically:
 4. Enable **Include prereleases** only if you want alpha, beta, or other test builds.
 5. Confirm the detected APK and install it.
 
-The GitHub and Zapstore APKs are signed with the upstream author's key and can
-update each other as long as that signing key is preserved. The official F-Droid
-build uses F-Droid's signing key, so an F-Droid installation cannot be updated
-with the GitHub APK (or vice versa) without uninstalling the existing app first.
+The GitHub and Zapstore APKs share one signing key and can replace each other
+as long as that signing key is preserved.
 
 ## Build
 
@@ -47,9 +45,6 @@ Set `sdk.dir` in an untracked `local.properties` file or export
 ```
 
 The debug APK is written to `app/build/outputs/apk/debug/`.
-
-Preparation and submission instructions for the official F-Droid repository
-are documented in [F-DROID.md](F-DROID.md).
 
 ## GitHub releases
 
@@ -88,19 +83,11 @@ to your Nostr identity.
 
 ## License
 
-Girino Anarchist's License (GAL) remains the author's preferred license for
-this project. Its complete original text is preserved in
-[LICENSE.GAL](LICENSE.GAL) and at
-[license.girino.org](https://license.girino.org/).
+This project is licensed under the **Girino Anarchist License (GAL)** only.
+The complete text is in [LICENSE](LICENSE) (same as [LICENSE.GAL](LICENSE.GAL))
+and at [license.girino.org](https://license.girino.org/).
 
-The project is also made available under the
-[BSD 2-Clause License](LICENSE). This additional license was adopted solely to
-satisfy the free-software licensing requirements of F-Droid and enable
-distribution through its repositories. Recipients may use the project under
-either the BSD 2-Clause License or the GAL, at their option.
-
-The BSD grant cannot legally be restricted only to copies downloaded from
-F-Droid: the F-Droid build must be produced from freely licensed source, and
-the rights granted by the BSD 2-Clause License accompany redistributed source
-and binaries. Outside that requirement, the author asks users to choose and
-honor the GAL whenever possible.
+Distribution is via **GitHub Releases** and **Zapstore** only. The project is
+no longer prepared for or published through the F-Droid repository. Releases
+before this policy change may have been dual-licensed under BSD 2-Clause for
+F-Droid; new releases are GAL-only.

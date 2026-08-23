@@ -4,18 +4,14 @@ How to use Fractals by Girino FOSS on Android.
 
 ## Installing
 
-Three channels distribute the same app (`org.girino.frac.android.foss`):
+Two channels distribute the same app (`org.girino.frac.android.foss`):
 
 | Channel | How | Updates |
 |---------|-----|---------|
 | **GitHub Releases** (recommended) | Install the APK from the [latest release](https://github.com/girino/android-mandelbrot-set/releases/latest), or add the repo to [Obtainium](https://github.com/ImranR98/Obtainium): `obtainium://add?url=https%3A%2F%2Fgithub.com%2Fgirino%2Fandroid-mandelbrot-set` | Automatic via Obtainium; manual otherwise |
 | **Zapstore** | Search "Fractals by Girino" in Zapstore, or install via `zsp`-published releases | In-app update check |
-| **F-Droid** (official repo) | See [F-DROID.md](F-DROID.md) | Via F-Droid client |
 
 The GitHub and Zapstore APKs share one signing key and can replace each other.
-The F-Droid build is signed by F-Droid, so switching between F-Droid and
-GitHub/Zapstore builds requires uninstalling first. Details in
-[README.md](README.md#license).
 
 ## Navigating the fractal
 

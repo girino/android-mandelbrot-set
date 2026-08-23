@@ -31,8 +31,7 @@ The workflow signs the APK with these repository secrets
 | `ANDROID_KEY_PASSWORD` | key password |
 
 Keep the historical signing key: existing installations only accept updates
-signed with the same key. The F-Droid build is signed by F-Droid and cannot be
-cross-updated.
+signed with the same key.
 
 Check secrets exist:
 
