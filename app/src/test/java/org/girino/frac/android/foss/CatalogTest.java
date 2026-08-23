@@ -23,7 +23,7 @@ public class CatalogTest {
         assertEquals(5, PaletteCatalog.size());
         assertEquals(3, PaletteCatalog.indexOf(new HSBPalette()));
         assertEquals("Rainbow", PaletteCatalog.labels()[3]);
-        assertEquals("Spectrum", PaletteCatalog.labels()[4]);
+        assertEquals("BGR", PaletteCatalog.labels()[4]);
         assertTrue(PaletteCatalog.get(3) instanceof HSBPalette);
     }
 }
