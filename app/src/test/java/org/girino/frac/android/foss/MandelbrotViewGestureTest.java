@@ -265,4 +265,21 @@ public class MandelbrotViewGestureTest {
         assertEquals(underBefore, underAfter, EPS * Math.max(1, scale0));
         assertTrue(view.testingTargetScale() > scale0);
     }
+
+    /**
+     * Issue #6: double-tap must start a render even though the second tap's
+     * finger is still down when onDoubleTap fires (activePointers gate).
+     */
+    @Test
+    public void doubleTap_queuesPendingTargetDespiteFingerDown() {
+        double scale0 = view.testingScale();
+        // Simulate a second-tap DOWN that leaves activePointers at 1, then
+        // the same zoomAt path the GestureDetector uses after clearing pointers.
+        view.testingSimulatePointersDown();
+        assertEquals(1, view.testingActivePointers());
+        view.testingSimulateDoubleTapZoom(820f, 1500f);
+        assertEquals(0, view.testingActivePointers());
+        assertTrue(view.testingHasPendingTarget());
+        assertTrue(view.testingTargetScale() > scale0);
+    }
 }

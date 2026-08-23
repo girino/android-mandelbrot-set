@@ -287,6 +287,9 @@ public class MandelbrotView extends View {
                 if (skipNextCommit) {
                     skipNextCommit = false;
                     activePointerId = INVALID_POINTER_ID;
+                    // Double-tap already queued a pending target; kick render
+                    // now that no pointers are down (start() gates on that).
+                    start();
                 } else {
                     commitGestureAndRender();
                 }
@@ -461,9 +464,12 @@ public class MandelbrotView extends View {
 
         @Override
         public boolean onDoubleTap(MotionEvent e) {
-            // Zoom in about the tap; skip the following UP commit so start()
-            // from zoomAt is not cancelled by commitGestureAndRender.
+            // Finger is still down (ACTION_DOWN of the second tap). Clear
+            // pointer state so zoomAt → start() is not blocked by the
+            // activePointers gate; skip the following UP's gesture commit.
             skipNextCommit = true;
+            activePointers = 0;
+            activePointerId = INVALID_POINTER_ID;
             zoomAt(e.getX(), e.getY(), ZOOM_STEP);
             return true;
         }
@@ -596,5 +602,13 @@ public class MandelbrotView extends View {
         scale = targetScale;
         hasPendingTarget = false;
         testingSimulateAtomicHandoffClear();
+    }
+
+    /** Mirrors onDoubleTap: clear pointers then zoom so start() is not gated. */
+    void testingSimulateDoubleTapZoom(float x, float y) {
+        skipNextCommit = true;
+        activePointers = 0;
+        activePointerId = INVALID_POINTER_ID;
+        zoomAt(x, y, ZOOM_STEP);
     }
 }
