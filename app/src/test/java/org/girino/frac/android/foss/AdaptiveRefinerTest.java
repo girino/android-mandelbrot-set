@@ -93,8 +93,7 @@ public class AdaptiveRefinerTest {
                 ops, palette, false, pass1, 1, cap,
                 workers, null, done, width * height, null,
                 (px, w, h, limit) -> publishes.incrementAndGet(),
-                seed,
-                false);
+                seed);
         assertEquals(seed, reached);
         assertTrue(publishes.get() >= 1);
     }
@@ -156,9 +155,8 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
-    public void refine_firstRound_includesFrameWithoutZoomOutBoost() {
-        // Seam exists (one escaped corner) and zoomOutBoost=false: first
-        // double must still probe the screen edge (includeFrame when round==0).
+    public void refine_alwaysIncludesScreenEdge_withSeam() {
+        // Seam exists (one escaped corner): refine still runs and probes edges.
         int width = 4;
         int height = 4;
         double deepScale = 1e12;
@@ -170,21 +168,15 @@ public class AdaptiveRefinerTest {
         int[] pixels = new int[width * height];
         Arrays.fill(pixels, 0xff000000);
         AtomicInteger done = new AtomicInteger();
-        AtomicInteger publishes = new AtomicInteger();
         int reached = AdaptiveRefiner.refine(
                 pixels, interior, width, height, deepScale, 0, 0,
                 ops, palette, false, 10, 1, 40,
-                workers, null, done, width * height, null,
-                (px, w, h, limit) -> publishes.incrementAndGet(),
-                0,
-                false);
-        assertTrue(reached >= 10);
-        // Deep interior: first empty double at 20, no escapes — still ran.
+                workers, null, done, width * height, null, null, 0);
         assertEquals(20, reached);
     }
 
     @Test
-    public void refine_zoomOutBoost_seedFloorEvenWithSeam() {
+    public void refine_seedFloorEvenWithSeam() {
         int width = 4;
         int height = 4;
         double deepScale = 1e12;
@@ -204,7 +196,7 @@ public class AdaptiveRefinerTest {
         int reached = AdaptiveRefiner.refine(
                 pixels, interior, width, height, deepScale, 0, 0,
                 ops, palette, false, pass1, 1, cap,
-                workers, null, done, width * height, null, null, seed, true);
+                workers, null, done, width * height, null, null, seed);
         assertEquals(seed, reached);
     }
 

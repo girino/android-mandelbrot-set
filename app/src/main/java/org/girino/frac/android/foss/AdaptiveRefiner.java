@@ -60,7 +60,7 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, null, 0, false);
+                workers, cancel, doneSamples, progressTotal, progress, null, 0);
     }
 
     public static int refine(
@@ -86,35 +86,7 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0, false);
-    }
-
-    public static int refine(
-            int[] pixels,
-            boolean[] interior,
-            int width,
-            int height,
-            double scale,
-            double centerX,
-            double centerY,
-            FractalOperator[] workerOperators,
-            PaletteProvider palette,
-            boolean smooth,
-            int pass1MaxIter,
-            int maxRounds,
-            int absoluteCap,
-            ExecutorService workers,
-            ParallelStepRenderer.CancelCheck cancel,
-            AtomicInteger doneSamples,
-            int progressTotal,
-            ParallelStepRenderer.ProgressListener progress,
-            RoundListener roundListener,
-            int seedMinStopIter) {
-        return refine(
-                pixels, interior, width, height, scale, centerX, centerY,
-                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, roundListener,
-                seedMinStopIter, false);
+                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0);
     }
 
     /**
@@ -123,10 +95,8 @@ public final class AdaptiveRefiner {
      *         overlay from the previous zoom; 0 if none). Doubling always
      *         starts at pass1MaxIter; early stop only when probed limit is
      *         already >= seedMinStopIter (so outer borders keep intermediate
-     *         colors).
-     * @param zoomOutBoost on zoom-out, keep unioning the image perimeter into
-     *         the border on later doubles as well (the first double always
-     *         includes the screen edge, for every zoom direction).
+     *         colors). Every border collect unions the image perimeter with
+     *         any fractal seam.
      */
     public static int refine(
             int[] pixels,
@@ -148,8 +118,7 @@ public final class AdaptiveRefiner {
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener,
-            int seedMinStopIter,
-            boolean zoomOutBoost) {
+            int seedMinStopIter) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -167,7 +136,6 @@ public final class AdaptiveRefiner {
         int minStopLimit = seedMinStopIter > 0 ? Math.min(seedMinStopIter, cap) : 0;
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
-        // First double always unions the screen edge; zoom-out may keep doing so.
         int[] frameScratch = new int[width * height];
         boolean[] onBorder = new boolean[width * height];
 
@@ -193,21 +161,16 @@ public final class AdaptiveRefiner {
                 break;
             }
 
-            // First doubling round: always treat the image perimeter as border
-            // (borderline zoom-out / near-edge cases). Later rounds: perimeter
-            // only when zoomOutBoost, or when collectBorder falls back to frame
-            // because there is no fractal seam.
-            boolean includeFrame = (round == 0) || zoomOutBoost;
-
             // Stabilize at nextLimit: re-collect border and retest until a
             // full pass finds no new escapes (no new border filled).
+            // Screen-edge perimeter is always part of the border.
             boolean anyEscapedAtThisLimit = false;
             while (true) {
                 if (cancel != null && cancel.isCancelled()) {
                     return -1;
                 }
                 int borderCount = collectBorder(
-                        interior, width, height, border, includeFrame, frameScratch, onBorder);
+                        interior, width, height, border, true, frameScratch, onBorder);
                 if (borderCount == 0) {
                     if (cancel != null && cancel.isCancelled()) {
                         return -1;

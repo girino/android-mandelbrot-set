@@ -45,8 +45,7 @@
   Adaptive recolors only retested border pixels (no full-frame palette remap).
   Doubling always starts at pass-1; early-stop on an empty border pass only
   after reaching the Adaptive max shown on the overlay (same field). maxRounds
-  First Adaptive double always unions the screen-edge perimeter into the
-  border; zoom-out keeps that union on later doubles.
+  Screen-edge perimeter is always part of the Adaptive border (every round).
 
 ## 1.0.4 - 2026-08-22
 

@@ -9,11 +9,9 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
    limit (`FractalOperator.EscapeSample.escaped == false`).
 2. Double the limit (`next = min(2 × current, absoluteCap)`).
 3. Collect the **internal border**: interior pixels with at least one
-   4-connected escaped neighbor. On the **first** doubling round, always
-   union the **image perimeter** into that set (even when a fractal seam
-   already exists — covers borderline zoom-out / near-edge cases). Later
-   rounds keep the perimeter union on zoom-out; otherwise they use the seam
-   only, falling back to the perimeter when the frame is still all interior.
+   4-connected escaped neighbor, **always unioned with the image perimeter**
+   (screen edges are always frontier). If there is no seam and the frame is
+   still all interior, the perimeter alone seeds the refine.
 4. Re-test only those border pixels at `next`.
 5. If **some** escape, update colors / interior flags, publish an intermediate
    frame, and go back to step 3 **at the same limit** (stabilize until no new
