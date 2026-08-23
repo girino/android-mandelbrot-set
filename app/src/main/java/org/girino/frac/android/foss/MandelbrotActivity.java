@@ -36,7 +36,7 @@ public class MandelbrotActivity extends AppCompatActivity {
     private static final long RENDER_PROGRESS_SHOW_DELAY_MS = 150L;
     /** Default matches MandelbrotView initial operator (Mandelbrot Set). */
     private static final int DEFAULT_OPERATOR_INDEX = 0;
-    /** Default matches MandelbrotView initial palette (HSB / Rainbow). */
+    /** Default matches MandelbrotView initial palette (HSB / RGB). */
     private static final int DEFAULT_PALETTE_INDEX = 3;
 
     private MandelbrotView view;

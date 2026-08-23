@@ -13,7 +13,7 @@ public final class PaletteCatalog {
             "Green",
             "Blue",
             "Red",
-            "Rainbow",
+            "RGB",
             "BGR",
     };
 
