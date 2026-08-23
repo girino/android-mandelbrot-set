@@ -229,6 +229,10 @@ public class MandelbrotView extends View {
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
         final int renderMaxIter = resolvePass1MaxIter(renderScale, renderWidth);
+        // Capture before background work: published scale is still the old one
+        // while pending holds the zoom-out target (smaller scale = zoomed out).
+        final boolean adaptiveZoomOutBoost = pending && renderScale < scale;
+        final int adaptiveSeedMax = lastAdaptiveMaxIter;
 
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
@@ -241,7 +245,9 @@ public class MandelbrotView extends View {
                 renderOperator,
                 renderPalette,
                 renderSmooth,
-                renderMaxIter));
+                renderMaxIter,
+                adaptiveSeedMax,
+                adaptiveZoomOutBoost));
     }
 
     public void stop() {
@@ -315,7 +321,9 @@ public class MandelbrotView extends View {
             FractalOperator renderOperator,
             PaletteProvider renderPalette,
             boolean renderSmooth,
-            int renderMaxIter) {
+            int renderMaxIter,
+            int adaptiveSeedMax,
+            boolean adaptiveZoomOutBoost) {
         final boolean adaptive =
                 iterationSettings != null
                         && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE;
@@ -437,7 +445,8 @@ public class MandelbrotView extends View {
                     totalSamples,
                     progress,
                     roundListener,
-                    lastAdaptiveMaxIter);
+                    adaptiveSeedMax,
+                    adaptiveZoomOutBoost);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;

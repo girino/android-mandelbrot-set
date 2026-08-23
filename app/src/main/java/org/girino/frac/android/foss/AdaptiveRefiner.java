@@ -5,6 +5,7 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.palettes.PaletteProvider;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -59,7 +60,7 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, null, 0);
+                workers, cancel, doneSamples, progressTotal, progress, null, 0, false);
     }
 
     public static int refine(
@@ -85,14 +86,9 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0);
+                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0, false);
     }
 
-    /**
-     * @param seedMaxIter when the frame has no interior/exterior seam (all
-     *         interior) and this is greater than pass1MaxIter, start doubling
-     *         from seedMaxIter (last Adaptive max) instead of pass1.
-     */
     public static int refine(
             int[] pixels,
             boolean[] interior,
@@ -114,6 +110,43 @@ public final class AdaptiveRefiner {
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener,
             int seedMaxIter) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, roundListener,
+                seedMaxIter, false);
+    }
+
+    /**
+     * @param seedMaxIter when greater than pass1MaxIter and the frame needs a
+     *         screen-edge seed (all interior, or zoomOutBoost), start doubling
+     *         from seedMaxIter (last Adaptive max) instead of pass1.
+     * @param zoomOutBoost on zoom-out, always include the image perimeter in
+     *         the border set and allow seedMaxIter even if a fractal seam
+     *         already exists (zoom-in all-black still uses needsFrameSeed).
+     */
+    public static int refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener,
+            int seedMaxIter,
+            boolean zoomOutBoost) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -126,11 +159,14 @@ public final class AdaptiveRefiner {
 
         int currentLimit = Math.max(pass1MaxIter, IterationSettings.MIN_ITER);
         int cap = Math.max(absoluteCap, currentLimit);
-        if (seedMaxIter > currentLimit && needsFrameSeed(interior, width, height)) {
+        boolean frameSeed = needsFrameSeed(interior, width, height);
+        if (seedMaxIter > currentLimit && (frameSeed || zoomOutBoost)) {
             currentLimit = Math.min(seedMaxIter, cap);
         }
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
+        int[] frameScratch = zoomOutBoost ? new int[width * height] : null;
+        boolean[] onBorder = zoomOutBoost ? new boolean[width * height] : null;
 
         for (int round = 0; round < roundsLimit; round++) {
             if (cancel != null && cancel.isCancelled()) {
@@ -153,7 +189,8 @@ public final class AdaptiveRefiner {
                 if (cancel != null && cancel.isCancelled()) {
                     return -1;
                 }
-                int borderCount = collectBorder(interior, width, height, border);
+                int borderCount = collectBorder(
+                        interior, width, height, border, zoomOutBoost, frameScratch, onBorder);
                 if (borderCount == 0) {
                     if (cancel != null && cancel.isCancelled()) {
                         return -1;
@@ -227,6 +264,21 @@ public final class AdaptiveRefiner {
      * Returns the count of border pixels (0 only when nothing remains interior).
      */
     static int collectBorder(boolean[] interior, int width, int height, int[] borderOut) {
+        return collectBorder(interior, width, height, borderOut, false, null, null);
+    }
+
+    /**
+     * @param alsoFrame when true, union the image-perimeter interior pixels
+     *         with any fractal seam (zoom-out boost).
+     */
+    static int collectBorder(
+            boolean[] interior,
+            int width,
+            int height,
+            int[] borderOut,
+            boolean alsoFrame,
+            int[] frameScratch,
+            boolean[] onBorder) {
         int count = 0;
         for (int y = 0; y < height; y++) {
             int row = y * width;
@@ -240,10 +292,30 @@ public final class AdaptiveRefiner {
                 }
             }
         }
-        if (count > 0) {
+        if (count == 0) {
+            return collectFrameInterior(interior, width, height, borderOut);
+        }
+        if (!alsoFrame) {
             return count;
         }
-        return collectFrameInterior(interior, width, height, borderOut);
+        if (frameScratch == null || onBorder == null) {
+            frameScratch = new int[width * height];
+            onBorder = new boolean[width * height];
+        } else {
+            Arrays.fill(onBorder, false);
+        }
+        for (int i = 0; i < count; i++) {
+            onBorder[borderOut[i]] = true;
+        }
+        int frameCount = collectFrameInterior(interior, width, height, frameScratch);
+        for (int i = 0; i < frameCount; i++) {
+            int idx = frameScratch[i];
+            if (!onBorder[idx]) {
+                borderOut[count++] = idx;
+                onBorder[idx] = true;
+            }
+        }
+        return count;
     }
 
     /**

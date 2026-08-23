@@ -107,6 +107,52 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
+    public void collectBorder_zoomOutBoost_unionsFrameWithSeam() {
+        // Escaped center creates a seam at the four neighbors; alsoFrame
+        // adds remaining perimeter interior pixels.
+        boolean[] interior = {
+                true, true, true,
+                true, false, true,
+                true, true, true
+        };
+        int[] border = new int[9];
+        int seamOnly = AdaptiveRefiner.collectBorder(interior, 3, 3, border);
+        assertEquals(4, seamOnly);
+
+        int[] border2 = new int[9];
+        int withFrame = AdaptiveRefiner.collectBorder(
+                interior, 3, 3, border2, true, new int[9], new boolean[9]);
+        assertTrue(withFrame > seamOnly);
+        assertEquals(8, withFrame);
+    }
+
+    @Test
+    public void refine_zoomOutBoost_appliesSeedEvenWithSeam() {
+        int width = 4;
+        int height = 4;
+        double deepScale = 1e12;
+        PaletteProvider palette = new HSBPalette();
+        FractalOperator[] ops = {new OptimizedMandelbrotOperator()};
+        int pass1 = 10;
+        int seed = 40;
+        int cap = 80;
+
+        // One escaped pixel → needsFrameSeed false, but zoomOutBoost still
+        // raises currentLimit to seed when nothing escapes at 2x.
+        boolean[] interior = new boolean[width * height];
+        Arrays.fill(interior, true);
+        interior[0] = false;
+        int[] pixels = new int[width * height];
+        Arrays.fill(pixels, 0xff000000);
+        AtomicInteger done = new AtomicInteger();
+        int reached = AdaptiveRefiner.refine(
+                pixels, interior, width, height, deepScale, 0, 0,
+                ops, palette, false, pass1, 1, cap,
+                workers, null, done, width * height, null, null, seed, true);
+        assertEquals(seed, reached);
+    }
+
+    @Test
     public void collectBorder_allInterior_usesImageFrame() {
         boolean[] interior = {
                 true, true, true,

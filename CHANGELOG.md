@@ -44,7 +44,9 @@
   Overlay Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
   Adaptive recolors only retested border pixels (no full-frame palette remap).
   All-interior frames seed Adaptive from the image perimeter and, in that
-  case only, resume doubling from the last Adaptive max.
+  case only on zoom-in, resume doubling from the last Adaptive max. Zoom-out
+  always unions the image perimeter into the border and may resume from the
+  last Adaptive max even when a fractal seam already exists.
 
 ## 1.0.4 - 2026-08-22
 
