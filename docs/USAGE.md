@@ -30,18 +30,30 @@ GitHub/Zapstore builds requires uninstalling first. Details in
   preview and never flashes an older bitmap. Brief gaps at the edges during
   a large pinch preview are normal; the new render fills the whole screen.
 
-## Menu
+## Bottom controls (HUD)
 
-Open the options menu for:
+A compact bar at the bottom of the screen (issue #5):
+
+| Control | Action |
+|---------|--------|
+| **Formula** | Open the formula list |
+| **Palette** | Open the palette list |
+| **Smooth** | Toggle continuous iteration coloring (stays pressed when on) |
+| **Reset** | Reset viewport to the initial position and scale |
+
+Pan and pinch still work on the fractal above the bar; the bar does not
+start a drag.
+
+## Overflow menu
+
+Open the options menu for the same actions plus:
 
 | Item | Action |
 |------|--------|
-| **Formula** | Pick a fractal: Mandelbrot, Optimized Mandelbrot, Julia, Nova, Burning Ship, Mandelbar, ShipBar, cube/fourth/fifth-power variants, WTF, and test operators |
-| **Palette** | Pick a color palette (default, red/green/blue variants, HSB, smooth fixed) |
-| **Smooth palette** | Toggle continuous (smooth) iteration coloring; a checkmark shows when it is on |
-| **Zoom** | Reset to a comfortable default zoom |
-| **Reset** | Reset viewport to the initial position and scale |
+| **Formula** / **Palette** / **Smooth** / **Reset** | Same as the HUD |
+| **Zoom** | Zoom in around the current center |
 | **Exit** | Close the app |
+
 
 ## Privacy
 

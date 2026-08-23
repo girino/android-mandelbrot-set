@@ -5,8 +5,12 @@
     <string name="select_palette">Select palette</string>
     <string name="menu_formula">Formula</string>
     <string name="menu_palette">Palette</string>
-    <string name="menu_smooth_palette">Smooth palette</string>
+    <string name="menu_smooth_palette">Smooth</string>
     <string name="menu_zoom">Zoom</string>
     <string name="menu_reset">Reset</string>
     <string name="menu_exit">Exit</string>
+    <string name="hud_formula_cd">Choose fractal formula</string>
+    <string name="hud_palette_cd">Choose color palette</string>
+    <string name="hud_smooth_cd">Toggle smooth coloring</string>
+    <string name="hud_reset_cd">Reset viewport</string>
 </resources>

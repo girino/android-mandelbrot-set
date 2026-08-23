@@ -6,4 +6,20 @@
         <item name="android:navigationBarColor">#000000</item>
         <item name="android:statusBarColor">#000000</item>
     </style>
+
+    <style name="HudButton" parent="android:Widget.Material.Button.Borderless">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">#FFE0E0E0</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <style name="HudToggle" parent="android:Widget.Material.Button.Borderless">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">#FFE0E0E0</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
 </resources>
