@@ -10,16 +10,17 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
-import org.girino.frac.operators.Complex;
 import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.palettes.HSBPalette;
 import org.girino.frac.palettes.PaletteProvider;
 import org.girino.frac.viewport.ViewportTransforms;
 
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -56,6 +57,19 @@ public class MandelbrotView extends View {
     private final ScaleGestureDetector scaleDetector;
     private final GestureDetector gestureDetector;
     private final ExecutorService renderExecutor = Executors.newSingleThreadExecutor();
+    /** Parallel sample workers for progressive steps (issue #25). */
+    private final ExecutorService workerPool = Executors.newFixedThreadPool(
+            ParallelStepRenderer.defaultWorkerCount(),
+            new ThreadFactory() {
+                private final AtomicInteger next = new AtomicInteger();
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread(r, "fractal-worker-" + next.getAndIncrement());
+                    thread.setPriority(Thread.NORM_PRIORITY - 1);
+                    return thread;
+                }
+            });
     private final AtomicInteger renderGeneration = new AtomicInteger();
 
     private volatile Bitmap bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
@@ -169,7 +183,7 @@ public class MandelbrotView extends View {
 
     public void start() {
         stop();
-        if (activePointers > 0 || renderExecutor.isShutdown()
+        if (activePointers > 0 || renderExecutor.isShutdown() || workerPool.isShutdown()
                 || getWidth() <= 0 || getHeight() <= 0) {
             return;
         }
@@ -272,44 +286,50 @@ public class MandelbrotView extends View {
             PaletteProvider renderPalette,
             boolean renderSmooth,
             int renderMaxIter) {
-        Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
-        Canvas renderCanvas = new Canvas(rendered);
-        Paint renderPaint = new Paint(Paint.DITHER_FLAG);
-        renderCanvas.drawColor(0xff0a0a0a);
-        Complex point = new Complex();
-
         final int totalSamples = progressiveSampleCount(renderWidth, renderHeight);
-        int doneSamples = 0;
-        int lastReported = -1;
-        final int reportEvery = Math.max(1, totalSamples / 100);
+        AtomicInteger doneSamples = new AtomicInteger(0);
         postRenderProgress(generation, 0, totalSamples);
 
+        int[] pixels = new int[renderWidth * renderHeight];
+        Arrays.fill(pixels, 0xff0a0a0a);
+        Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
+
+        int workerCount = ParallelStepRenderer.defaultWorkerCount();
+        FractalOperator[] workerOps = new FractalOperator[workerCount];
+        for (int i = 0; i < workerCount; i++) {
+            workerOps[i] = FormulaCatalog.createLike(renderOperator);
+        }
+
+        ParallelStepRenderer.CancelCheck cancel = () ->
+                generation != renderGeneration.get()
+                        || Thread.currentThread().isInterrupted();
+        ParallelStepRenderer.ProgressListener progress = (completed, total) ->
+                postRenderProgress(generation, completed, total);
+
         for (int step = 8; step > 0; step /= 2) {
-            for (int y = 0; y < renderHeight; y += step) {
-                for (int x = 0; x < renderWidth; x += step) {
-                    if (generation != renderGeneration.get() || Thread.currentThread().isInterrupted()) {
-                        post(() -> clearRenderBusyIfCurrent(generation));
-                        return;
-                    }
-                    point.set(
-                            (x - renderWidth / 2.0) / renderScale + renderCenterX,
-                            (y - renderHeight / 2.0) / renderScale + renderCenterY);
-                    double value = renderOperator.apply(point, renderMaxIter, renderSmooth);
-                    renderPaint.setColor(renderPalette.getColor(value));
-                    if (step == 1) {
-                        renderCanvas.drawPoint(x, y, renderPaint);
-                    } else {
-                        renderCanvas.drawRect(x, y, x + step, y + step, renderPaint);
-                    }
-                    doneSamples++;
-                }
-                if (doneSamples - lastReported >= reportEvery) {
-                    lastReported = doneSamples;
-                    postRenderProgress(generation, doneSamples, totalSamples);
-                }
+            boolean finished = ParallelStepRenderer.fillStep(
+                    pixels,
+                    renderWidth,
+                    renderHeight,
+                    step,
+                    renderScale,
+                    renderCenterX,
+                    renderCenterY,
+                    workerOps,
+                    renderPalette,
+                    renderSmooth,
+                    renderMaxIter,
+                    workerPool,
+                    cancel,
+                    doneSamples,
+                    totalSamples,
+                    progress);
+            if (!finished) {
+                post(() -> clearRenderBusyIfCurrent(generation));
+                return;
             }
-            lastReported = doneSamples;
-            postRenderProgress(generation, doneSamples, totalSamples);
+            postRenderProgress(generation, doneSamples.get(), totalSamples);
+            rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             final int publishStep = step;
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
@@ -619,6 +639,7 @@ public class MandelbrotView extends View {
     protected void onDetachedFromWindow() {
         stop();
         renderExecutor.shutdownNow();
+        workerPool.shutdownNow();
         super.onDetachedFromWindow();
     }
 

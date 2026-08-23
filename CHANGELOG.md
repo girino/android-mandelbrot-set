@@ -35,6 +35,8 @@
   reference and optional external links (issue #22).
 - Iteration settings screen: fixed max (default 40) or scale-with-zoom (base 40,
   multiplier 1.2); values persist in SharedPreferences (issue #26).
+- Parallel progressive render: row-banded workers (up to min(8, CPU cores)) fill
+  each step 8→4→2→1; gesture gate and atomic handoff unchanged (issue #25).
 
 ## 1.0.4 - 2026-08-22
 

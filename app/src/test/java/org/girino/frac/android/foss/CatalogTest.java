@@ -1,6 +1,7 @@
 package org.girino.frac.android.foss;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
@@ -16,6 +17,7 @@ public class CatalogTest {
         assertEquals(0, FormulaCatalog.indexOf(new OptimizedMandelbrotOperator()));
         assertEquals("Mandelbrot Set", FormulaCatalog.labels()[0]);
         assertTrue(FormulaCatalog.get(0) instanceof OptimizedMandelbrotOperator);
+        assertNotSame(FormulaCatalog.create(0), FormulaCatalog.create(0));
     }
 
     @Test

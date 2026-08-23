@@ -53,10 +53,21 @@ All tests run headless on the JVM — no emulator needed.
 | `ViewportTransformsTest` | Pure viewport math (pan/pinch commits, preview bridge) — reliable |
 | `MandelbrotViewGestureTest` | Gesture flows via Robolectric + `PinchDragMotionSimulator` |
 | `CatalogTest` | Formula/palette catalog labels and index lookup |
+| `ParallelStepRendererTest` | Parallel vs serial pixel match, cancel mid-step (issue #25) |
 
 Known limitation: Robolectric's `ScaleGestureDetector` does not reproduce real
 pinch faithfully, so full-gesture tests are conservative. Always validate
 gesture changes on a physical device.
+
+### Parallel render (issue #25)
+
+`MandelbrotView` keeps a single coordinator thread for progressive publish
+(steps 8→4→2→1) and a fixed worker pool sized
+`min(8, availableProcessors())`. Each step is partitioned by sample rows;
+workers write non-overlapping bands into an `int[]` buffer, then the
+coordinator calls `Bitmap.setPixels` and posts the existing atomic handoff.
+Each worker gets a fresh `FormulaCatalog.createLike(...)` operator because
+`FractalOperator` holds mutable iteration state.
 
 ## Lint
 
