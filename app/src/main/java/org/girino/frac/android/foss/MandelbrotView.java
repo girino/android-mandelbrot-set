@@ -82,13 +82,12 @@ public class MandelbrotView extends View {
     private boolean smooth;
     private IterationSettings iterationSettings = IterationSettings.defaults();
     /**
-     * Highest iteration limit from the last *completed* Adaptive refine.
-     * Used as the stop-floor for the next zoom (issue #28). Not updated by
-     * in-flight round publishes or cancelled renders.
+     * Adaptive iteration limit shown on the status overlay and used as the
+     * stop-floor for the next Adaptive refine (same source for both).
+     * Updated on the render thread when a border round publishes or refine
+     * completes; left unchanged on cancel so the next zoom keeps the floor.
      */
-    private volatile int previousZoomAdaptiveMax;
-    /** Live Adaptive limit for the status overlay (may climb during refine). */
-    private volatile int liveAdaptiveMaxIter;
+    private volatile int adaptiveMaxIter;
     private RenderBusyListener renderBusyListener;
     private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
@@ -143,7 +142,7 @@ public class MandelbrotView extends View {
 
     public void setOper(FractalOperator operator) {
         this.operator = operator;
-        clearAdaptiveMaxTracking();
+        adaptiveMaxIter = 0;
     }
 
     public void setPalette(PaletteProvider palette) {
@@ -154,7 +153,7 @@ public class MandelbrotView extends View {
     public void setIterationSettings(IterationSettings settings) {
         this.iterationSettings = settings != null ? settings : IterationSettings.defaults();
         if (this.iterationSettings.mode != IterationSettings.Mode.ADAPTIVE) {
-            clearAdaptiveMaxTracking();
+            adaptiveMaxIter = 0;
         }
         start();
     }
@@ -165,20 +164,14 @@ public class MandelbrotView extends View {
 
     /**
      * Value shown as Iter on the status overlay: Fixed / Scale-with-zoom
-     * resolve from the viewport; Adaptive shows the live or last completed
-     * border-round limit when one exists, otherwise the configured pass-1 max.
+     * resolve from the viewport; Adaptive shows adaptiveMaxIter when set
+     * (same value used as the next zoom's stop-floor).
      */
     public int effectiveMaxIter() {
         if (iterationSettings != null
-                && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE) {
-            int live = liveAdaptiveMaxIter;
-            if (live > 0) {
-                return live;
-            }
-            int prev = previousZoomAdaptiveMax;
-            if (prev > 0) {
-                return prev;
-            }
+                && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE
+                && adaptiveMaxIter > 0) {
+            return adaptiveMaxIter;
         }
         boolean pending = hasPendingTarget;
         double s = pending ? targetScale : scale;
@@ -190,18 +183,9 @@ public class MandelbrotView extends View {
         return IterationPolicy.resolveMaxIter(iterationSettings, viewportScale, viewWidth);
     }
 
-    /** Last completed Adaptive max used as the next zoom's stop floor (0 if none). */
-    int testingPreviousZoomAdaptiveMax() {
-        return previousZoomAdaptiveMax;
-    }
-
-    int testingLiveAdaptiveMaxIter() {
-        return liveAdaptiveMaxIter;
-    }
-
-    private void clearAdaptiveMaxTracking() {
-        previousZoomAdaptiveMax = 0;
-        liveAdaptiveMaxIter = 0;
+    /** Adaptive overlay / stop-floor value (0 if none yet). */
+    int testingAdaptiveMaxIter() {
+        return adaptiveMaxIter;
     }
 
     /** Issue #9: listener for progressive-render busy state (UI overlay). */
@@ -250,8 +234,8 @@ public class MandelbrotView extends View {
         // Capture before background work: published scale is still the old one
         // while pending holds the zoom-out target (smaller scale = zoomed out).
         final boolean adaptiveZoomOutBoost = pending && renderScale < scale;
-        // Stop-floor from the last *completed* Adaptive zoom only.
-        final int adaptiveSeedMax = previousZoomAdaptiveMax;
+        // Same value the overlay shows (effectiveMaxIter Adaptive branch).
+        final int adaptiveSeedMax = adaptiveMaxIter;
 
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
@@ -434,7 +418,8 @@ public class MandelbrotView extends View {
         if (adaptive) {
             AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
                 rendered.setPixels(px, 0, w, 0, 0, w, h);
-                liveAdaptiveMaxIter = limit;
+                // Same field the overlay reads — also the next zoom's stop-floor.
+                adaptiveMaxIter = limit;
                 post(() -> {
                     if (generation != renderGeneration.get() || activePointers > 0) {
                         return;
@@ -470,10 +455,7 @@ public class MandelbrotView extends View {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
             }
-            // Commit the stop-floor for the *next* zoom on this thread so a
-            // following gesture cannot race past a discarded UI post.
-            previousZoomAdaptiveMax = maxReached;
-            liveAdaptiveMaxIter = maxReached;
+            adaptiveMaxIter = maxReached;
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
@@ -756,7 +738,7 @@ public class MandelbrotView extends View {
     }
 
     public void reset() {
-        clearAdaptiveMaxTracking();
+        adaptiveMaxIter = 0;
         requestRender(100.0 * 300.0 / 320.0 * width / 320.0, 0, 0);
     }
 
