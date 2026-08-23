@@ -109,19 +109,21 @@ public final class AdaptiveRefiner {
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener,
-            int seedMaxIter) {
+            int seedMinStopIter) {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
                 workers, cancel, doneSamples, progressTotal, progress, roundListener,
-                seedMaxIter, false);
+                seedMinStopIter, false);
     }
 
     /**
-     * @param seedMaxIter last Adaptive max from the previous zoom (0 if none).
-     *         Doubling always starts at pass1MaxIter. Early stop when a limit
-     *         finds no new border escapes only if the probed limit is already
-     *         >= seedMaxIter (so outer borders keep intermediate colors).
+     * @param seedMinStopIter minimum iteration limit before an empty border
+     *         pass may stop doubling (usually the Adaptive value shown on the
+     *         overlay from the previous zoom; 0 if none). Doubling always
+     *         starts at pass1MaxIter; early stop only when probed limit is
+     *         already >= seedMinStopIter (so outer borders keep intermediate
+     *         colors).
      * @param zoomOutBoost on zoom-out, always include the image perimeter in
      *         the border set even if a fractal seam already exists.
      */
@@ -145,7 +147,7 @@ public final class AdaptiveRefiner {
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener,
-            int seedMaxIter,
+            int seedMinStopIter,
             boolean zoomOutBoost) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
@@ -159,9 +161,9 @@ public final class AdaptiveRefiner {
 
         int currentLimit = Math.max(pass1MaxIter, IterationSettings.MIN_ITER);
         int cap = Math.max(absoluteCap, currentLimit);
-        // Floor from previous zoom: do not early-stop below this even if a
-        // double finds no new escapes (colors still climb through intermediates).
-        int minStopLimit = seedMaxIter > 0 ? Math.min(seedMaxIter, cap) : 0;
+        // Floor from previous overlay Adaptive value: do not early-stop below
+        // this even if a double finds no new escapes.
+        int minStopLimit = seedMinStopIter > 0 ? Math.min(seedMinStopIter, cap) : 0;
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
         int[] frameScratch = zoomOutBoost ? new int[width * height] : null;

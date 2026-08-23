@@ -234,8 +234,8 @@ public class MandelbrotView extends View {
         // Capture before background work: published scale is still the old one
         // while pending holds the zoom-out target (smaller scale = zoomed out).
         final boolean adaptiveZoomOutBoost = pending && renderScale < scale;
-        // Same value the overlay shows (effectiveMaxIter Adaptive branch).
-        final int adaptiveSeedMax = adaptiveMaxIter;
+        // Overlay Adaptive Iter — minimum stop floor for this refine.
+        final int adaptiveMinStopIter = adaptiveMaxIter;
 
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
@@ -249,7 +249,7 @@ public class MandelbrotView extends View {
                 renderPalette,
                 renderSmooth,
                 renderMaxIter,
-                adaptiveSeedMax,
+                adaptiveMinStopIter,
                 adaptiveZoomOutBoost));
     }
 
@@ -325,7 +325,7 @@ public class MandelbrotView extends View {
             PaletteProvider renderPalette,
             boolean renderSmooth,
             int renderMaxIter,
-            int adaptiveSeedMax,
+            int adaptiveMinStopIter,
             boolean adaptiveZoomOutBoost) {
         final boolean adaptive =
                 iterationSettings != null
@@ -449,7 +449,7 @@ public class MandelbrotView extends View {
                     totalSamples,
                     progress,
                     roundListener,
-                    adaptiveSeedMax,
+                    adaptiveMinStopIter,
                     adaptiveZoomOutBoost);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
