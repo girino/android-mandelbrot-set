@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.graphics.Bitmap;
 
-import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -16,6 +16,7 @@ import org.robolectric.annotation.Config;
 
 /** Viewport PNG export (issue #18). */
 @RunWith(RobolectricTestRunner.class)
+@Config(manifest = Config.NONE, sdk = 28)
 public class ViewportExportTest {
 
     private static final int WIDTH = 320;
@@ -23,18 +24,17 @@ public class ViewportExportTest {
 
     private MandelbrotView view;
 
-    @Before
-    public void setUp() {
-        view = new MandelbrotView(RuntimeEnvironment.getApplication());
-        view.measure(
-                android.view.View.MeasureSpec.makeMeasureSpec(WIDTH, android.view.View.MeasureSpec.EXACTLY),
-                android.view.View.MeasureSpec.makeMeasureSpec(HEIGHT, android.view.View.MeasureSpec.EXACTLY));
-        view.layout(0, 0, WIDTH, HEIGHT);
-        view.testingStopRender();
+    @After
+    public void tearDown() {
+        if (view != null) {
+            view.testingReleaseBitmap();
+            view = null;
+        }
     }
 
     @Test
     public void captureDisplayedViewport_matchesViewSize() {
+        view = laidOutView(WIDTH, HEIGHT);
         Bitmap bitmap = view.captureDisplayedViewport();
         assertNotNull(bitmap);
         assertEquals(WIDTH, bitmap.getWidth());
@@ -44,8 +44,8 @@ public class ViewportExportTest {
 
     @Test
     public void captureDisplayedViewport_returnsNullWhenUnlaidOut() {
-        MandelbrotView empty = new MandelbrotView(RuntimeEnvironment.getApplication());
-        assertEquals(null, empty.captureDisplayedViewport());
+        view = new MandelbrotView(RuntimeEnvironment.getApplication());
+        assertEquals(null, view.captureDisplayedViewport());
     }
 
     @Test
@@ -56,10 +56,19 @@ public class ViewportExportTest {
     }
 
     @Test
-    @Config(sdk = 28)
     public void saveToGallery_returnsFalseBeforeApi29() {
         Bitmap bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888);
         assertFalse(ViewportPngExporter.saveToGallery(RuntimeEnvironment.getApplication(), bitmap));
         bitmap.recycle();
+    }
+
+    private static MandelbrotView laidOutView(int width, int height) {
+        MandelbrotView target = new MandelbrotView(RuntimeEnvironment.getApplication());
+        target.measure(
+                android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
+                android.view.View.MeasureSpec.makeMeasureSpec(height, android.view.View.MeasureSpec.EXACTLY));
+        target.layout(0, 0, width, height);
+        target.testingStopRender();
+        return target;
     }
 }

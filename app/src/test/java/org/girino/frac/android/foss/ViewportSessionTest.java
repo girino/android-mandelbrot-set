@@ -5,7 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import android.os.Bundle;
 
-import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -17,23 +17,30 @@ import org.robolectric.annotation.Config;
 @Config(manifest = Config.NONE, sdk = 28)
 public class ViewportSessionTest {
 
-    private static final int PORTRAIT_W = 1080;
-    private static final int PORTRAIT_H = 1920;
-    private static final int LANDSCAPE_W = 1920;
-    private static final int LANDSCAPE_H = 1080;
+    private static final int PORTRAIT_W = 320;
+    private static final int PORTRAIT_H = 480;
+    private static final int LANDSCAPE_W = 480;
+    private static final int LANDSCAPE_H = 320;
     private static final double EPS = 1e-6;
 
     private MandelbrotView view;
+    private MandelbrotView rotated;
 
-    @Before
-    public void setUp() {
-        view = new MandelbrotView(RuntimeEnvironment.getApplication());
-        layout(view, PORTRAIT_W, PORTRAIT_H);
-        view.testingStopRender();
+    @After
+    public void tearDown() {
+        if (view != null) {
+            view.testingReleaseBitmap();
+            view = null;
+        }
+        if (rotated != null) {
+            rotated.testingReleaseBitmap();
+            rotated = null;
+        }
     }
 
     @Test
     public void bundleRoundTrip_preservesFields() {
+        view = laidOutView(PORTRAIT_W, PORTRAIT_H);
         view.zoomIn();
         view.setOper(FormulaCatalog.get(1));
         view.setPalette(PaletteCatalog.get(2));
@@ -56,6 +63,7 @@ public class ViewportSessionTest {
 
     @Test
     public void restoreSession_keepsComplexCenterThroughResize() {
+        view = laidOutView(PORTRAIT_W, PORTRAIT_H);
         view.setOper(FormulaCatalog.get(1));
         view.setPalette(PaletteCatalog.get(2));
         view.smooth();
@@ -65,7 +73,7 @@ public class ViewportSessionTest {
         double centerY = view.testingCenterY();
         ViewportSession session = view.captureSession();
 
-        MandelbrotView rotated = new MandelbrotView(RuntimeEnvironment.getApplication());
+        rotated = new MandelbrotView(RuntimeEnvironment.getApplication());
         rotated.restoreSession(session);
         layout(rotated, LANDSCAPE_W, LANDSCAPE_H);
         rotated.testingStopRender();
@@ -76,6 +84,13 @@ public class ViewportSessionTest {
         assertEquals(session.operatorIndex, after.operatorIndex);
         assertEquals(session.paletteIndex, after.paletteIndex);
         assertEquals(session.smooth, after.smooth);
+    }
+
+    private static MandelbrotView laidOutView(int width, int height) {
+        MandelbrotView target = new MandelbrotView(RuntimeEnvironment.getApplication());
+        layout(target, width, height);
+        target.testingStopRender();
+        return target;
     }
 
     private static void layout(MandelbrotView target, int width, int height) {

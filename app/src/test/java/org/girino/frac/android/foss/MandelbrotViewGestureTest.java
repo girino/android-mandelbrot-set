@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,8 +17,8 @@ import org.robolectric.annotation.Config;
 @Config(manifest = Config.NONE, sdk = 28)
 public class MandelbrotViewGestureTest {
 
-    private static final int WIDTH = 1080;
-    private static final int HEIGHT = 1920;
+    private static final int WIDTH = 320;
+    private static final int HEIGHT = 480;
     private static final double EPS = 1e-4;
 
     private MandelbrotView view;
@@ -30,6 +31,14 @@ public class MandelbrotViewGestureTest {
                 android.view.View.MeasureSpec.makeMeasureSpec(HEIGHT, android.view.View.MeasureSpec.EXACTLY));
         view.layout(0, 0, WIDTH, HEIGHT);
         view.testingStopRender();
+    }
+
+    @After
+    public void tearDown() {
+        if (view != null) {
+            view.testingReleaseBitmap();
+            view = null;
+        }
     }
 
     /**

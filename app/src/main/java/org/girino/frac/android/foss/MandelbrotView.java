@@ -688,6 +688,16 @@ public class MandelbrotView extends View {
         stop();
     }
 
+    /** Releases the display bitmap after tests (Robolectric heap). */
+    void testingReleaseBitmap() {
+        stop();
+        Bitmap old = bitmap;
+        bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+        if (old != null && !old.isRecycled()) {
+            old.recycle();
+        }
+    }
+
     boolean testingRenderBusy() {
         return renderBusy;
     }

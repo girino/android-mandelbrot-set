@@ -65,6 +65,7 @@ android {
             isIncludeAndroidResources = false
             all {
                 it.useJUnitPlatform()
+                it.maxHeapSize = "1g"
             }
         }
     }
