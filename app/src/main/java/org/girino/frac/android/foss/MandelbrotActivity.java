@@ -134,10 +134,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             view.zoomOut();
             refreshStatusOverlay();
         });
-        hudReset.setOnClickListener(v -> {
-            view.reset();
-            refreshStatusOverlay();
-        });
+        hudReset.setOnClickListener(v -> performFullReset());
         hudSmooth.setOnClickListener(v -> toggleSmooth());
         hudMenu.setOnClickListener(v -> openHudMenu());
         syncSmoothControls();
@@ -146,6 +143,17 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void applyIterationSettings(IterationSettings settings) {
         view.setIterationSettings(settings);
+        refreshStatusOverlay();
+    }
+
+    private void resetIterationSettingsToDefaults() {
+        applyIterationSettings(IterationSettingsStore.resetToDefaults(this));
+    }
+
+    /** Viewport home + iteration defaults (HUD Reset). */
+    private void performFullReset() {
+        resetIterationSettingsToDefaults();
+        view.reset();
         refreshStatusOverlay();
     }
 
@@ -200,8 +208,7 @@ public class MandelbrotActivity extends AppCompatActivity {
                     refreshStatusOverlay();
                     break;
                 case RESET:
-                    view.reset();
-                    refreshStatusOverlay();
+                    performFullReset();
                     break;
                 case SMOOTH:
                     toggleSmooth();
@@ -399,6 +406,7 @@ public class MandelbrotActivity extends AppCompatActivity {
                 index -> {
                     operatorIndex = index;
                     view.setOper(FormulaCatalog.get(index));
+                    resetIterationSettingsToDefaults();
                     view.reset();
                     refreshStatusOverlay();
                 });

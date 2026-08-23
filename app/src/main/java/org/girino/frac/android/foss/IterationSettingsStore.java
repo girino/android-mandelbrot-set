@@ -39,6 +39,13 @@ public final class IterationSettingsStore {
                 .apply();
     }
 
+    /** Restore factory defaults and persist (issue #26). */
+    public static IterationSettings resetToDefaults(Context context) {
+        IterationSettings defaults = IterationSettings.defaults();
+        save(context, defaults);
+        return defaults;
+    }
+
     private static SharedPreferences prefs(Context context) {
         return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }

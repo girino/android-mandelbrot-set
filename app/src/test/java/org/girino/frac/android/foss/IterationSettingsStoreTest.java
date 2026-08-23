@@ -32,6 +32,15 @@ public class IterationSettingsStoreTest {
     }
 
     @Test
+    public void resetToDefaults_returnsFactoryValues() {
+        IterationSettings defaults = IterationSettings.defaults();
+        assertEquals(IterationSettings.Mode.FIXED, defaults.mode);
+        assertEquals(40, defaults.fixedMax);
+        assertEquals(40, defaults.baseMax);
+        assertEquals(1.2, defaults.multiplier, 1e-9);
+    }
+
+    @Test
     public void helpBody_mentionsIterations() throws IOException {
         Path path = Path.of("src/main/res/values/strings.xml");
         String xml = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);

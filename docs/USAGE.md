@@ -38,7 +38,7 @@ A compact bar at the bottom of the screen (icons only):
 |------|--------|
 | **+** | Zoom in about the screen center |
 | **−** | Zoom out about the screen center |
-| **↻** | Reset viewport to the initial position and scale |
+| **↻** | Reset viewport to the initial position and scale; also restores iteration settings to defaults (fixed 40) |
 | **▤** | Toggle smooth coloring (highlighted when on) |
 | **☰** | Open the menu (all actions with icon + name) |
 
