@@ -2,6 +2,7 @@ package org.girino.frac.android.foss;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
@@ -44,12 +45,17 @@ public class IterationSettingsActivity extends AppCompatActivity {
         baseValue = findViewById(R.id.iteration_base_value);
         multiplierValue = findViewById(R.id.iteration_multiplier_value);
         MaterialButton save = findViewById(R.id.iteration_save);
+        MaterialButton resetDefaults = findViewById(R.id.iteration_reset_defaults);
 
         IterationSettings current = IterationSettingsStore.load(this);
         bind(current);
         modeGroup.setOnCheckedChangeListener((group, checkedId) -> updateEnabledFields());
         updateEnabledFields();
 
+        resetDefaults.setOnClickListener(v -> {
+            bind(IterationSettings.defaults());
+            updateEnabledFields();
+        });
         save.setOnClickListener(v -> saveAndFinish());
 
         ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, insets) -> {
@@ -57,7 +63,8 @@ public class IterationSettingsActivity extends AppCompatActivity {
             v.setPadding(v.getPaddingLeft(), top, v.getPaddingRight(), v.getPaddingBottom());
             return insets;
         });
-        ViewCompat.setOnApplyWindowInsetsListener(save, (v, insets) -> {
+        View actions = findViewById(R.id.iteration_actions);
+        ViewCompat.setOnApplyWindowInsetsListener(actions, (v, insets) -> {
             int bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
             v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), bottom);
             return insets;

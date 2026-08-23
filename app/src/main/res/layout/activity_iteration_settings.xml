@@ -64,6 +64,15 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:lineSpacingMultiplier="1.15"
+                android:text="@string/iteration_defaults_summary"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="@color/md_theme_on_surface" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:text="@string/iteration_fixed_label"
                 android:textAppearance="?attr/textAppearanceTitleSmall"
@@ -75,7 +84,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:hint="@string/iteration_fixed_hint">
+                android:hint="@string/iteration_fixed_hint"
+                app:helperText="@string/iteration_fixed_helper">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/iteration_fixed_value"
@@ -99,7 +109,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:hint="@string/iteration_base_hint">
+                android:hint="@string/iteration_base_hint"
+                app:helperText="@string/iteration_base_helper">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/iteration_base_value"
@@ -115,7 +126,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="@string/iteration_multiplier_hint">
+                android:hint="@string/iteration_multiplier_hint"
+                app:helperText="@string/iteration_multiplier_helper">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/iteration_multiplier_value"
@@ -136,13 +148,31 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/iteration_save"
+    <LinearLayout
+        android:id="@+id/iteration_actions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="20dp"
-        android:minHeight="48dp"
-        android:text="@string/iteration_save" />
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/iteration_reset_defaults"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:text="@string/iteration_reset_defaults" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/iteration_save"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:text="@string/iteration_save" />
+    </LinearLayout>
 </LinearLayout>

@@ -36,6 +36,8 @@ public class IterationSettingsStoreTest {
         Path path = Path.of("src/main/res/values/strings.xml");
         String xml = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         assertTrue(xml.contains("name=\"menu_iterations\""));
-        assertTrue(xml.contains("Scale with zoom"));
+        assertTrue(xml.contains("name=\"iteration_reset_defaults\""));
+        assertTrue(xml.contains("Default: 40"));
+        assertTrue(xml.contains("Default: 1.2"));
     }
 }
