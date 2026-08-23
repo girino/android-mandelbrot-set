@@ -9,6 +9,7 @@
     <string name="menu_zoom_in">Zoom in</string>
     <string name="menu_zoom_out">Zoom out</string>
     <string name="menu_reset">Reset</string>
+    <string name="menu_export">Export</string>
     <string name="hud_zoom_in">+</string>
     <string name="hud_zoom_out">−</string>
     <string name="hud_formula_cd">Choose fractal formula</string>
@@ -25,4 +26,12 @@
     <string name="status_overlay_chip">···</string>
     <string name="status_overlay_smooth_on">Smooth: on</string>
     <string name="status_overlay_smooth_off">Smooth: off</string>
+    <string name="hud_export_cd">Export viewport as PNG</string>
+    <string name="export_title">Export viewport</string>
+    <string name="export_share">Share…</string>
+    <string name="export_save_gallery">Save to gallery</string>
+    <string name="export_saved">Saved to Pictures/Fractals</string>
+    <string name="export_save_failed">Could not save image</string>
+    <string name="export_share_failed">Could not share image</string>
+    <string name="export_not_ready">Viewport not ready yet</string>
 </resources>

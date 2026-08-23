@@ -1,5 +1,7 @@
 package org.girino.frac.android.foss;
 
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -13,6 +15,8 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -30,6 +34,7 @@ import java.util.Locale;
  * coordinates (issue #11). Options menu removed with NoActionBar (issue #12);
  * exit via system back / recents. Edge-to-edge fractal under system bars
  * (issue #14). Corner status overlay for formula + smooth (issue #17).
+ * Export viewport as PNG via share sheet or gallery save (issue #18).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
@@ -47,6 +52,11 @@ public class MandelbrotActivity extends AppCompatActivity {
     private TextView statusOverlayChip;
     private int operatorIndex = DEFAULT_OPERATOR_INDEX;
     private int paletteIndex = DEFAULT_PALETTE_INDEX;
+    private Bitmap pendingSaveBitmap;
+    private final ActivityResultLauncher<String> saveDocumentLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.CreateDocument("image/png"),
+                    this::onLegacySaveResult);
     private final Runnable showRenderProgress = () -> {
         if (renderProgress != null) {
             renderProgress.setVisibility(View.VISIBLE);
@@ -99,12 +109,14 @@ public class MandelbrotActivity extends AppCompatActivity {
         Button hudZoomOut = findViewById(R.id.hud_zoom_out);
         Button hudZoomIn = findViewById(R.id.hud_zoom_in);
         Button hudReset = findViewById(R.id.hud_reset);
+        Button hudExport = findViewById(R.id.hud_export);
 
         hudFormula.setOnClickListener(v -> openFormulaPicker());
         hudPalette.setOnClickListener(v -> openPalettePicker());
         hudZoomOut.setOnClickListener(v -> view.zoomOut());
         hudZoomIn.setOnClickListener(v -> view.zoomIn());
         hudReset.setOnClickListener(v -> view.reset());
+        hudExport.setOnClickListener(v -> openExportSheet());
         hudSmooth.setOnClickListener(v -> {
             // ToggleButton flips its checked state before the click listener;
             // align the view flag to that state (smooth() also toggles).
@@ -315,6 +327,95 @@ public class MandelbrotActivity extends AppCompatActivity {
         });
         dialog.setContentView(sheet);
         dialog.show();
+    }
+
+    private void openExportSheet() {
+        Bitmap bitmap = view.captureDisplayedViewport();
+        if (bitmap == null) {
+            showExportSnackbar(R.string.export_not_ready);
+            return;
+        }
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(R.string.export_title);
+        String[] options = {
+                getString(R.string.export_share),
+                getString(R.string.export_save_gallery),
+        };
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_list_item_1,
+                options);
+        list.setAdapter(adapter);
+        list.setChoiceMode(ListView.CHOICE_MODE_NONE);
+        final boolean[] handled = {false};
+        list.setOnItemClickListener((parent, row, position, id) -> {
+            handled[0] = true;
+            dialog.dismiss();
+            if (position == 0) {
+                shareViewport(bitmap);
+            } else {
+                saveViewport(bitmap);
+            }
+        });
+        dialog.setOnDismissListener(d -> {
+            if (!handled[0] && pendingSaveBitmap != bitmap) {
+                bitmap.recycle();
+            }
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
+    }
+
+    private void shareViewport(Bitmap bitmap) {
+        try {
+            if (!ViewportPngExporter.share(this, bitmap, getString(R.string.export_share))) {
+                showExportSnackbar(R.string.export_share_failed);
+            }
+        } finally {
+            bitmap.recycle();
+        }
+    }
+
+    private void saveViewport(Bitmap bitmap) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                if (ViewportPngExporter.saveToGallery(this, bitmap)) {
+                    showExportSnackbar(R.string.export_saved);
+                } else {
+                    showExportSnackbar(R.string.export_save_failed);
+                }
+            } finally {
+                bitmap.recycle();
+            }
+        } else {
+            pendingSaveBitmap = bitmap;
+            saveDocumentLauncher.launch(ViewportPngExporter.defaultFileName());
+        }
+    }
+
+    private void onLegacySaveResult(Uri uri) {
+        Bitmap bitmap = pendingSaveBitmap;
+        pendingSaveBitmap = null;
+        if (bitmap == null) {
+            return;
+        }
+        try {
+            if (uri != null && ViewportPngExporter.writeBitmap(this, bitmap, uri)) {
+                showExportSnackbar(R.string.export_saved);
+            } else if (uri != null) {
+                showExportSnackbar(R.string.export_save_failed);
+            }
+        } finally {
+            bitmap.recycle();
+        }
+    }
+
+    private void showExportSnackbar(int messageRes) {
+        View root = findViewById(R.id.mandelbrot_root);
+        Snackbar.make(root, messageRes, Snackbar.LENGTH_SHORT).show();
     }
 
     private void syncSmoothControls() {

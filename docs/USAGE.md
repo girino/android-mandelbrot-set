@@ -41,6 +41,7 @@ A compact bar at the bottom of the screen:
 | **−** / **+** | Zoom out / zoom in about the screen center |
 | **Smooth** | Toggle continuous iteration coloring (stays pressed when on) |
 | **Reset** | Reset viewport to the initial position and scale |
+| **Export** | Share or save the current viewport as PNG (see below) |
 
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
@@ -59,6 +60,17 @@ A small overlay in the top-left corner shows the current formula, palette, and
 whether smooth coloring is on. Tap the overlay to hide it; tap the **···** chip
 in the same corner to show it again. Pan and pinch on the fractal are unchanged.
 The HUD bar uses a similar translucent background.
+
+## Export PNG
+
+Tap **Export** in the HUD, then choose:
+
+- **Share…** — opens the system share sheet with a PNG of what you see on screen
+  (no network permission; you pick the destination app).
+- **Save to gallery** — on Android 10 and newer, saves to **Pictures/Fractals**.
+  On older Android versions, opens the system save dialog so you can pick a folder.
+
+The export captures the fractal view only (not the HUD or status overlay).
 
 ## Privacy
 

@@ -24,6 +24,9 @@
 - Corner status overlay shows formula, palette, and smooth coloring on a more
   transparent panel; tap to hide, tap the chip to show again (issue #17). HUD bar
   background is more transparent too.
+- Export current viewport as PNG: share sheet (FileProvider, no network) or save
+  to Pictures/Fractals via MediaStore on Android 10+; older devices use the system
+  save dialog (issue #18).
 
 ## 1.0.4 - 2026-08-22
 

@@ -132,8 +132,17 @@
             style="@style/HudButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="0.9"
             android:contentDescription="@string/hud_reset_cd"
             android:text="@string/menu_reset" />
+
+        <Button
+            android:id="@+id/hud_export"
+            style="@style/HudButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.9"
+            android:contentDescription="@string/hud_export_cd"
+            android:text="@string/menu_export" />
     </LinearLayout>
 </FrameLayout>

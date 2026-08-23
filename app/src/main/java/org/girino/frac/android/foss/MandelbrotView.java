@@ -359,6 +359,19 @@ public class MandelbrotView extends View {
         canvas.restore();
     }
 
+    /** WYSIWYG snapshot of the fractal as drawn (includes gesture preview). */
+    public Bitmap captureDisplayedViewport() {
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return null;
+        }
+        Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(out);
+        draw(canvas);
+        return out;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         scaleDetector.onTouchEvent(event);
