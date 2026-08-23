@@ -41,6 +41,7 @@
 - Adaptive iteration mode: after progressive step 1, refine only interior
   border pixels by doubling the limit each round (issue #28). Iteration
   fields accept up to 1048576 (hard); values above 4096 show a soft warning.
+  Overlay Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
 
 ## 1.0.4 - 2026-08-22
 

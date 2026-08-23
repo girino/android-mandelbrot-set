@@ -108,6 +108,11 @@ public class MandelbrotActivity extends AppCompatActivity {
             public void onRenderProgress(int completed, int total) {
                 MandelbrotActivity.this.onRenderProgress(completed, total);
             }
+
+            @Override
+            public void onEffectiveMaxIterChanged() {
+                refreshStatusOverlay();
+            }
         });
         view.setCoordinateReadoutListener(new MandelbrotView.CoordinateReadoutListener() {
             @Override
@@ -345,6 +350,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             renderProgress.setProgress(0);
             renderProgress.postDelayed(showRenderProgress, RENDER_PROGRESS_SHOW_DELAY_MS);
         } else {
+            refreshStatusOverlay();
             renderProgress.setVisibility(View.GONE);
         }
     }

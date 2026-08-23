@@ -43,6 +43,9 @@ public class MandelbrotView extends View {
 
         /** Completed fractal samples vs total across steps 8→4→2→1. */
         void onRenderProgress(int completed, int total);
+
+        /** Adaptive border limit (or other Iter display) changed for the overlay. */
+        void onEffectiveMaxIterChanged();
     }
 
     /** Long-press coordinate readout under the finger (issue #11). */
@@ -79,11 +82,10 @@ public class MandelbrotView extends View {
     private boolean smooth;
     private IterationSettings iterationSettings = IterationSettings.defaults();
     /**
-     * Highest iteration limit proven by adaptive border refine on the last
-     * finished frame. Next Adaptive pass-1 (e.g. after zoom) starts at least
-     * this high so deep borders are not re-discovered from fixedMax (issue #28).
+     * Highest iteration limit from the last finished Adaptive border round.
+     * Overlay display only — does not raise pass-1 after zoom (issue #28).
      */
-    private int adaptiveCarryMaxIter;
+    private int lastAdaptiveMaxIter;
     private RenderBusyListener renderBusyListener;
     private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
@@ -138,7 +140,7 @@ public class MandelbrotView extends View {
 
     public void setOper(FractalOperator operator) {
         this.operator = operator;
-        adaptiveCarryMaxIter = 0;
+        lastAdaptiveMaxIter = 0;
     }
 
     public void setPalette(PaletteProvider palette) {
@@ -149,7 +151,7 @@ public class MandelbrotView extends View {
     public void setIterationSettings(IterationSettings settings) {
         this.iterationSettings = settings != null ? settings : IterationSettings.defaults();
         if (this.iterationSettings.mode != IterationSettings.Mode.ADAPTIVE) {
-            adaptiveCarryMaxIter = 0;
+            lastAdaptiveMaxIter = 0;
         }
         start();
     }
@@ -158,30 +160,30 @@ public class MandelbrotView extends View {
         return iterationSettings;
     }
 
-    /** Effective maxIter for the current published or pending viewport. */
-    public int effectiveMaxIter() {
-        boolean pending = hasPendingTarget;
-        double s = pending ? targetScale : scale;
-        return resolvePass1MaxIter(s, width);
-    }
-
     /**
-     * Pass-1 max for Adaptive: at least settings.fixedMax, and at least the
-     * limit carried from the previous bitmap's border refine (for zoom).
+     * Value shown as Iter on the status overlay: Fixed / Scale-with-zoom
+     * resolve from the viewport; Adaptive shows the last border-round limit
+     * when one exists, otherwise the configured pass-1 max.
      */
-    private int resolvePass1MaxIter(double viewportScale, int viewWidth) {
-        int base = IterationPolicy.resolveMaxIter(iterationSettings, viewportScale, viewWidth);
+    public int effectiveMaxIter() {
         if (iterationSettings != null
                 && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE
-                && adaptiveCarryMaxIter > base) {
-            return Math.min(adaptiveCarryMaxIter, iterationSettings.absoluteCap);
+                && lastAdaptiveMaxIter > 0) {
+            return lastAdaptiveMaxIter;
         }
-        return base;
+        boolean pending = hasPendingTarget;
+        double s = pending ? targetScale : scale;
+        return IterationPolicy.resolveMaxIter(iterationSettings, s, width);
     }
 
-    /** Last adaptive border max carried into the next pass-1 (0 if none). */
-    int testingAdaptiveCarryMaxIter() {
-        return adaptiveCarryMaxIter;
+    /** Pass-1 max from settings only (no zoom carry). */
+    private int resolvePass1MaxIter(double viewportScale, int viewWidth) {
+        return IterationPolicy.resolveMaxIter(iterationSettings, viewportScale, viewWidth);
+    }
+
+    /** Last Adaptive border limit shown on the overlay (0 if none yet). */
+    int testingLastAdaptiveMaxIter() {
+        return lastAdaptiveMaxIter;
     }
 
     /** Issue #9: listener for progressive-render busy state (UI overlay). */
@@ -368,7 +370,7 @@ public class MandelbrotView extends View {
                 return;
             }
             // Progressive and Fixed/zoom frames: colors already use renderMaxIter.
-            // Adaptive step 1: normalize to the pass-1 (or carried) palette max.
+            // Adaptive step 1: normalize to the pass-1 palette max.
             if (adaptive && step == 1 && rawCounts != null) {
                 PaletteNormalize.recolor(
                         pixels,
@@ -423,8 +425,10 @@ public class MandelbrotView extends View {
                     if (generation != renderGeneration.get() || activePointers > 0) {
                         return;
                     }
+                    lastAdaptiveMaxIter = limit;
                     bitmap = rendered;
                     invalidate();
+                    notifyEffectiveMaxIterChanged();
                 });
             };
             int maxReached = AdaptiveRefiner.refine(
@@ -452,15 +456,16 @@ public class MandelbrotView extends View {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
             }
-            adaptiveCarryMaxIter = maxReached;
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
                     clearRenderBusyIfCurrent(generation);
                     return;
                 }
+                lastAdaptiveMaxIter = maxReached;
                 bitmap = rendered;
                 invalidate();
+                notifyEffectiveMaxIterChanged();
                 clearRenderBusyIfCurrent(generation);
             });
         }
@@ -734,8 +739,15 @@ public class MandelbrotView extends View {
     }
 
     public void reset() {
-        adaptiveCarryMaxIter = 0;
+        lastAdaptiveMaxIter = 0;
         requestRender(100.0 * 300.0 / 320.0 * width / 320.0, 0, 0);
+    }
+
+    private void notifyEffectiveMaxIterChanged() {
+        RenderBusyListener listener = renderBusyListener;
+        if (listener != null) {
+            listener.onEffectiveMaxIterChanged();
+        }
     }
 
     @Override
