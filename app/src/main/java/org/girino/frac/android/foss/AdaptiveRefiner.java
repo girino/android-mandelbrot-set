@@ -102,7 +102,9 @@ public final class AdaptiveRefiner {
             if (cancel != null && cancel.isCancelled()) {
                 return -1;
             }
-            int nextLimit = currentLimit * 2;
+            int nextLimit = currentLimit > IterationSettings.MAX_ITER_CAP / 2
+                    ? IterationSettings.MAX_ITER_CAP
+                    : currentLimit * 2;
             if (nextLimit > cap) {
                 nextLimit = cap;
             }

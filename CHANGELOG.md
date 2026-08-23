@@ -39,7 +39,8 @@
   each step 8→4→2→1; gesture gate and atomic handoff unchanged (issue #25).
 - Formula picker rows show a mini fractal thumbnail preview (issue #30).
 - Adaptive iteration mode: after progressive step 1, refine only interior
-  border pixels by doubling the limit each round (issue #28).
+  border pixels by doubling the limit each round (issue #28). Iteration
+  fields accept up to 1048576 (hard); values above 4096 show a soft warning.
 
 ## 1.0.4 - 2026-08-22
 

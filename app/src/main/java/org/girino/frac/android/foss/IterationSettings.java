@@ -6,6 +6,9 @@ package org.girino.frac.android.foss;
  * multiplier against viewport scale (see IterationPolicy); ADAPTIVE uses
  * fixedMax for pass 1 then border-doubling refinement up to maxRounds /
  * absoluteCap (see AdaptiveRefiner).
+ *
+ * SOFT_ITER_WARN (4096) is a UI advisory only; values above it are allowed
+ * up to MAX_ITER_CAP (hard safety clamp for deep zoom).
  */
 public final class IterationSettings {
 
@@ -16,12 +19,18 @@ public final class IterationSettings {
     }
 
     public static final int MIN_ITER = 10;
-    public static final int MAX_ITER_CAP = 4096;
+    /** Soft advisory: settings UI warns when any iter field exceeds this. */
+    public static final int SOFT_ITER_WARN = 4096;
+    /**
+     * Hard safety clamp (2^20). Deep zooms may need far more than 4096;
+     * doubling in AdaptiveRefiner stays below Integer overflow.
+     */
+    public static final int MAX_ITER_CAP = 1_048_576;
     public static final int DEFAULT_FIXED_MAX = 40;
     public static final int DEFAULT_BASE_MAX = 40;
     public static final double DEFAULT_MULTIPLIER = 1.2;
     public static final int DEFAULT_MAX_ROUNDS = 8;
-    public static final int DEFAULT_ABSOLUTE_CAP = MAX_ITER_CAP;
+    public static final int DEFAULT_ABSOLUTE_CAP = SOFT_ITER_WARN;
     public static final int MIN_ROUNDS = 1;
     public static final int MAX_ROUNDS = 16;
     public static final double MIN_MULTIPLIER = 1.01;
@@ -33,7 +42,7 @@ public final class IterationSettings {
     public final double multiplier;
     /** Adaptive: max border-doubling rounds after pass 1. */
     public final int maxRounds;
-    /** Adaptive: hard ceiling for iteration limit across rounds. */
+    /** Adaptive: ceiling for iteration limit across rounds. */
     public final int absoluteCap;
 
     public IterationSettings(Mode mode, int fixedMax, int baseMax, double multiplier) {
