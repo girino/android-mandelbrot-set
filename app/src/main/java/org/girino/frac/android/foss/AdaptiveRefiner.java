@@ -167,10 +167,18 @@ public final class AdaptiveRefiner {
         int[] frameScratch = zoomOutBoost ? new int[width * height] : null;
         boolean[] onBorder = zoomOutBoost ? new boolean[width * height] : null;
 
-        for (int round = 0; round < roundsLimit || currentLimit < minStopLimit; round++) {
+        int round = 0;
+        while (true) {
             if (cancel != null && cancel.isCancelled()) {
                 return -1;
             }
+            boolean underFloor = currentLimit < minStopLimit;
+            // maxRounds applies only once we have reached the previous-zoom floor;
+            // while under the floor we keep doubling regardless of round count.
+            if (round >= roundsLimit && !underFloor) {
+                break;
+            }
+
             int nextLimit = currentLimit > IterationSettings.MAX_ITER_CAP / 2
                     ? IterationSettings.MAX_ITER_CAP
                     : currentLimit * 2;
@@ -194,6 +202,7 @@ public final class AdaptiveRefiner {
                     if (cancel != null && cancel.isCancelled()) {
                         return -1;
                     }
+                    // Nothing left to refine; cannot climb further toward floor.
                     return currentLimit;
                 }
 
@@ -217,10 +226,19 @@ public final class AdaptiveRefiner {
             }
 
             currentLimit = nextLimit;
+            round++;
+
             // Stop only when no new border escapes AND we have reached the
             // previous zoom's max (or there was no previous max).
-            if (!anyEscapedAtThisLimit && currentLimit >= minStopLimit) {
-                break;
+            if (!anyEscapedAtThisLimit) {
+                if (roundListener != null && currentLimit < minStopLimit) {
+                    // Floor-only climb: refresh Iter on the overlay even though
+                    // pixels did not change.
+                    roundListener.onRoundComplete(pixels, width, height, currentLimit);
+                }
+                if (currentLimit >= minStopLimit) {
+                    break;
+                }
             }
         }
         if (cancel != null && cancel.isCancelled()) {

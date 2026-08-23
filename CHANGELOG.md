@@ -43,10 +43,10 @@
   fields accept up to 1048576 (hard); values above 4096 show a soft warning.
   Overlay Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
   Adaptive recolors only retested border pixels (no full-frame palette remap).
-  All-interior frames seed Adaptive from the image perimeter. Doubling always
-  starts at pass-1; early-stop on an empty border pass only after reaching the
-  previous zoom's Adaptive max (keeps intermediate border colors). Zoom-out
-  unions the image perimeter into the border set.
+  Doubling always starts at pass-1; early-stop on an empty border pass only
+  after reaching the previous *completed* zoom's Adaptive max (maxRounds does
+  not cut the climb short while under that floor). Zoom-out unions the image
+  perimeter into the border set.
 
 ## 1.0.4 - 2026-08-22
 

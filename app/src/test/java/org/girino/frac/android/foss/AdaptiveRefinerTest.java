@@ -71,6 +71,35 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
+    public void refine_seedFloor_ignoresMaxRoundsWhileUnderFloor() {
+        // maxRounds=1 would normally stop after the first empty double (2*pass1),
+        // but the previous-zoom floor forces climbing all the way to seed.
+        int width = 4;
+        int height = 4;
+        double deepScale = 1e12;
+        PaletteProvider palette = new HSBPalette();
+        FractalOperator[] ops = {new OptimizedMandelbrotOperator()};
+        int pass1 = 10;
+        int seed = 80;
+        int cap = 160;
+        boolean[] interior = new boolean[width * height];
+        Arrays.fill(interior, true);
+        int[] pixels = new int[width * height];
+        Arrays.fill(pixels, 0xff000000);
+        AtomicInteger done = new AtomicInteger();
+        AtomicInteger publishes = new AtomicInteger();
+        int reached = AdaptiveRefiner.refine(
+                pixels, interior, width, height, deepScale, 0, 0,
+                ops, palette, false, pass1, 1, cap,
+                workers, null, done, width * height, null,
+                (px, w, h, limit) -> publishes.incrementAndGet(),
+                seed,
+                false);
+        assertEquals(seed, reached);
+        assertTrue(publishes.get() >= 1);
+    }
+
+    @Test
     public void refine_seedFloor_climbsFromPass1UntilPreviousMax() {
         // No escapes: without seed, stop after first empty double (return 2*pass1).
         // With seed floor, keep doubling through intermediates until >= seed.

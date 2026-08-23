@@ -19,10 +19,10 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
    frame, and go back to step 3 **at the same limit** (stabilize until no new
    border is filled).
 6. If **none** escape at this limit, advance `current` to `next`. Stop only
-   when that empty pass happens **and** `current >= lastAdaptiveMax` from the
-   previous zoom (or there was no previous max). Otherwise keep doubling so
-   outer borders still pick up intermediate colors instead of jumping straight
-   to the previous max.
+   when that empty pass happens **and** `current >= previousZoomAdaptiveMax`
+   from the last *completed* Adaptive zoom (or there was no previous max).
+   While still under that floor, keep doubling even past `maxRounds`, and
+   refresh the overlay Iter so outer borders keep intermediate colors.
 7. If escapes were found, repeat from step 2 until `maxRounds` or the absolute
    cap is reached (empty passes below the previous-zoom floor also continue).
 8. The status overlay **Iter** line shows the highest limit from the last
