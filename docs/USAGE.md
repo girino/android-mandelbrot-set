@@ -48,7 +48,7 @@ Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
 
 While a progressive render is running after you lift your finger (or after
-zoom / reset / palette change), a thin indeterminate line appears at the top
+zoom / reset / palette change), a short indeterminate bar appears at the top
 of the screen. It disappears when the full-resolution frame is ready or when
 a new gesture cancels the render.
 
