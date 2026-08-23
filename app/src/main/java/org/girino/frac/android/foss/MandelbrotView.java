@@ -39,6 +39,9 @@ public class MandelbrotView extends View {
     /** Notifies when a progressive render is running (issue #9). */
     public interface RenderBusyListener {
         void onRenderBusy(boolean busy);
+
+        /** Completed fractal samples vs total across steps 8→4→2→1. */
+        void onRenderProgress(int completed, int total);
     }
 
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -176,6 +179,35 @@ public class MandelbrotView extends View {
         }
     }
 
+    /**
+     * Total operator samples for progressive steps 8→4→2→1 (matches the
+     * render loops). Used to weight the determinate progress bar.
+     */
+    static int progressiveSampleCount(int renderWidth, int renderHeight) {
+        if (renderWidth <= 0 || renderHeight <= 0) {
+            return 0;
+        }
+        int total = 0;
+        for (int step = 8; step > 0; step /= 2) {
+            int cols = (renderWidth - 1) / step + 1;
+            int rows = (renderHeight - 1) / step + 1;
+            total += cols * rows;
+        }
+        return total;
+    }
+
+    private void postRenderProgress(int generation, int completed, int total) {
+        post(() -> {
+            if (generation != renderGeneration.get()) {
+                return;
+            }
+            RenderBusyListener listener = renderBusyListener;
+            if (listener != null) {
+                listener.onRenderProgress(completed, total);
+            }
+        });
+    }
+
     private void render(
             int generation,
             int renderWidth,
@@ -191,6 +223,12 @@ public class MandelbrotView extends View {
         Paint renderPaint = new Paint(Paint.DITHER_FLAG);
         renderCanvas.drawColor(0xff0a0a0a);
         Complex point = new Complex();
+
+        final int totalSamples = progressiveSampleCount(renderWidth, renderHeight);
+        int doneSamples = 0;
+        int lastReported = -1;
+        final int reportEvery = Math.max(1, totalSamples / 100);
+        postRenderProgress(generation, 0, totalSamples);
 
         for (int step = 8; step > 0; step /= 2) {
             for (int y = 0; y < renderHeight; y += step) {
@@ -209,8 +247,15 @@ public class MandelbrotView extends View {
                     } else {
                         renderCanvas.drawRect(x, y, x + step, y + step, renderPaint);
                     }
+                    doneSamples++;
+                }
+                if (doneSamples - lastReported >= reportEvery) {
+                    lastReported = doneSamples;
+                    postRenderProgress(generation, doneSamples, totalSamples);
                 }
             }
+            lastReported = doneSamples;
+            postRenderProgress(generation, doneSamples, totalSamples);
             final int publishStep = step;
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {

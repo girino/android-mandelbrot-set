@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Issue #9: thin indeterminate bar while progressive render runs. -->
+    <!-- Issue #9: determinate bar weighted by progressive samples. -->
     <ProgressBar
         android:id="@+id/render_progress"
         style="?android:attr/progressBarStyleHorizontal"
@@ -18,10 +18,13 @@
         android:layout_height="3dp"
         android:layout_gravity="top"
         android:contentDescription="@string/render_progress_cd"
-        android:indeterminate="true"
-        android:indeterminateTint="#E6FFFFFF"
+        android:indeterminate="false"
+        android:max="100"
         android:maxHeight="3dp"
         android:minHeight="3dp"
+        android:progress="0"
+        android:progressBackgroundTint="#33FFFFFF"
+        android:progressTint="#E6FFFFFF"
         android:visibility="gone" />
 
     <!-- Compact bottom HUD: common actions without the overflow menu. -->

@@ -19,7 +19,7 @@ import org.girino.frac.palettes.PaletteProvider;
  * Main screen: full-bleed fractal with a compact bottom HUD for formula,
  * palette, smooth coloring, and reset (issue #5), plus zoom in/out (issue #6).
  * Overflow menu mirrors those actions and keeps Exit. Thin top progress bar
- * while progressive render runs (issue #9).
+ * tracks progressive render samples (issue #9).
  */
 public class MandelbrotActivity extends Activity {
     private static final int SELECT_OPERATOR = 0;
@@ -46,7 +46,17 @@ public class MandelbrotActivity extends Activity {
         View hudBar = findViewById(R.id.hud_bar);
         applyWindowInsets(hudBar, renderProgress);
 
-        view.setRenderBusyListener(this::onRenderBusy);
+        view.setRenderBusyListener(new MandelbrotView.RenderBusyListener() {
+            @Override
+            public void onRenderBusy(boolean busy) {
+                MandelbrotActivity.this.onRenderBusy(busy);
+            }
+
+            @Override
+            public void onRenderProgress(int completed, int total) {
+                MandelbrotActivity.this.onRenderProgress(completed, total);
+            }
+        });
 
         Button hudFormula = findViewById(R.id.hud_formula);
         Button hudPalette = findViewById(R.id.hud_palette);
@@ -103,10 +113,22 @@ public class MandelbrotActivity extends Activity {
         }
         renderProgress.removeCallbacks(showRenderProgress);
         if (busy) {
+            renderProgress.setProgress(0);
             renderProgress.postDelayed(showRenderProgress, RENDER_PROGRESS_SHOW_DELAY_MS);
         } else {
             renderProgress.setVisibility(View.GONE);
         }
+    }
+
+    private void onRenderProgress(int completed, int total) {
+        if (renderProgress == null) {
+            return;
+        }
+        int max = Math.max(total, 1);
+        if (renderProgress.getMax() != max) {
+            renderProgress.setMax(max);
+        }
+        renderProgress.setProgress(Math.min(completed, max));
     }
 
     @Override

@@ -300,4 +300,21 @@ public class MandelbrotViewGestureTest {
         view.start();
         assertFalse(view.testingRenderBusy());
     }
+
+    /** Issue #9: sample count matches progressive 8→4→2→1 grid visits. */
+    @Test
+    public void progressiveSampleCount_matchesNestedLoops() {
+        int w = 1080;
+        int h = 1920;
+        int expected = 0;
+        for (int step = 8; step > 0; step /= 2) {
+            for (int y = 0; y < h; y += step) {
+                for (int x = 0; x < w; x += step) {
+                    expected++;
+                }
+            }
+        }
+        assertEquals(expected, MandelbrotView.progressiveSampleCount(w, h));
+        assertEquals(0, MandelbrotView.progressiveSampleCount(0, h));
+    }
 }
