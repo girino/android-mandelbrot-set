@@ -16,16 +16,20 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-/** Escape-time iteration mode and values (issue #26). */
+/** Escape-time iteration mode and values (issues #26 / #28). */
 public class IterationSettingsActivity extends AppCompatActivity {
 
     private RadioGroup modeGroup;
     private TextInputLayout fixedLayout;
     private TextInputLayout baseLayout;
     private TextInputLayout multiplierLayout;
+    private TextInputLayout roundsLayout;
+    private TextInputLayout capLayout;
     private TextInputEditText fixedValue;
     private TextInputEditText baseValue;
     private TextInputEditText multiplierValue;
+    private TextInputEditText roundsValue;
+    private TextInputEditText capValue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,9 +45,13 @@ public class IterationSettingsActivity extends AppCompatActivity {
         fixedLayout = findViewById(R.id.iteration_fixed_layout);
         baseLayout = findViewById(R.id.iteration_base_layout);
         multiplierLayout = findViewById(R.id.iteration_multiplier_layout);
+        roundsLayout = findViewById(R.id.iteration_rounds_layout);
+        capLayout = findViewById(R.id.iteration_cap_layout);
         fixedValue = findViewById(R.id.iteration_fixed_value);
         baseValue = findViewById(R.id.iteration_base_value);
         multiplierValue = findViewById(R.id.iteration_multiplier_value);
+        roundsValue = findViewById(R.id.iteration_rounds_value);
+        capValue = findViewById(R.id.iteration_cap_value);
         MaterialButton save = findViewById(R.id.iteration_save);
         MaterialButton resetDefaults = findViewById(R.id.iteration_reset_defaults);
 
@@ -74,38 +82,64 @@ public class IterationSettingsActivity extends AppCompatActivity {
     private void bind(IterationSettings settings) {
         if (settings.mode == IterationSettings.Mode.SCALE_WITH_ZOOM) {
             modeGroup.check(R.id.iteration_mode_zoom);
+        } else if (settings.mode == IterationSettings.Mode.ADAPTIVE) {
+            modeGroup.check(R.id.iteration_mode_adaptive);
         } else {
             modeGroup.check(R.id.iteration_mode_fixed);
         }
         fixedValue.setText(String.valueOf(settings.fixedMax));
         baseValue.setText(String.valueOf(settings.baseMax));
         multiplierValue.setText(formatMultiplier(settings.multiplier));
+        roundsValue.setText(String.valueOf(settings.maxRounds));
+        capValue.setText(String.valueOf(settings.absoluteCap));
     }
 
     private void updateEnabledFields() {
-        boolean fixed = modeGroup.getCheckedRadioButtonId() == R.id.iteration_mode_fixed;
-        fixedLayout.setEnabled(fixed);
-        fixedValue.setEnabled(fixed);
-        baseLayout.setEnabled(!fixed);
-        baseValue.setEnabled(!fixed);
-        multiplierLayout.setEnabled(!fixed);
-        multiplierValue.setEnabled(!fixed);
-        float alpha = fixed ? 1f : 0.45f;
-        float zoomAlpha = fixed ? 0.45f : 1f;
-        fixedLayout.setAlpha(alpha);
+        int checked = modeGroup.getCheckedRadioButtonId();
+        boolean fixed = checked == R.id.iteration_mode_fixed;
+        boolean zoom = checked == R.id.iteration_mode_zoom;
+        boolean adaptive = checked == R.id.iteration_mode_adaptive;
+
+        // Pass-1 / fixed max field: used by Fixed and Adaptive.
+        boolean fixedFieldOn = fixed || adaptive;
+        fixedLayout.setEnabled(fixedFieldOn);
+        fixedValue.setEnabled(fixedFieldOn);
+        fixedLayout.setAlpha(fixedFieldOn ? 1f : 0.45f);
+
+        baseLayout.setEnabled(zoom);
+        baseValue.setEnabled(zoom);
+        multiplierLayout.setEnabled(zoom);
+        multiplierValue.setEnabled(zoom);
+        float zoomAlpha = zoom ? 1f : 0.45f;
         baseLayout.setAlpha(zoomAlpha);
         multiplierLayout.setAlpha(zoomAlpha);
+
+        roundsLayout.setEnabled(adaptive);
+        roundsValue.setEnabled(adaptive);
+        capLayout.setEnabled(adaptive);
+        capValue.setEnabled(adaptive);
+        float adaptiveAlpha = adaptive ? 1f : 0.45f;
+        roundsLayout.setAlpha(adaptiveAlpha);
+        capLayout.setAlpha(adaptiveAlpha);
     }
 
     private void saveAndFinish() {
-        IterationSettings.Mode mode = modeGroup.getCheckedRadioButtonId() == R.id.iteration_mode_zoom
-                ? IterationSettings.Mode.SCALE_WITH_ZOOM
-                : IterationSettings.Mode.FIXED;
+        int checked = modeGroup.getCheckedRadioButtonId();
+        IterationSettings.Mode mode;
+        if (checked == R.id.iteration_mode_zoom) {
+            mode = IterationSettings.Mode.SCALE_WITH_ZOOM;
+        } else if (checked == R.id.iteration_mode_adaptive) {
+            mode = IterationSettings.Mode.ADAPTIVE;
+        } else {
+            mode = IterationSettings.Mode.FIXED;
+        }
 
-        Integer fixed = parseInt(fixedValue);
-        Integer base = parseInt(baseValue);
+        Integer fixed = parseInt(fixedValue, IterationSettings.MIN_ITER, IterationSettings.MAX_ITER_CAP);
+        Integer base = parseInt(baseValue, IterationSettings.MIN_ITER, IterationSettings.MAX_ITER_CAP);
         Double multiplier = parseDouble(multiplierValue);
-        if (fixed == null || base == null || multiplier == null) {
+        Integer rounds = parseInt(roundsValue, IterationSettings.MIN_ROUNDS, IterationSettings.MAX_ROUNDS);
+        Integer cap = parseInt(capValue, IterationSettings.MIN_ITER, IterationSettings.MAX_ITER_CAP);
+        if (fixed == null || base == null || multiplier == null || rounds == null || cap == null) {
             Toast.makeText(this, R.string.iteration_invalid, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -115,20 +149,21 @@ public class IterationSettingsActivity extends AppCompatActivity {
             return;
         }
 
-        IterationSettings settings = new IterationSettings(mode, fixed, base, multiplier);
+        IterationSettings settings = new IterationSettings(
+                mode, fixed, base, multiplier, rounds, cap);
         IterationSettingsStore.save(this, settings);
         setResult(RESULT_OK);
         finish();
     }
 
-    private static Integer parseInt(TextInputEditText field) {
+    private static Integer parseInt(TextInputEditText field, int min, int max) {
         CharSequence text = field.getText();
         if (text == null || TextUtils.getTrimmedLength(text) == 0) {
             return null;
         }
         try {
             int value = Integer.parseInt(text.toString().trim());
-            if (value < IterationSettings.MIN_ITER || value > IterationSettings.MAX_ITER_CAP) {
+            if (value < min || value > max) {
                 return null;
             }
             return value;

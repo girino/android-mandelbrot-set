@@ -286,6 +286,9 @@ public class MandelbrotView extends View {
             PaletteProvider renderPalette,
             boolean renderSmooth,
             int renderMaxIter) {
+        final boolean adaptive =
+                iterationSettings != null
+                        && iterationSettings.mode == IterationSettings.Mode.ADAPTIVE;
         final int totalSamples = progressiveSampleCount(renderWidth, renderHeight);
         AtomicInteger doneSamples = new AtomicInteger(0);
         postRenderProgress(generation, 0, totalSamples);
@@ -293,6 +296,7 @@ public class MandelbrotView extends View {
         int[] pixels = new int[renderWidth * renderHeight];
         Arrays.fill(pixels, 0xff0a0a0a);
         Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
+        boolean[] interior = adaptive ? new boolean[renderWidth * renderHeight] : null;
 
         int workerCount = ParallelStepRenderer.defaultWorkerCount();
         FractalOperator[] workerOps = new FractalOperator[workerCount];
@@ -323,7 +327,8 @@ public class MandelbrotView extends View {
                     cancel,
                     doneSamples,
                     totalSamples,
-                    progress);
+                    progress,
+                    step == 1 ? interior : null);
             if (!finished) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
@@ -331,6 +336,7 @@ public class MandelbrotView extends View {
             postRenderProgress(generation, doneSamples.get(), totalSamples);
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             final int publishStep = step;
+            final boolean clearBusy = publishStep == 1 && !adaptive;
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
                     clearRenderBusyIfCurrent(generation);
@@ -356,10 +362,47 @@ public class MandelbrotView extends View {
                 focusX = startFocusX;
                 focusY = startFocusY;
                 invalidate();
-                // Progressive refine done only at step 1 (issue #9).
-                if (publishStep == 1) {
+                // Progressive refine done only at step 1 (issue #9), unless
+                // adaptive border rounds still need to run (issue #28).
+                if (clearBusy) {
                     clearRenderBusyIfCurrent(generation);
                 }
+            });
+        }
+
+        if (adaptive) {
+            boolean refined = AdaptiveRefiner.refine(
+                    pixels,
+                    interior,
+                    renderWidth,
+                    renderHeight,
+                    renderScale,
+                    renderCenterX,
+                    renderCenterY,
+                    workerOps,
+                    renderPalette,
+                    renderSmooth,
+                    renderMaxIter,
+                    iterationSettings.maxRounds,
+                    iterationSettings.absoluteCap,
+                    workerPool,
+                    cancel,
+                    doneSamples,
+                    Math.max(totalSamples, doneSamples.get() + 1),
+                    progress);
+            if (!refined) {
+                post(() -> clearRenderBusyIfCurrent(generation));
+                return;
+            }
+            rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
+            post(() -> {
+                if (generation != renderGeneration.get() || activePointers > 0) {
+                    clearRenderBusyIfCurrent(generation);
+                    return;
+                }
+                bitmap = rendered;
+                invalidate();
+                clearRenderBusyIfCurrent(generation);
             });
         }
     }

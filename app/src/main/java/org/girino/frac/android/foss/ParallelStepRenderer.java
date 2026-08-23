@@ -60,6 +60,35 @@ public final class ParallelStepRenderer {
             AtomicInteger doneSamples,
             int totalSamples,
             ProgressListener progress) {
+        return fillStep(
+                pixels, width, height, step, scale, centerX, centerY,
+                workerOperators, palette, smooth, maxIter,
+                workers, cancel, doneSamples, totalSamples, progress, null);
+    }
+
+    /**
+     * Like fillStep, and when interior is non-null and step is 1, records
+     * per-pixel interior (true = did not escape at maxIter) for adaptive
+     * refinement (issue #28).
+     */
+    public static boolean fillStep(
+            int[] pixels,
+            int width,
+            int height,
+            int step,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int maxIter,
+            ExecutorService workers,
+            CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int totalSamples,
+            ProgressListener progress,
+            boolean[] interior) {
         if (pixels == null || width <= 0 || height <= 0 || step <= 0) {
             return false;
         }
@@ -75,7 +104,8 @@ public final class ParallelStepRenderer {
                     workerOperators != null && workerOperators.length > 0
                             ? workerOperators[0]
                             : null,
-                    palette, smooth, maxIter, cancel, doneSamples, totalSamples, progress);
+                    palette, smooth, maxIter, cancel, doneSamples, totalSamples, progress,
+                    interior);
         }
 
         int tasks = Math.min(workerCount, rowCount);
@@ -83,7 +113,7 @@ public final class ParallelStepRenderer {
             return fillStepSerial(
                     pixels, width, height, step, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, maxIter,
-                    cancel, doneSamples, totalSamples, progress);
+                    cancel, doneSamples, totalSamples, progress, interior);
         }
 
         final int reportEvery = Math.max(1, totalSamples / 100);
@@ -101,7 +131,7 @@ public final class ParallelStepRenderer {
                             pixels, width, height, step, scale, centerX, centerY,
                             operator, palette, smooth, maxIter,
                             rowStart, rowEnd, cancel, cancelled,
-                            doneSamples, totalSamples, reportEvery, progress);
+                            doneSamples, totalSamples, reportEvery, progress, interior);
                 } finally {
                     latch.countDown();
                 }
@@ -156,7 +186,8 @@ public final class ParallelStepRenderer {
             CancelCheck cancel,
             AtomicInteger doneSamples,
             int totalSamples,
-            ProgressListener progress) {
+            ProgressListener progress,
+            boolean[] interior) {
         if (operator == null) {
             return false;
         }
@@ -167,7 +198,7 @@ public final class ParallelStepRenderer {
                 pixels, width, height, step, scale, centerX, centerY,
                 operator, palette, smooth, maxIter,
                 0, rowCount, cancel, cancelled,
-                doneSamples, totalSamples, reportEvery, progress);
+                doneSamples, totalSamples, reportEvery, progress, interior);
         return !cancelled.get() && (cancel == null || !cancel.isCancelled());
     }
 
@@ -190,7 +221,8 @@ public final class ParallelStepRenderer {
             AtomicInteger doneSamples,
             int totalSamples,
             int reportEvery,
-            ProgressListener progress) {
+            ProgressListener progress,
+            boolean[] interior) {
         Complex point = new Complex();
         for (int row = rowStart; row < rowEnd; row++) {
             if (Thread.currentThread().isInterrupted()
@@ -210,9 +242,12 @@ public final class ParallelStepRenderer {
                 point.set(
                         (x - width / 2.0) / scale + centerX,
                         (y - height / 2.0) / scale + centerY);
-                double value = operator.apply(point, maxIter, smooth);
-                int color = palette.getColor(value);
+                FractalOperator.EscapeSample sample = operator.sample(point, maxIter, smooth);
+                int color = palette.getColor(sample.value);
                 fillBlock(pixels, width, height, x, y, step, color);
+                if (interior != null && step == 1) {
+                    interior[y * width + x] = !sample.escaped;
+                }
                 int completed = doneSamples.incrementAndGet();
                 if (progress != null && completed % reportEvery == 0) {
                     progress.onProgress(completed, totalSamples);

@@ -58,10 +58,15 @@ Menu → **Iterations** chooses how escape-time max iterations are computed:
 |------|--------|----------|
 | **Fixed max** (default) | Max iterations (default **40**) | Same cap for every pixel at every zoom |
 | **Scale with zoom** | Base (default **40**) and multiplier (default **1.2**) | At home zoom, maxIter = base. Each doubling of zoom multiplies by the multiplier: `round(base × multiplier^log2(scale/homeScale))`, clamped to 10–4096 |
+| **Adaptive** | Pass-1 max (same Fixed field, default **40**), max rounds (default **8**), absolute cap (default **4096**) | Full progressive pass at pass-1 max, then only re-tests interior border pixels (4-connected to an escaped neighbor), doubling the limit each round until none escape or rounds/cap are hit |
 
 Settings survive process restart via SharedPreferences. Changing them re-renders
 (respecting the gesture gate). The status overlay shows the effective **Iter**
-value for the current viewport.
+value for the current viewport (pass-1 / Fixed / zoom-resolved base; Adaptive may
+spend more iterations on border pixels up to the absolute cap).
+
+See [docs/ADAPTIVE-ITERATION.md](ADAPTIVE-ITERATION.md) for algorithm notes and
+why Mariani–Silver was not chosen for v1.
 
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.

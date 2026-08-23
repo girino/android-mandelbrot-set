@@ -2,8 +2,9 @@ package org.girino.frac.android.foss;
 
 /**
  * Resolves escape-time maxIter from IterationSettings and viewport scale
- * (issues #26 / #27).
+ * (issues #26 / #27 / #28).
  *
+ * FIXED and ADAPTIVE: pass-1 (or only) cap is fixedMax.
  * SCALE_WITH_ZOOM: each doubling of scale relative to the home reference
  * multiplies maxIter by the user multiplier:
  * maxIter = round(base * multiplier ^ log2(scale / referenceScale)),
@@ -23,9 +24,12 @@ public final class IterationPolicy {
     }
 
     public static int resolveMaxIter(IterationSettings settings, double scale, int viewWidth) {
-        if (settings == null || settings.mode == IterationSettings.Mode.FIXED) {
-            int fixed = settings != null ? settings.fixedMax : IterationSettings.DEFAULT_FIXED_MAX;
-            return clamp(fixed);
+        if (settings == null) {
+            return clamp(IterationSettings.DEFAULT_FIXED_MAX);
+        }
+        if (settings.mode == IterationSettings.Mode.FIXED
+                || settings.mode == IterationSettings.Mode.ADAPTIVE) {
+            return clamp(settings.fixedMax);
         }
         double reference = referenceScale(viewWidth);
         if (!(scale > 0) || !(reference > 0)) {
