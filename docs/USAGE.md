@@ -43,8 +43,10 @@ A compact bar at the bottom of the screen (icons only):
 | **☰** | Open the menu (all actions with icon + name) |
 
 The **menu** lists every action: zoom in/out, reset, smooth, formula, palette,
-and export. Formula and palette open the same bottom sheets as before; export
-opens share or save to gallery.
+export, **Help**, and **About**. Formula and palette open the same bottom sheets
+as before; export opens share or save to gallery. Help summarizes gestures and
+the HUD; About shows the version, package id, and **Girino Anarchist License
+(GAL)** with a link to the full license text.
 
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.

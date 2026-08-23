@@ -31,6 +31,8 @@
   rows for all actions including Formula, Palette, and Export (issue #29).
 - Rotation and activity recreate restore viewport, formula, palette, and smooth
   via saved instance state (issue #21).
+- Help and About screens from the hamburger menu; About includes GAL license
+  reference and optional external links (issue #22).
 
 ## 1.0.4 - 2026-08-22
 

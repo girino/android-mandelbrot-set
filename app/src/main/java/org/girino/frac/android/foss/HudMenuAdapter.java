@@ -39,10 +39,26 @@ final class HudMenuAdapter extends BaseAdapter {
         }
     }
 
+    private enum Overflow {
+        EXPORT(R.string.menu_export, R.drawable.ic_hud_export, R.string.hud_export_cd),
+        HELP(R.string.menu_help, R.drawable.ic_hud_help, R.string.hud_help_cd),
+        ABOUT(R.string.menu_about, R.drawable.ic_hud_about, R.string.hud_about_cd);
+
+        final int labelRes;
+        final int iconRes;
+        final int contentDescriptionRes;
+
+        Overflow(int labelRes, int iconRes, int contentDescriptionRes) {
+            this.labelRes = labelRes;
+            this.iconRes = iconRes;
+            this.contentDescriptionRes = contentDescriptionRes;
+        }
+    }
+
     private static final int CORE_COUNT = Action.values().length;
     private static final int SECTION_INDEX = CORE_COUNT;
-    private static final int EXPORT_INDEX = CORE_COUNT + 1;
-    private static final int ITEM_COUNT = CORE_COUNT + 2;
+    private static final int OVERFLOW_COUNT = Overflow.values().length;
+    private static final int ITEM_COUNT = CORE_COUNT + 1 + OVERFLOW_COUNT;
 
     private final LayoutInflater inflater;
     private final Context context;
@@ -64,7 +80,15 @@ final class HudMenuAdapter extends BaseAdapter {
     }
 
     static boolean isExport(int position) {
-        return position == EXPORT_INDEX;
+        return overflowAt(position) == Overflow.EXPORT;
+    }
+
+    static boolean isHelp(int position) {
+        return overflowAt(position) == Overflow.HELP;
+    }
+
+    static boolean isAbout(int position) {
+        return overflowAt(position) == Overflow.ABOUT;
     }
 
     static Action actionAt(int position) {
@@ -72,6 +96,14 @@ final class HudMenuAdapter extends BaseAdapter {
             return null;
         }
         return Action.values()[position];
+    }
+
+    private static Overflow overflowAt(int position) {
+        int overflowIndex = position - SECTION_INDEX - 1;
+        if (overflowIndex < 0 || overflowIndex >= OVERFLOW_COUNT) {
+            return null;
+        }
+        return Overflow.values()[overflowIndex];
     }
 
     @Override
@@ -85,10 +117,8 @@ final class HudMenuAdapter extends BaseAdapter {
         if (action != null) {
             return action;
         }
-        if (isExport(position)) {
-            return EXPORT_SENTINEL;
-        }
-        return null;
+        Overflow overflow = overflowAt(position);
+        return overflow != null ? overflow : null;
     }
 
     @Override
@@ -133,17 +163,18 @@ final class HudMenuAdapter extends BaseAdapter {
         int iconRes;
         int contentDescriptionRes;
         boolean toggleIndicator;
-        if (isExport(position)) {
-            labelRes = R.string.menu_export;
-            iconRes = R.drawable.ic_hud_export;
-            contentDescriptionRes = R.string.hud_export_cd;
-            toggleIndicator = false;
-        } else {
-            Action action = Action.values()[position];
+        Action action = actionAt(position);
+        if (action != null) {
             labelRes = action.labelRes;
             iconRes = action.iconRes;
             contentDescriptionRes = action.contentDescriptionRes;
             toggleIndicator = action.toggleIndicator;
+        } else {
+            Overflow overflow = overflowAt(position);
+            labelRes = overflow.labelRes;
+            iconRes = overflow.iconRes;
+            contentDescriptionRes = overflow.contentDescriptionRes;
+            toggleIndicator = false;
         }
 
         label.setText(labelRes);
@@ -161,7 +192,4 @@ final class HudMenuAdapter extends BaseAdapter {
         }
         return row;
     }
-
-    /** Marker for export row in getItem (not a core Action). */
-    static final Object EXPORT_SENTINEL = new Object();
 }
