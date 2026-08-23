@@ -6,8 +6,10 @@ fractal formulas and palettes, and enable smooth coloring.
 This FOSS edition uses the application ID `org.girino.frac.android.foss`, so it
 can be installed alongside the historical Google Play edition without conflicts.
 
-The app is written in Java and uses only Android platform APIs. It contains no ads,
-trackers, network access, analytics, or proprietary runtime dependencies.
+The app is written in Java. UI uses AndroidX AppCompat and Material Components
+for theming and bottom-sheet pickers; fractal math and rendering stay on platform
+graphics APIs. It contains no ads, trackers, network access, analytics, or
+proprietary runtime dependencies.
 
 ## Install with Obtainium
 

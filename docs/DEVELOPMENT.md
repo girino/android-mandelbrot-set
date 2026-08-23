@@ -83,18 +83,19 @@ If adb reports no devices: restart the server
 ```
 app/src/main/java/org/girino/frac/
   android/foss/
-    MandelbrotActivity.java    main screen + options menu
+    MandelbrotActivity.java    main screen, HUD, Material bottom-sheet pickers
     MandelbrotView.java        fractal rendering surface + gestures (the hot file)
-    OperatorsListActivity.java formula picker
-    PalettesListActivity.java  palette picker
+    FormulaCatalog.java        formula labels + operators for the picker
+    PaletteCatalog.java        palette labels + providers for the picker
   operators/                   FractalOperator implementations (z <- f(z, c))
   palettes/                    PaletteProvider implementations + ARGB helpers
   viewport/
     ViewportTransforms.java    pure viewport math shared with tests
 app/src/test/java/org/girino/frac/
-  viewport/ViewporTransformsTest.java
+  viewport/ViewportTransformsTest.java
   android/foss/MandelbrotViewGestureTest.java
   android/foss/PinchDragMotionSimulator.java
+  android/foss/CatalogTest.java
 docs/                          usage, deploy, postmortems
 ```
 

@@ -25,7 +25,8 @@ your own defaults.
 
 ## Project snapshot
 
-- Android app, pure Java, platform APIs only. Application ID
+- Android app, pure Java. UI uses AppCompat + Material Components; fractal
+  rendering stays on platform graphics. Application ID
   `org.girino.frac.android.foss`.
 - Build/test/lint commands and repo-local toolchain: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 - Release/deploy flow (tag → CI signed APK → GitHub Release → Zapstore):

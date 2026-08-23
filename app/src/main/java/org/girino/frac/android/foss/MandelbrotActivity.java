@@ -1,35 +1,42 @@
 package org.girino.frac.android.foss;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowInsets;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import org.girino.frac.operators.FractalOperator;
-import org.girino.frac.palettes.PaletteProvider;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 /**
  * Main screen: full-bleed fractal with a compact bottom HUD for formula,
- * palette, smooth coloring, and reset (issue #5), plus zoom in/out (issue #6).
- * Overflow menu mirrors those actions and keeps Exit. Thin top progress bar
- * tracks progressive render samples (issue #9).
+ * palette, smooth coloring, reset, and zoom. Material dark theme and
+ * bottom-sheet pickers (issues #10 / #13). Thin top progress bar tracks
+ * progressive render samples (issue #9).
  */
-public class MandelbrotActivity extends Activity {
-    private static final int SELECT_OPERATOR = 0;
-    private static final int SELECT_PALETTE = 1;
+public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
     private static final long RENDER_PROGRESS_SHOW_DELAY_MS = 150L;
+    /** Default matches MandelbrotView initial operator (Mandelbrot Set). */
+    private static final int DEFAULT_OPERATOR_INDEX = 0;
+    /** Default matches MandelbrotView initial palette (HSB / Rainbow 1). */
+    private static final int DEFAULT_PALETTE_INDEX = 3;
 
     private MandelbrotView view;
     private ToggleButton hudSmooth;
     private ProgressBar renderProgress;
+    private int operatorIndex = DEFAULT_OPERATOR_INDEX;
+    private int paletteIndex = DEFAULT_PALETTE_INDEX;
     private final Runnable showRenderProgress = () -> {
         if (renderProgress != null) {
             renderProgress.setVisibility(View.VISIBLE);
@@ -199,36 +206,63 @@ public class MandelbrotActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == SELECT_OPERATOR && resultCode >= Activity.RESULT_FIRST_USER) {
-            FractalOperator operator = OperatorsListActivity.getOperator(
-                    resultCode - Activity.RESULT_FIRST_USER);
-            view.setOper(operator);
-            view.reset();
-        } else if (requestCode == SELECT_PALETTE && resultCode >= Activity.RESULT_FIRST_USER) {
-            PaletteProvider provider = PalettesListActivity.getPalette(
-                    resultCode - Activity.RESULT_FIRST_USER);
-            view.setPalette(provider);
-            view.start();
-        }
-    }
-
     private void openFormulaPicker() {
-        view.stop();
-        startActivityForResult(new Intent(this, OperatorsListActivity.class), SELECT_OPERATOR);
+        showPickerSheet(
+                R.string.select_formula,
+                FormulaCatalog.labels(),
+                operatorIndex,
+                index -> {
+                    operatorIndex = index;
+                    view.setOper(FormulaCatalog.get(index));
+                    view.reset();
+                });
     }
 
     private void openPalettePicker() {
-        view.stop();
-        startActivityForResult(new Intent(this, PalettesListActivity.class), SELECT_PALETTE);
+        showPickerSheet(
+                R.string.select_palette,
+                PaletteCatalog.labels(),
+                paletteIndex,
+                index -> {
+                    paletteIndex = index;
+                    view.setPalette(PaletteCatalog.get(index));
+                    view.start();
+                });
+    }
+
+    private void showPickerSheet(
+            int titleRes,
+            String[] labels,
+            int checkedIndex,
+            PickerSelectionListener listener) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(titleRes);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_list_item_single_choice,
+                labels);
+        list.setAdapter(adapter);
+        int safeChecked = Math.max(0, Math.min(checkedIndex, labels.length - 1));
+        list.setItemChecked(safeChecked, true);
+        list.setSelection(safeChecked);
+        list.setOnItemClickListener((parent, view1, position, id) -> {
+            listener.onSelected(position);
+            dialog.dismiss();
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
     }
 
     private void syncSmoothControls() {
         if (hudSmooth != null) {
             hudSmooth.setChecked(view.isSmooth());
         }
+    }
+
+    private interface PickerSelectionListener {
+        void onSelected(int index);
     }
 }

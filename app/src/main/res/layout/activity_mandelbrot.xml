@@ -3,7 +3,7 @@
     android:id="@+id/mandelbrot_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF0A0A0A">
+    android:background="@color/fractal_canvas">
 
     <org.girino.frac.android.foss.MandelbrotView
         android:id="@+id/mandelbrot_view"

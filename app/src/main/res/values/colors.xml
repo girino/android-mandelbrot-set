@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fractal_canvas">#FF0A0A0A</color>
+    <color name="hud_text">#FFE0E0E0</color>
+    <color name="md_theme_primary">#FF80CBC4</color>
+    <color name="md_theme_on_primary">#FF003732</color>
+    <color name="md_theme_surface">#FF121212</color>
+    <color name="md_theme_on_surface">#FFE0E0E0</color>
+    <color name="md_theme_surface_variant">#FF2C2C2C</color>
+</resources>

@@ -38,8 +38,8 @@ A compact bar at the bottom of the screen:
 
 | Control | Action |
 |---------|--------|
-| **Formula** | Open the formula list |
-| **Palette** | Open the palette list |
+| **Formula** | Open the formula bottom sheet (current formula marked) |
+| **Palette** | Open the palette bottom sheet (current palette marked) |
 | **−** / **+** | Zoom out / zoom in about the screen center |
 | **Smooth** | Toggle continuous iteration coloring (stays pressed when on) |
 | **Reset** | Reset viewport to the initial position and scale |
@@ -62,6 +62,9 @@ Open the options menu for the same actions plus:
 | **Formula** / **Palette** / **Smooth** / **Reset** | Same as the HUD |
 | **Zoom in** / **Zoom out** | Same as HUD + / − |
 | **Exit** | Close the app |
+
+Formula and Palette open a Material bottom sheet with the active item checked,
+instead of a full-screen list.
 
 
 ## Privacy
