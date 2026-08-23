@@ -22,6 +22,10 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
    zoom) uses `max(fixedMax, carry)` as pass-1 so deep borders are not
    rediscovered from scratch. Reset / formula change / leaving Adaptive
    clears the carry.
+9. Colors use a single palette max: unnormalized escape counts are stored
+   per pixel and remapped with `PaletteNormalize` whenever the limit rises
+   (border rounds or carried zoom pass-1), so Fixed / zoom / Adaptive share
+   the same scale for the frame.
 
 Refinement runs only after step 1 so coarse progressive blocks are not
 re-tested. Cancellation still honors `renderGeneration` and thread interrupt

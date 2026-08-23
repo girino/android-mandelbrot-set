@@ -60,7 +60,7 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, null);
+                workers, cancel, doneSamples, progressTotal, progress, null, null);
     }
 
     public static int refine(
@@ -83,6 +83,33 @@ public final class AdaptiveRefiner {
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, roundListener, null);
+    }
+
+    public static int refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener,
+            double[] rawCounts) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -97,6 +124,7 @@ public final class AdaptiveRefiner {
         int cap = Math.max(absoluteCap, currentLimit);
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
+        int pixelCount = width * height;
 
         for (int round = 0; round < roundsLimit; round++) {
             if (cancel != null && cancel.isCancelled()) {
@@ -124,12 +152,14 @@ public final class AdaptiveRefiner {
                     if (cancel != null && cancel.isCancelled()) {
                         return -1;
                     }
+                    recolorIfPossible(
+                            pixels, rawCounts, interior, pixelCount, palette, currentLimit, smooth);
                     return currentLimit;
                 }
 
                 AtomicBoolean anyEscaped = new AtomicBoolean(false);
                 boolean finished = retestBorder(
-                        pixels, interior, border, borderCount,
+                        pixels, interior, rawCounts, border, borderCount,
                         width, height, scale, centerX, centerY,
                         workerOperators, palette, smooth, nextLimit,
                         workers, cancel, anyEscaped,
@@ -141,6 +171,8 @@ public final class AdaptiveRefiner {
                     break;
                 }
                 anyEscapedAtThisLimit = true;
+                recolorIfPossible(
+                        pixels, rawCounts, interior, pixelCount, palette, nextLimit, smooth);
                 if (roundListener != null) {
                     roundListener.onRoundComplete(pixels, width, height, nextLimit);
                 }
@@ -156,7 +188,24 @@ public final class AdaptiveRefiner {
         if (cancel != null && cancel.isCancelled()) {
             return -1;
         }
+        recolorIfPossible(
+                pixels, rawCounts, interior, pixelCount, palette, currentLimit, smooth);
         return currentLimit;
+    }
+
+    private static void recolorIfPossible(
+            int[] pixels,
+            double[] rawCounts,
+            boolean[] interior,
+            int length,
+            PaletteProvider palette,
+            int paletteMax,
+            boolean smooth) {
+        if (rawCounts == null) {
+            return;
+        }
+        PaletteNormalize.recolor(
+                pixels, rawCounts, interior, length, palette, paletteMax, smooth);
     }
 
     /**
@@ -199,6 +248,7 @@ public final class AdaptiveRefiner {
     private static boolean retestBorder(
             int[] pixels,
             boolean[] interior,
+            double[] rawCounts,
             int[] border,
             int borderCount,
             int width,
@@ -220,7 +270,7 @@ public final class AdaptiveRefiner {
         int tasks = workers != null ? Math.min(workerCount, borderCount) : 1;
         if (tasks <= 1 || workers == null) {
             return retestRange(
-                    pixels, interior, border, 0, borderCount,
+                    pixels, interior, rawCounts, border, 0, borderCount,
                     width, height, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, nextLimit,
                     cancel, anyEscaped, doneSamples, progressTotal, progress);
@@ -236,7 +286,7 @@ public final class AdaptiveRefiner {
             futures.add(workers.submit(() -> {
                 try {
                     if (!retestRange(
-                            pixels, interior, border, from, to,
+                            pixels, interior, rawCounts, border, from, to,
                             width, height, scale, centerX, centerY,
                             op, palette, smooth, nextLimit,
                             cancel, anyEscaped, doneSamples, progressTotal, progress)) {
@@ -281,6 +331,7 @@ public final class AdaptiveRefiner {
     private static boolean retestRange(
             int[] pixels,
             boolean[] interior,
+            double[] rawCounts,
             int[] border,
             int from,
             int to,
@@ -318,6 +369,10 @@ public final class AdaptiveRefiner {
                     (x - width / 2.0) / scale + centerX,
                     (y - height / 2.0) / scale + centerY);
             FractalOperator.EscapeSample sample = operator.sample(point, nextLimit, smooth);
+            if (rawCounts != null) {
+                rawCounts[index] = sample.rawCount;
+            }
+            // Temporary color; full-frame recolor uses paletteMax nextLimit.
             pixels[index] = palette.getColor(sample.value);
             if (sample.escaped) {
                 interior[index] = false;

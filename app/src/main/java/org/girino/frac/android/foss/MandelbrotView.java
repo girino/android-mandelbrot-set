@@ -329,6 +329,7 @@ public class MandelbrotView extends View {
         Arrays.fill(pixels, 0xff0a0a0a);
         Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
         boolean[] interior = adaptive ? new boolean[renderWidth * renderHeight] : null;
+        double[] rawCounts = adaptive ? new double[renderWidth * renderHeight] : null;
 
         int workerCount = ParallelStepRenderer.defaultWorkerCount();
         FractalOperator[] workerOps = new FractalOperator[workerCount];
@@ -360,10 +361,23 @@ public class MandelbrotView extends View {
                     doneSamples,
                     totalSamples,
                     progress,
-                    step == 1 ? interior : null);
+                    step == 1 ? interior : null,
+                    step == 1 ? rawCounts : null);
             if (!finished) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
+            }
+            // Progressive and Fixed/zoom frames: colors already use renderMaxIter.
+            // Adaptive step 1: normalize to the pass-1 (or carried) palette max.
+            if (adaptive && step == 1 && rawCounts != null) {
+                PaletteNormalize.recolor(
+                        pixels,
+                        rawCounts,
+                        interior,
+                        renderWidth * renderHeight,
+                        renderPalette,
+                        renderMaxIter,
+                        renderSmooth);
             }
             postRenderProgress(generation, doneSamples.get(), totalSamples);
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
@@ -432,7 +446,8 @@ public class MandelbrotView extends View {
                     doneSamples,
                     totalSamples,
                     progress,
-                    roundListener);
+                    roundListener,
+                    rawCounts);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
