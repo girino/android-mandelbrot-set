@@ -225,4 +225,44 @@ public class MandelbrotViewGestureTest {
         view.smooth();
         assertFalse(view.isSmooth());
     }
+
+    /** Issue #6: centered zoom in/out changes scale and keeps center. */
+    @Test
+    public void zoomInOut_centeredKeepCenter() {
+        double scale0 = view.testingScale();
+        double cx = view.testingCenterX();
+        double cy = view.testingCenterY();
+
+        view.zoomIn();
+        assertTrue(view.testingHasPendingTarget());
+        assertEquals(scale0 * 1.5, view.testingTargetScale(), EPS);
+        assertEquals(cx, view.testingTargetCenterX(), EPS);
+        assertEquals(cy, view.testingTargetCenterY(), EPS);
+
+        // Simulate publish so the next zoom starts from the new scale.
+        view.testingApplyPendingAsPublished();
+        double scale1 = view.testingScale();
+        view.zoomOut();
+        assertEquals(scale1 / 1.5, view.testingTargetScale(), EPS);
+        assertEquals(cx, view.testingTargetCenterX(), EPS);
+        assertEquals(cy, view.testingTargetCenterY(), EPS);
+    }
+
+    /** Issue #6: zoomAt keeps the complex point under the focus fixed. */
+    @Test
+    public void zoomAt_keepsComplexUnderFocus() {
+        double scale0 = view.testingScale();
+        double cx = view.testingCenterX();
+        float focusX = 820f;
+        float focusY = 1500f;
+        double underBefore = org.girino.frac.viewport.ViewportTransforms.complexX(
+                focusX, WIDTH, cx, scale0);
+
+        view.zoomAt(focusX, focusY, 1.5);
+        assertTrue(view.testingHasPendingTarget());
+        double underAfter = org.girino.frac.viewport.ViewportTransforms.complexX(
+                focusX, WIDTH, view.testingTargetCenterX(), view.testingTargetScale());
+        assertEquals(underBefore, underAfter, EPS * Math.max(1, scale0));
+        assertTrue(view.testingTargetScale() > scale0);
+    }
 }

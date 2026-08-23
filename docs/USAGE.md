@@ -26,18 +26,21 @@ GitHub/Zapstore builds requires uninstalling first. Details in
   fingers stays put while you zoom or drag the pinch. Zoom commits when you
   lift the *last* finger — bringing fingers close together does not end the
   gesture early.
+- **Double-tap**: tap twice quickly to zoom in about the point you tapped.
+- **HUD − / +**: zoom out or in about the screen center without pinching.
 - During any gesture the picture stays smooth: the screen shows a transformed
   preview and never flashes an older bitmap. Brief gaps at the edges during
   a large pinch preview are normal; the new render fills the whole screen.
 
 ## Bottom controls (HUD)
 
-A compact bar at the bottom of the screen (issue #5):
+A compact bar at the bottom of the screen:
 
 | Control | Action |
 |---------|--------|
 | **Formula** | Open the formula list |
 | **Palette** | Open the palette list |
+| **−** / **+** | Zoom out / zoom in about the screen center |
 | **Smooth** | Toggle continuous iteration coloring (stays pressed when on) |
 | **Reset** | Reset viewport to the initial position and scale |
 
@@ -51,7 +54,7 @@ Open the options menu for the same actions plus:
 | Item | Action |
 |------|--------|
 | **Formula** / **Palette** / **Smooth** / **Reset** | Same as the HUD |
-| **Zoom** | Zoom in around the current center |
+| **Zoom in** / **Zoom out** | Same as HUD + / − |
 | **Exit** | Close the app |
 
 

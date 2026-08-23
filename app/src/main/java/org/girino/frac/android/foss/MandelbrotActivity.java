@@ -16,8 +16,8 @@ import org.girino.frac.palettes.PaletteProvider;
 
 /**
  * Main screen: full-bleed fractal with a compact bottom HUD for formula,
- * palette, smooth coloring, and reset (issue #5). Overflow menu keeps Zoom
- * and Exit as secondary actions.
+ * palette, smooth coloring, and reset (issue #5), plus zoom in/out (issue #6).
+ * Overflow menu mirrors those actions and keeps Exit.
  */
 public class MandelbrotActivity extends Activity {
     private static final int SELECT_OPERATOR = 0;
@@ -37,10 +37,14 @@ public class MandelbrotActivity extends Activity {
 
         Button hudFormula = findViewById(R.id.hud_formula);
         Button hudPalette = findViewById(R.id.hud_palette);
+        Button hudZoomOut = findViewById(R.id.hud_zoom_out);
+        Button hudZoomIn = findViewById(R.id.hud_zoom_in);
         Button hudReset = findViewById(R.id.hud_reset);
 
         hudFormula.setOnClickListener(v -> openFormulaPicker());
         hudPalette.setOnClickListener(v -> openPalettePicker());
+        hudZoomOut.setOnClickListener(v -> view.zoomOut());
+        hudZoomIn.setOnClickListener(v -> view.zoomIn());
         hudReset.setOnClickListener(v -> view.reset());
         hudSmooth.setOnClickListener(v -> {
             // ToggleButton flips its checked state before the click listener;
@@ -96,9 +100,10 @@ public class MandelbrotActivity extends Activity {
         menu.add(0, Menu.FIRST + 2, 2, R.string.menu_smooth_palette)
                 .setCheckable(true)
                 .setChecked(view.isSmooth());
-        menu.add(0, Menu.FIRST + 3, 3, R.string.menu_zoom);
-        menu.add(0, Menu.FIRST + 4, 4, R.string.menu_reset);
-        menu.add(0, Menu.FIRST + 5, 5, R.string.menu_exit);
+        menu.add(0, Menu.FIRST + 3, 3, R.string.menu_zoom_in);
+        menu.add(0, Menu.FIRST + 4, 4, R.string.menu_zoom_out);
+        menu.add(0, Menu.FIRST + 5, 5, R.string.menu_reset);
+        menu.add(0, Menu.FIRST + 6, 6, R.string.menu_exit);
         return true;
     }
 
@@ -126,12 +131,15 @@ public class MandelbrotActivity extends Activity {
                 syncSmoothControls();
                 return true;
             case 3:
-                view.zoom();
+                view.zoomIn();
                 return true;
             case 4:
-                view.reset();
+                view.zoomOut();
                 return true;
             case 5:
+                view.reset();
+                return true;
+            case 6:
                 finish();
                 return true;
             default:

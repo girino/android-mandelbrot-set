@@ -6,11 +6,16 @@
     <string name="menu_formula">Formula</string>
     <string name="menu_palette">Palette</string>
     <string name="menu_smooth_palette">Smooth</string>
-    <string name="menu_zoom">Zoom</string>
+    <string name="menu_zoom_in">Zoom in</string>
+    <string name="menu_zoom_out">Zoom out</string>
     <string name="menu_reset">Reset</string>
     <string name="menu_exit">Exit</string>
+    <string name="hud_zoom_in">+</string>
+    <string name="hud_zoom_out">−</string>
     <string name="hud_formula_cd">Choose fractal formula</string>
     <string name="hud_palette_cd">Choose color palette</string>
     <string name="hud_smooth_cd">Toggle smooth coloring</string>
     <string name="hud_reset_cd">Reset viewport</string>
+    <string name="hud_zoom_in_cd">Zoom in</string>
+    <string name="hud_zoom_out_cd">Zoom out</string>
 </resources>

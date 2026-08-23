@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -32,9 +33,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MandelbrotView extends View {
     private static final int INVALID_POINTER_ID = -1;
+    /** Discrete zoom step for HUD / menu / double-tap (issue #6). */
+    private static final double ZOOM_STEP = 1.5;
 
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final ScaleGestureDetector scaleDetector;
+    private final GestureDetector gestureDetector;
     private final ExecutorService renderExecutor = Executors.newSingleThreadExecutor();
     private final AtomicInteger renderGeneration = new AtomicInteger();
 
@@ -71,6 +75,8 @@ public class MandelbrotView extends View {
     private double targetCenterY;
     private double targetScale;
     private boolean hasPendingTarget;
+    /** Set by double-tap zoom so the following ACTION_UP does not cancel it. */
+    private boolean skipNextCommit;
 
     private float lastTouchX;
     private float lastTouchY;
@@ -85,6 +91,7 @@ public class MandelbrotView extends View {
         super(context, attrs);
         setBackgroundColor(0xff0a0a0a);
         scaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+        gestureDetector = new GestureDetector(context, new GestureListener());
     }
 
     public void setOper(FractalOperator operator) {
@@ -247,25 +254,24 @@ public class MandelbrotView extends View {
                 focusX = startFocusX;
                 focusY = startFocusY;
                 activePointerId = event.getPointerId(0);
-                return true;
+                break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 activePointers = Math.max(activePointers, event.getPointerCount());
-                return true;
+                break;
             case MotionEvent.ACTION_MOVE:
                 int pointerIndex = event.findPointerIndex(activePointerId);
-                if (pointerIndex < 0) {
-                    return true;
+                if (pointerIndex >= 0) {
+                    float x = event.getX(pointerIndex);
+                    float y = event.getY(pointerIndex);
+                    if (!scaleDetector.isInProgress()) {
+                        positionX += x - lastTouchX;
+                        positionY += y - lastTouchY;
+                        invalidate();
+                    }
+                    lastTouchX = x;
+                    lastTouchY = y;
                 }
-                float x = event.getX(pointerIndex);
-                float y = event.getY(pointerIndex);
-                if (!scaleDetector.isInProgress()) {
-                    positionX += x - lastTouchX;
-                    positionY += y - lastTouchY;
-                    invalidate();
-                }
-                lastTouchX = x;
-                lastTouchY = y;
-                return true;
+                break;
             case MotionEvent.ACTION_POINTER_UP:
                 activePointers = Math.max(0, activePointers - 1);
                 int releasedIndex = event.getActionIndex();
@@ -275,19 +281,28 @@ public class MandelbrotView extends View {
                     lastTouchY = event.getY(newIndex);
                     activePointerId = event.getPointerId(newIndex);
                 }
-                return true;
+                break;
             case MotionEvent.ACTION_UP:
                 activePointers = 0;
-                commitGestureAndRender();
+                if (skipNextCommit) {
+                    skipNextCommit = false;
+                    activePointerId = INVALID_POINTER_ID;
+                } else {
+                    commitGestureAndRender();
+                }
                 performClick();
-                return true;
+                break;
             case MotionEvent.ACTION_CANCEL:
                 activePointers = 0;
+                skipNextCommit = false;
                 commitGestureAndRender();
-                return true;
+                break;
             default:
-                return true;
+                break;
         }
+        // After ACTION_DOWN's stop(), so double-tap zoomAt is not cancelled.
+        gestureDetector.onTouchEvent(event);
+        return true;
     }
 
     @Override
@@ -335,8 +350,48 @@ public class MandelbrotView extends View {
         start();
     }
 
+    /** Zoom in about the screen center (HUD / menu). */
+    public void zoomIn() {
+        zoomAt(width / 2f, height / 2f, ZOOM_STEP);
+    }
+
+    /** Zoom out about the screen center (HUD / menu). */
+    public void zoomOut() {
+        zoomAt(width / 2f, height / 2f, 1.0 / ZOOM_STEP);
+    }
+
+    /**
+     * Zoom by factor about a screen point, keeping the complex coordinate
+     * under that point fixed. Uses deferred commit (pending target + render).
+     */
+    public void zoomAt(float screenX, float screenY, double factor) {
+        if (factor == 1.0 || width <= 0 || height <= 0) {
+            return;
+        }
+        // Drop any unfinished preview so the discrete zoom starts from the
+        // published viewport (buttons / double-tap are not pinch sessions).
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+        startFocusX = width / 2f;
+        startFocusY = height / 2f;
+        focusX = startFocusX;
+        focusY = startFocusY;
+        ViewportTransforms.State next = ViewportTransforms.commitPinch(
+                new ViewportTransforms.State(centerX, centerY, scale),
+                factor,
+                screenX,
+                screenY,
+                width,
+                height,
+                0f,
+                0f);
+        requestRender(next.scale, next.centerX, next.centerY);
+    }
+
+    /** Alias for zoomIn (older call sites). */
     public void zoom() {
-        requestRender(scale * 1.5, centerX, centerY);
+        zoomIn();
     }
 
     /** Toggles continuous (smooth) iteration coloring and re-renders. */
@@ -395,6 +450,22 @@ public class MandelbrotView extends View {
          */
         @Override
         public void onScaleEnd(ScaleGestureDetector detector) {
+        }
+    }
+
+    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            // Zoom in about the tap; skip the following UP commit so start()
+            // from zoomAt is not cancelled by commitGestureAndRender.
+            skipNextCommit = true;
+            zoomAt(e.getX(), e.getY(), ZOOM_STEP);
+            return true;
         }
     }
 
@@ -513,5 +584,17 @@ public class MandelbrotView extends View {
         startFocusY = height / 2f;
         focusX = startFocusX;
         focusY = startFocusY;
+    }
+
+    /** Promote pending target to published viewport (tests discrete zoom chains). */
+    void testingApplyPendingAsPublished() {
+        if (!hasPendingTarget) {
+            return;
+        }
+        centerX = targetCenterX;
+        centerY = targetCenterY;
+        scale = targetScale;
+        hasPendingTarget = false;
+        testingSimulateAtomicHandoffClear();
     }
 }

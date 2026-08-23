@@ -22,9 +22,9 @@
         android:focusable="true"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingStart="8dp"
+        android:paddingStart="4dp"
         android:paddingTop="8dp"
-        android:paddingEnd="8dp"
+        android:paddingEnd="4dp"
         android:paddingBottom="12dp">
 
         <Button
@@ -32,7 +32,7 @@
             style="@style/HudButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="1.2"
             android:contentDescription="@string/hud_formula_cd"
             android:text="@string/menu_formula" />
 
@@ -41,16 +41,34 @@
             style="@style/HudButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="1.2"
             android:contentDescription="@string/hud_palette_cd"
             android:text="@string/menu_palette" />
+
+        <Button
+            android:id="@+id/hud_zoom_out"
+            style="@style/HudButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.7"
+            android:contentDescription="@string/hud_zoom_out_cd"
+            android:text="@string/hud_zoom_out" />
+
+        <Button
+            android:id="@+id/hud_zoom_in"
+            style="@style/HudButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.7"
+            android:contentDescription="@string/hud_zoom_in_cd"
+            android:text="@string/hud_zoom_in" />
 
         <ToggleButton
             android:id="@+id/hud_smooth"
             style="@style/HudToggle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="1.1"
             android:contentDescription="@string/hud_smooth_cd"
             android:textOff="@string/menu_smooth_palette"
             android:textOn="@string/menu_smooth_palette" />
