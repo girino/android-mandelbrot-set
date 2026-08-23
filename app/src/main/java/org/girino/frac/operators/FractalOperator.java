@@ -22,17 +22,11 @@ public abstract class FractalOperator {
 		public final boolean escaped;
 		/** Iterations performed (maxiter means still interior). */
 		public final int iterations;
-		/**
-		 * Unnormalized escape measure for palette remapping: discrete step
-		 * or continuous smooth count. 0 when not escaped.
-		 */
-		public final double rawCount;
 
-		public EscapeSample(double value, boolean escaped, int iterations, double rawCount) {
+		public EscapeSample(double value, boolean escaped, int iterations) {
 			this.value = value;
 			this.escaped = escaped;
 			this.iterations = iterations;
-			this.rawCount = rawCount;
 		}
 	}
 
@@ -50,25 +44,10 @@ public abstract class FractalOperator {
 		}
 		afterIteration(i, Z, C, maxiter);
 		boolean escaped = i < maxiter;
-		if (isSmooth) {
-			double raw = 0.0;
-			double value = 0.0;
-			if (escaped) {
-				raw = i - (Math.log(Math.log(Complex.modulus(Z)))) / getLogEscapeRadius();
-				if (raw < 0) {
-					raw = 0;
-				}
-				value = raw / (double) maxiter;
-				if (value >= 1.0) {
-					raw = 0;
-					value = 0;
-				}
-			}
-			return new EscapeSample(value, escaped, i, raw);
-		}
-		double value = produceResult(i, Z, C, maxiter);
-		double raw = escaped ? (double) i : 0.0;
-		return new EscapeSample(value, escaped, i, raw);
+		double value = isSmooth
+				? produceSmoothResult(i, Z, C, maxiter)
+				: produceResult(i, Z, C, maxiter);
+		return new EscapeSample(value, escaped, i);
 	}
 	protected void beforeIteration(int step, Complex Z, Complex C, int maxiter) { ; }
 	protected void afterIteration(int step, Complex Z, Complex C, int maxiter) { ; }

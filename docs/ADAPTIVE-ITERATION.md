@@ -20,10 +20,9 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
 8. The status overlay **Iter** line shows the highest limit from the last
    finished border round (display only). Pass-1 after zoom stays at the
    configured Fixed max — it is not raised from the previous frame.
-9. Colors use a single palette max: unnormalized escape counts are stored
-   per pixel and remapped with `PaletteNormalize` whenever the limit rises
-   during border rounds, so Fixed / zoom / Adaptive share the same scale
-   for the frame.
+9. Colors are written only for retested border pixels (`sample.value` at the
+   limit used for that retest). Earlier escaped pixels keep the color from
+   the pass that first found them — no full-frame palette remap.
 
 Refinement runs only after step 1 so coarse progressive blocks are not
 re-tested. Cancellation still honors `renderGeneration` and thread interrupt
