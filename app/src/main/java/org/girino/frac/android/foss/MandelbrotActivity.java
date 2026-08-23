@@ -179,11 +179,19 @@ public class MandelbrotActivity extends AppCompatActivity {
         if (statusOverlay == null) {
             return;
         }
-        String formula = FormulaCatalog.labels()[operatorIndex];
+        String[] formulas = FormulaCatalog.labels();
+        String[] palettes = PaletteCatalog.labels();
+        int safeFormula = Math.max(0, Math.min(operatorIndex, formulas.length - 1));
+        int safePalette = Math.max(0, Math.min(paletteIndex, palettes.length - 1));
         int smoothRes = view.isSmooth()
                 ? R.string.status_overlay_smooth_on
                 : R.string.status_overlay_smooth_off;
-        statusOverlay.setText(formula + "\n" + getString(smoothRes));
+        statusOverlay.setText(
+                formulas[safeFormula]
+                        + "\n"
+                        + palettes[safePalette]
+                        + "\n"
+                        + getString(smoothRes));
     }
 
     private void onRenderBusy(boolean busy) {
@@ -276,6 +284,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             paletteIndex = position;
             view.setPalette(PaletteCatalog.get(position));
             view.start();
+            refreshStatusOverlay();
             dialog.dismiss();
         });
         dialog.setContentView(sheet);

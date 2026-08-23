@@ -20,8 +20,9 @@
 - Adaptive launcher icon with monochrome layer for Android 13+ themed icons
   (issue #15).
 - Palette picker rows show a color swatch strip from PaletteProvider (issue #16).
-- Corner status overlay shows current formula and smooth coloring; tap to hide,
-  tap the chip to show again (issue #17).
+- Corner status overlay shows formula, palette, and smooth coloring on a more
+  transparent panel; tap to hide, tap the chip to show again (issue #17). HUD bar
+  background is more transparent too.
 
 ## 1.0.4 - 2026-08-22
 

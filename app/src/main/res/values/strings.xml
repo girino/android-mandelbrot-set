@@ -20,7 +20,7 @@
     <string name="render_progress_cd">Rendering fractal</string>
     <string name="coord_readout">re %1$s   im %2$s</string>
     <string name="palette_swatch_cd">Palette color preview</string>
-    <string name="status_overlay_cd">Current formula and smooth coloring</string>
+    <string name="status_overlay_cd">Current formula, palette, and smooth coloring</string>
     <string name="status_overlay_show_cd">Show formula and smooth status</string>
     <string name="status_overlay_chip">···</string>
     <string name="status_overlay_smooth_on">Smooth: on</string>

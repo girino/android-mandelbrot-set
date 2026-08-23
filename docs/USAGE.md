@@ -55,9 +55,10 @@ There is no options menu (Material NoActionBar + HUD). Leave the app with
 the system Back gesture or Recents. The fractal draws edge-to-edge under the
 status and navigation bars; the HUD stays above the nav bar.
 
-A small overlay in the top-left corner shows the current formula and whether
-smooth coloring is on. Tap the overlay to hide it; tap the **···** chip in
-the same corner to show it again. Pan and pinch on the fractal are unchanged.
+A small overlay in the top-left corner shows the current formula, palette, and
+whether smooth coloring is on. Tap the overlay to hide it; tap the **···** chip
+in the same corner to show it again. Pan and pinch on the fractal are unchanged.
+The HUD bar uses a similar translucent background.
 
 ## Privacy
 
