@@ -11,7 +11,9 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
 3. Collect the **internal border**: interior pixels with at least one
    4-connected escaped neighbor. If there is **no** such seam (entire frame
    still interior / "all black"), seed from the **image perimeter** instead
-   so doubling can still probe from the edges.
+   so doubling can still probe from the edges. In that frame-seed case only,
+   doubling starts from the last Adaptive max (`seedMaxIter`) when it is
+   higher than pass-1 — normal borders still use the configured pass-1.
 4. Re-test only those border pixels at `next`.
 5. If **some** escape, update colors / interior flags, publish an intermediate
    frame, and go back to step 3 **at the same limit** (stabilize until no new

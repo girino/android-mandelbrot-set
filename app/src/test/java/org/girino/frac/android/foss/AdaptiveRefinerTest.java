@@ -51,7 +51,50 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
-    public void collectBorder_allInterior_usesImageFrame() {
+    public void needsFrameSeed_trueWhenAllInterior() {
+        boolean[] interior = {
+                true, true, true,
+                true, true, true,
+                true, true, true
+        };
+        assertTrue(AdaptiveRefiner.needsFrameSeed(interior, 3, 3));
+    }
+
+    @Test
+    public void needsFrameSeed_falseWhenSeamExists() {
+        boolean[] interior = {
+                false, false, false,
+                false, true, false,
+                false, false, false
+        };
+        assertTrue(!AdaptiveRefiner.needsFrameSeed(interior, 3, 3));
+    }
+
+    @Test
+    public void refine_frameSeed_startsFromSeedMaxIter() {
+        // Tiny all-interior field: without seed, first nextLimit is 2*pass1.
+        // With seedMax > pass1, first probe uses 2*seed (clamped by cap).
+        int width = 4;
+        int height = 4;
+        boolean[] interior = new boolean[width * height];
+        Arrays.fill(interior, true);
+        int[] pixels = new int[width * height];
+        Arrays.fill(pixels, 0xff000000);
+        PaletteProvider palette = new HSBPalette();
+        FractalOperator[] ops = {new OptimizedMandelbrotOperator()};
+        AtomicInteger done = new AtomicInteger();
+        int pass1 = 10;
+        int seed = 40;
+        int cap = 80;
+        // Deep interior point so frame stays black at these limits.
+        int maxReached = AdaptiveRefiner.refine(
+                pixels, interior, width, height,
+                1e12, 0, 0,
+                ops, palette, false, pass1, 1, cap,
+                workers, null, done, width * height, null, null, seed);
+        assertTrue(maxReached >= seed);
+        assertTrue(maxReached <= cap);
+    }
         boolean[] interior = {
                 true, true, true,
                 true, true, true,

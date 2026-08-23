@@ -59,7 +59,7 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, null);
+                workers, cancel, doneSamples, progressTotal, progress, null, 0);
     }
 
     public static int refine(
@@ -82,6 +82,38 @@ public final class AdaptiveRefiner {
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0);
+    }
+
+    /**
+     * @param seedMaxIter when the frame has no interior/exterior seam (all
+     *         interior) and this is greater than pass1MaxIter, start doubling
+     *         from seedMaxIter (last Adaptive max) instead of pass1.
+     */
+    public static int refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener,
+            int seedMaxIter) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -94,6 +126,9 @@ public final class AdaptiveRefiner {
 
         int currentLimit = Math.max(pass1MaxIter, IterationSettings.MIN_ITER);
         int cap = Math.max(absoluteCap, currentLimit);
+        if (seedMaxIter > currentLimit && needsFrameSeed(interior, width, height)) {
+            currentLimit = Math.min(seedMaxIter, cap);
+        }
         int roundsLimit = Math.max(1, maxRounds);
         int[] border = new int[width * height];
 
@@ -156,6 +191,32 @@ public final class AdaptiveRefiner {
             return -1;
         }
         return currentLimit;
+    }
+
+    /**
+     * True when some pixels are still interior and there is no
+     * interior/exterior 4-connected seam — Adaptive will seed from the
+     * image frame instead.
+     */
+    static boolean needsFrameSeed(boolean[] interior, int width, int height) {
+        if (interior == null || width <= 0 || height <= 0) {
+            return false;
+        }
+        boolean anyInterior = false;
+        for (int y = 0; y < height; y++) {
+            int row = y * width;
+            for (int x = 0; x < width; x++) {
+                int i = row + x;
+                if (!interior[i]) {
+                    continue;
+                }
+                anyInterior = true;
+                if (hasEscapedNeighbor(interior, width, height, x, y)) {
+                    return false;
+                }
+            }
+        }
+        return anyInterior;
     }
 
     /**

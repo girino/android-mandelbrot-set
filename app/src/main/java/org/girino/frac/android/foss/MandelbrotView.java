@@ -436,7 +436,8 @@ public class MandelbrotView extends View {
                     doneSamples,
                     totalSamples,
                     progress,
-                    roundListener);
+                    roundListener,
+                    lastAdaptiveMaxIter);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
