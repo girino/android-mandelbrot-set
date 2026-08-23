@@ -282,4 +282,22 @@ public class MandelbrotViewGestureTest {
         assertTrue(view.testingHasPendingTarget());
         assertTrue(view.testingTargetScale() > scale0);
     }
+
+    /** Issue #9: start marks busy; stop clears it. */
+    @Test
+    public void start_setsRenderBusy_stop_clears() {
+        assertFalse(view.testingRenderBusy());
+        view.start();
+        assertTrue(view.testingRenderBusy());
+        view.stop();
+        assertFalse(view.testingRenderBusy());
+    }
+
+    /** Issue #9: start gated by active pointers must not claim busy. */
+    @Test
+    public void start_withPointersDown_staysNotBusy() {
+        view.testingSimulatePointersDown();
+        view.start();
+        assertFalse(view.testingRenderBusy());
+    }
 }

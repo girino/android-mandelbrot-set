@@ -36,6 +36,11 @@ public class MandelbrotView extends View {
     /** Discrete zoom step for HUD / menu / double-tap (issue #6). */
     private static final double ZOOM_STEP = 1.5;
 
+    /** Notifies when a progressive render is running (issue #9). */
+    public interface RenderBusyListener {
+        void onRenderBusy(boolean busy);
+    }
+
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final ScaleGestureDetector scaleDetector;
     private final GestureDetector gestureDetector;
@@ -47,6 +52,8 @@ public class MandelbrotView extends View {
     private FractalOperator operator = new OptimizedMandelbrotOperator();
     private PaletteProvider palette = new HSBPalette();
     private boolean smooth;
+    private RenderBusyListener renderBusyListener;
+    private boolean renderBusy;
 
     private int width = 320;
     private int height = 480;
@@ -102,6 +109,11 @@ public class MandelbrotView extends View {
         this.palette = palette;
     }
 
+    /** Issue #9: listener for progressive-render busy state (UI overlay). */
+    public void setRenderBusyListener(RenderBusyListener listener) {
+        renderBusyListener = listener;
+    }
+
     public void start() {
         stop();
         if (activePointers > 0 || renderExecutor.isShutdown()
@@ -119,6 +131,7 @@ public class MandelbrotView extends View {
         final PaletteProvider renderPalette = palette;
         final boolean renderSmooth = smooth;
 
+        setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> render(
                 generation,
                 renderWidth,
@@ -136,6 +149,30 @@ public class MandelbrotView extends View {
         if (renderTask != null) {
             renderTask.cancel(true);
             renderTask = null;
+        }
+        setRenderBusy(false);
+    }
+
+    /**
+     * Updates busy flag and notifies the listener. Safe from the UI thread;
+     * background callers must post() first. Clearing busy for a stale
+     * generation is ignored so a superseded render cannot hide a newer one.
+     */
+    private void setRenderBusy(boolean busy) {
+        if (renderBusy == busy) {
+            return;
+        }
+        renderBusy = busy;
+        RenderBusyListener listener = renderBusyListener;
+        if (listener != null) {
+            listener.onRenderBusy(busy);
+        }
+    }
+
+    /** Clears busy only if this generation is still current (issue #9). */
+    private void clearRenderBusyIfCurrent(int generation) {
+        if (generation == renderGeneration.get()) {
+            setRenderBusy(false);
         }
     }
 
@@ -159,6 +196,7 @@ public class MandelbrotView extends View {
             for (int y = 0; y < renderHeight; y += step) {
                 for (int x = 0; x < renderWidth; x += step) {
                     if (generation != renderGeneration.get() || Thread.currentThread().isInterrupted()) {
+                        post(() -> clearRenderBusyIfCurrent(generation));
                         return;
                     }
                     point.set(
@@ -173,8 +211,10 @@ public class MandelbrotView extends View {
                     }
                 }
             }
+            final int publishStep = step;
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
+                    clearRenderBusyIfCurrent(generation);
                     return;
                 }
                 // Atomic handoff: swap bitmap and clear the frozen preview together —
@@ -197,6 +237,10 @@ public class MandelbrotView extends View {
                 focusX = startFocusX;
                 focusY = startFocusY;
                 invalidate();
+                // Progressive refine done only at step 1 (issue #9).
+                if (publishStep == 1) {
+                    clearRenderBusyIfCurrent(generation);
+                }
             });
         }
     }
@@ -479,6 +523,10 @@ public class MandelbrotView extends View {
 
     void testingStopRender() {
         stop();
+    }
+
+    boolean testingRenderBusy() {
+        return renderBusy;
     }
 
     double testingCenterX() {

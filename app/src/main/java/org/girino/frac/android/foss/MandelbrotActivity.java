@@ -9,6 +9,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.ToggleButton;
 
 import org.girino.frac.operators.FractalOperator;
@@ -17,14 +18,23 @@ import org.girino.frac.palettes.PaletteProvider;
 /**
  * Main screen: full-bleed fractal with a compact bottom HUD for formula,
  * palette, smooth coloring, and reset (issue #5), plus zoom in/out (issue #6).
- * Overflow menu mirrors those actions and keeps Exit.
+ * Overflow menu mirrors those actions and keeps Exit. Thin top progress bar
+ * while progressive render runs (issue #9).
  */
 public class MandelbrotActivity extends Activity {
     private static final int SELECT_OPERATOR = 0;
     private static final int SELECT_PALETTE = 1;
+    /** Delay before showing the bar so fast renders do not flash (issue #9). */
+    private static final long RENDER_PROGRESS_SHOW_DELAY_MS = 150L;
 
     private MandelbrotView view;
     private ToggleButton hudSmooth;
+    private ProgressBar renderProgress;
+    private final Runnable showRenderProgress = () -> {
+        if (renderProgress != null) {
+            renderProgress.setVisibility(View.VISIBLE);
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -32,8 +42,11 @@ public class MandelbrotActivity extends Activity {
         setContentView(R.layout.activity_mandelbrot);
         view = findViewById(R.id.mandelbrot_view);
         hudSmooth = findViewById(R.id.hud_smooth);
+        renderProgress = findViewById(R.id.render_progress);
         View hudBar = findViewById(R.id.hud_bar);
-        applyHudNavigationInsets(hudBar);
+        applyWindowInsets(hudBar, renderProgress);
+
+        view.setRenderBusyListener(this::onRenderBusy);
 
         Button hudFormula = findViewById(R.id.hud_formula);
         Button hudPalette = findViewById(R.id.hud_palette);
@@ -58,26 +71,42 @@ public class MandelbrotActivity extends Activity {
     }
 
     /**
-     * Keep the HUD above the system navigation bar / gesture inset
-     * (edge-to-edge on modern targets otherwise overlaps the nav buttons).
+     * Keep the HUD above the system navigation bar and the progress bar
+     * below the status bar (edge-to-edge otherwise overlaps system chrome).
      */
-    private void applyHudNavigationInsets(View hudBar) {
-        final int baseLeft = hudBar.getPaddingLeft();
-        final int baseTop = hudBar.getPaddingTop();
-        final int baseRight = hudBar.getPaddingRight();
-        final int baseBottom = hudBar.getPaddingBottom();
+    private void applyWindowInsets(View hudBar, View progressBar) {
+        final int hudLeft = hudBar.getPaddingLeft();
+        final int hudTop = hudBar.getPaddingTop();
+        final int hudRight = hudBar.getPaddingRight();
+        final int hudBottom = hudBar.getPaddingBottom();
         View root = findViewById(R.id.mandelbrot_root);
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             int navBottom;
+            int statusTop;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 navBottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
+                statusTop = insets.getInsets(WindowInsets.Type.statusBars()).top;
             } else {
                 navBottom = insets.getSystemWindowInsetBottom();
+                statusTop = insets.getSystemWindowInsetTop();
             }
-            hudBar.setPadding(baseLeft, baseTop, baseRight, baseBottom + navBottom);
+            hudBar.setPadding(hudLeft, hudTop, hudRight, hudBottom + navBottom);
+            progressBar.setTranslationY(statusTop);
             return insets;
         });
         root.requestApplyInsets();
+    }
+
+    private void onRenderBusy(boolean busy) {
+        if (renderProgress == null) {
+            return;
+        }
+        renderProgress.removeCallbacks(showRenderProgress);
+        if (busy) {
+            renderProgress.postDelayed(showRenderProgress, RENDER_PROGRESS_SHOW_DELAY_MS);
+        } else {
+            renderProgress.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -90,6 +119,7 @@ public class MandelbrotActivity extends Activity {
     @Override
     protected void onPause() {
         view.stop();
+        onRenderBusy(false);
         super.onPause();
     }
 

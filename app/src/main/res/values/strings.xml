@@ -18,4 +18,5 @@
     <string name="hud_reset_cd">Reset viewport</string>
     <string name="hud_zoom_in_cd">Zoom in</string>
     <string name="hud_zoom_out_cd">Zoom out</string>
+    <string name="render_progress_cd">Rendering fractal</string>
 </resources>
