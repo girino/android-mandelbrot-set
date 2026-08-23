@@ -10,6 +10,8 @@
     <string name="menu_zoom_out">Zoom out</string>
     <string name="menu_reset">Reset</string>
     <string name="menu_export">Export</string>
+    <string name="menu_help">Help</string>
+    <string name="menu_about">About</string>
     <string name="hud_zoom_in">+</string>
     <string name="hud_zoom_out">−</string>
     <string name="hud_formula_cd">Choose fractal formula</string>
@@ -30,6 +32,10 @@
     <string name="hud_menu_cd">Open menu</string>
     <string name="hud_menu_title">Menu</string>
     <string name="hud_menu_more">More</string>
+    <string name="hud_help_cd">Open usage help</string>
+    <string name="hud_about_cd">Open about and license</string>
+    <string name="help_body">Navigating the fractal\n\n• Pan — drag with one finger. A live preview follows your finger; the full render finishes after you lift.\n\n• Pinch zoom — use two fingers. Zoom stays anchored on the midpoint between your fingers. The zoom commits when you lift the last finger.\n\n• Double-tap — zoom in on the tapped point.\n\n• Long-press — show complex coordinates under your finger; lift to dismiss.\n\nBottom bar (HUD)\n\n• + / − — zoom in or out about the screen center.\n• Reset — return to the initial viewport.\n• Smooth — toggle continuous iteration coloring (icon highlighted when on).\n• ☰ Menu — formula, palette, export, help, and about.\n\nStatus overlay\n\nThe top-left panel shows the current formula, palette, and smooth setting. Tap to hide; tap ··· to show again.\n\nRender progress\n\nAfter you lift your finger, a thin bar at the top fills while the fractal re-renders (steps 8→4→2→1). It hides when the frame is ready or when a new gesture starts.\n\nExport\n\nMenu → Export → Share or Save to gallery. Captures the fractal view only.\n\nPrivacy\n\nNo network, ads, or analytics. Everything runs on your device.</string>
+    <string name="about_body_html"><![CDATA[<b>Fractals by Girino FOSS</b><br/><br/>Version %1$s<br/>Package: %2$s<br/><br/><b>Copyright</b><br/>Copyright © 2026 Girino Vey.<br/><br/><b>License</b><br/>This app is released under the <b>Girino Anarchist License (GAL)</b>. Read the full license text at <a href="https://license.girino.org/">license.girino.org</a>. The LICENSE file in the source repository contains the same text.<br/><br/><b>Source</b><br/><a href="https://github.com/girino/android-mandelbrot-set">github.com/girino/android-mandelbrot-set</a><br/><br/>The app does not use the network by itself. Links open in your browser only when you tap them.]]></string>
     <string name="export_title">Export viewport</string>
     <string name="export_share">Share…</string>
     <string name="export_save_gallery">Save to gallery</string>

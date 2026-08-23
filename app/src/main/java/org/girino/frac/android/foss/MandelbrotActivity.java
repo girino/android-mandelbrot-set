@@ -1,5 +1,6 @@
 package org.girino.frac.android.foss;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -36,6 +37,7 @@ import java.util.Locale;
  * Export viewport as PNG via share sheet or gallery save (issue #18).
  * Icon HUD bar + hamburger overflow menu (issue #29).
  * Saves viewport on rotation / process recreate (issue #21).
+ * Help and About screens from the menu (issue #22).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     private static final String STATE_VIEWPORT = "viewport_session";
@@ -145,6 +147,14 @@ public class MandelbrotActivity extends AppCompatActivity {
             dialog.dismiss();
             if (HudMenuAdapter.isExport(position)) {
                 openExportSheet();
+                return;
+            }
+            if (HudMenuAdapter.isHelp(position)) {
+                startActivity(new Intent(this, HelpActivity.class));
+                return;
+            }
+            if (HudMenuAdapter.isAbout(position)) {
+                startActivity(new Intent(this, AboutActivity.class));
                 return;
             }
             HudMenuAdapter.Action action = HudMenuAdapter.actionAt(position);
