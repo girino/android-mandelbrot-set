@@ -8,11 +8,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -35,6 +34,7 @@ import java.util.Locale;
  * exit via system back / recents. Edge-to-edge fractal under system bars
  * (issue #14). Corner status overlay for formula + smooth (issue #17).
  * Export viewport as PNG via share sheet or gallery save (issue #18).
+ * Icon HUD bar + hamburger overflow menu (issue #29).
  */
 public class MandelbrotActivity extends AppCompatActivity {
     /** Delay before showing the bar so fast renders do not flash (issue #9). */
@@ -45,7 +45,7 @@ public class MandelbrotActivity extends AppCompatActivity {
     private static final int DEFAULT_PALETTE_INDEX = 3;
 
     private MandelbrotView view;
-    private ToggleButton hudSmooth;
+    private ImageButton hudSmooth;
     private ProgressBar renderProgress;
     private Snackbar coordinateSnackbar;
     private TextView statusOverlay;
@@ -104,30 +104,73 @@ public class MandelbrotActivity extends AppCompatActivity {
             }
         });
 
-        Button hudFormula = findViewById(R.id.hud_formula);
-        Button hudPalette = findViewById(R.id.hud_palette);
-        Button hudZoomOut = findViewById(R.id.hud_zoom_out);
-        Button hudZoomIn = findViewById(R.id.hud_zoom_in);
-        Button hudReset = findViewById(R.id.hud_reset);
-        Button hudExport = findViewById(R.id.hud_export);
+        ImageButton hudZoomIn = findViewById(R.id.hud_zoom_in);
+        ImageButton hudZoomOut = findViewById(R.id.hud_zoom_out);
+        ImageButton hudReset = findViewById(R.id.hud_reset);
+        ImageButton hudMenu = findViewById(R.id.hud_menu);
 
-        hudFormula.setOnClickListener(v -> openFormulaPicker());
-        hudPalette.setOnClickListener(v -> openPalettePicker());
-        hudZoomOut.setOnClickListener(v -> view.zoomOut());
         hudZoomIn.setOnClickListener(v -> view.zoomIn());
+        hudZoomOut.setOnClickListener(v -> view.zoomOut());
         hudReset.setOnClickListener(v -> view.reset());
-        hudExport.setOnClickListener(v -> openExportSheet());
-        hudSmooth.setOnClickListener(v -> {
-            // ToggleButton flips its checked state before the click listener;
-            // align the view flag to that state (smooth() also toggles).
-            if (hudSmooth.isChecked() != view.isSmooth()) {
-                view.smooth();
-            }
-            syncSmoothControls();
-            refreshStatusOverlay();
-        });
+        hudSmooth.setOnClickListener(v -> toggleSmooth());
+        hudMenu.setOnClickListener(v -> openHudMenu());
         syncSmoothControls();
         refreshStatusOverlay();
+    }
+
+    private void toggleSmooth() {
+        view.smooth();
+        syncSmoothControls();
+        refreshStatusOverlay();
+    }
+
+    private void openHudMenu() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(R.string.hud_menu_title);
+        HudMenuAdapter adapter = new HudMenuAdapter(this, view.isSmooth());
+        list.setAdapter(adapter);
+        list.setChoiceMode(ListView.CHOICE_MODE_NONE);
+        list.setOnItemClickListener((parent, row, position, id) -> {
+            if (HudMenuAdapter.isSectionHeader(position)) {
+                return;
+            }
+            dialog.dismiss();
+            if (HudMenuAdapter.isExport(position)) {
+                openExportSheet();
+                return;
+            }
+            HudMenuAdapter.Action action = HudMenuAdapter.actionAt(position);
+            if (action == null) {
+                return;
+            }
+            switch (action) {
+                case ZOOM_IN:
+                    view.zoomIn();
+                    break;
+                case ZOOM_OUT:
+                    view.zoomOut();
+                    break;
+                case RESET:
+                    view.reset();
+                    break;
+                case SMOOTH:
+                    toggleSmooth();
+                    break;
+                case FORMULA:
+                    openFormulaPicker();
+                    break;
+                case PALETTE:
+                    openPalettePicker();
+                    break;
+                default:
+                    break;
+            }
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
     }
 
     /**
@@ -420,7 +463,7 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void syncSmoothControls() {
         if (hudSmooth != null) {
-            hudSmooth.setChecked(view.isSmooth());
+            hudSmooth.setSelected(view.isSmooth());
         }
     }
 

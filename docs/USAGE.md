@@ -32,16 +32,19 @@ The GitHub and Zapstore APKs share one signing key and can replace each other.
 
 ## Bottom controls (HUD)
 
-A compact bar at the bottom of the screen:
+A compact bar at the bottom of the screen (icons only):
 
-| Control | Action |
-|---------|--------|
-| **Formula** | Open the formula bottom sheet (current formula marked) |
-| **Palette** | Open the palette bottom sheet (current palette marked; color swatch per row) |
-| **−** / **+** | Zoom out / zoom in about the screen center |
-| **Smooth** | Toggle continuous iteration coloring (stays pressed when on) |
-| **Reset** | Reset viewport to the initial position and scale |
-| **Export** | Share or save the current viewport as PNG (see below) |
+| Icon | Action |
+|------|--------|
+| **+** | Zoom in about the screen center |
+| **−** | Zoom out about the screen center |
+| **↻** | Reset viewport to the initial position and scale |
+| **▤** | Toggle smooth coloring (highlighted when on) |
+| **☰** | Open the menu (all actions with icon + name) |
+
+The **menu** lists every action: zoom in/out, reset, smooth, formula, palette,
+and export. Formula and palette open the same bottom sheets as before; export
+opens share or save to gallery.
 
 Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
@@ -63,7 +66,7 @@ The HUD bar uses a similar translucent background.
 
 ## Export PNG
 
-Tap **Export** in the HUD, then choose:
+Tap **Export** in the menu (☰), then choose:
 
 - **Share…** — opens the system share sheet with a PNG of what you see on screen
   (no network permission; you pick the destination app).

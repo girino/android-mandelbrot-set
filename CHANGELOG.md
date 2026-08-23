@@ -27,6 +27,8 @@
 - Export current viewport as PNG: share sheet (FileProvider, no network) or save
   to Pictures/Fractals via MediaStore on Android 10+; older devices use the system
   save dialog (issue #18).
+- HUD icon bar (+, −, Reset, Smooth) and hamburger overflow menu with icon + label
+  rows for all actions including Formula, Palette, and Export (issue #29).
 
 ## 1.0.4 - 2026-08-22
 

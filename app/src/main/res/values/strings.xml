@@ -27,6 +27,9 @@
     <string name="status_overlay_smooth_on">Smooth: on</string>
     <string name="status_overlay_smooth_off">Smooth: off</string>
     <string name="hud_export_cd">Export viewport as PNG</string>
+    <string name="hud_menu_cd">Open menu</string>
+    <string name="hud_menu_title">Menu</string>
+    <string name="hud_menu_more">More</string>
     <string name="export_title">Export viewport</string>
     <string name="export_share">Share…</string>
     <string name="export_save_gallery">Save to gallery</string>
