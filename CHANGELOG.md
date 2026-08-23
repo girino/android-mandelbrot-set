@@ -19,6 +19,7 @@
   (issue #23). GitHub Releases and Zapstore remain the supported channels.
 - Adaptive launcher icon with monochrome layer for Android 13+ themed icons
   (issue #15).
+- Palette picker rows show a color swatch strip from PaletteProvider (issue #16).
 
 ## 1.0.4 - 2026-08-22
 

@@ -37,7 +37,7 @@ A compact bar at the bottom of the screen:
 | Control | Action |
 |---------|--------|
 | **Formula** | Open the formula bottom sheet (current formula marked) |
-| **Palette** | Open the palette bottom sheet (current palette marked) |
+| **Palette** | Open the palette bottom sheet (current palette marked; color swatch per row) |
 | **−** / **+** | Zoom out / zoom in about the screen center |
 | **Smooth** | Toggle continuous iteration coloring (stays pressed when on) |
 | **Reset** | Reset viewport to the initial position and scale |

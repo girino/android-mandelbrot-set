@@ -221,15 +221,24 @@ public class MandelbrotActivity extends AppCompatActivity {
     }
 
     private void openPalettePicker() {
-        showPickerSheet(
-                R.string.select_palette,
-                PaletteCatalog.labels(),
-                paletteIndex,
-                index -> {
-                    paletteIndex = index;
-                    view.setPalette(PaletteCatalog.get(index));
-                    view.start();
-                });
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(R.string.select_palette);
+        PalettePickerAdapter adapter = new PalettePickerAdapter(this, list);
+        list.setAdapter(adapter);
+        int safeChecked = Math.max(0, Math.min(paletteIndex, PaletteCatalog.size() - 1));
+        list.setItemChecked(safeChecked, true);
+        list.setSelection(safeChecked);
+        list.setOnItemClickListener((parent, view1, position, id) -> {
+            paletteIndex = position;
+            view.setPalette(PaletteCatalog.get(position));
+            view.start();
+            dialog.dismiss();
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
     }
 
     private void showPickerSheet(
