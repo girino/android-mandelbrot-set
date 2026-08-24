@@ -30,21 +30,22 @@ Fonte **canônica** (gitignored na raiz do repo):
 .credentials.env
 ```
 
-### Formato (dotenv, sem `export`)
+### Formato (dotenv shell-safe, sem `export`)
 
-Uma linha `CHAVE=valor`. Para Zapstore:
+Uma linha `CHAVE='valor'`. O valor **deve ir entre aspas** — a URI `bunker://`
+contém `&`, e sem aspas o `source`/`.` trata `&` como operador do bash.
 
 ```text
-SIGN_WITH=bunker://<pubkey>?relay=wss://...&relay=wss://...&secret=<uuid>
+SIGN_WITH='bunker://<pubkey>?relay=wss://...&relay=wss://...&secret=<uuid>'
 ```
 
 Exemplo de forma (placeholders — **nunca** commitar o valor real):
 
 ```text
-SIGN_WITH=bunker://aaaaaaaa...?relay=wss://nostr.oxtr.dev/&relay=wss://theforest.nostr1.com/&relay=wss://relay.primal.net/&secret=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+SIGN_WITH='bunker://aaaaaaaa...?relay=wss://nostr.oxtr.dev/&relay=wss://theforest.nostr1.com/&relay=wss://relay.primal.net/&secret=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
 ```
 
-Também aceito: `SIGN_WITH=nsec1...` (mesmo arquivo).
+Também aceito: `SIGN_WITH='nsec1...'` (mesmo arquivo).
 
 **Nunca** colar o valor de `SIGN_WITH` em chat, commits, regras, logs do agente,
 `echo`, `Write-Output` ou `Select-String` que imprima a linha completa.
@@ -64,7 +65,7 @@ trate como ausente. O `zsp` exige valor não vazio.
 
 ### Carregar no WSL a partir do repo
 
-`set -a` faz com que linhas `KEY=value` do arquivo virem exportadas no shell:
+Com o valor entre aspas, `set -a` + `source` funciona:
 
 ```bash
 REPO=/mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
@@ -72,11 +73,13 @@ set -a
 # shellcheck disable=SC1091
 . "$REPO/.credentials.env"
 set +a
-if [ -z "${SIGN_WITH:-}" ]; then
-  echo "ABORT: SIGN_WITH missing or empty in .credentials.env"
-  exit 1
-fi
+case "${SIGN_WITH:-}" in
+  bunker://*|nsec1*) ;;
+  *) echo "ABORT: SIGN_WITH missing or bad prefix in .credentials.env" >&2; exit 1 ;;
+esac
 ```
+
+Sem aspas, o `&` da URI corta o valor no `source` (parece "SIGN_WITH missing").
 
 ## Passar do PowerShell → WSL (agentes)
 
@@ -85,7 +88,8 @@ fi
 
 **Não** colocar o bunker no corpo de heredoc/`@'...'@ | wsl` (aparece em logs).
 
-Padrão seguro: script bash **sem segredos** que faz `source` de `.credentials.env`:
+Padrão seguro: script bash **sem segredos** que faz `source` de `.credentials.env`
+(valor já entre aspas no arquivo):
 
 ```powershell
 $script = @'
@@ -96,10 +100,10 @@ REPO=/mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
 set -a
 . "$REPO/.credentials.env"
 set +a
-if [ -z "${SIGN_WITH:-}" ]; then
-  echo "ABORT: SIGN_WITH missing or empty"
-  exit 1
-fi
+case "${SIGN_WITH:-}" in
+  bunker://*|nsec1*) ;;
+  *) echo "ABORT: SIGN_WITH missing or bad prefix" >&2; exit 1 ;;
+esac
 CFG="$REPO/zapstore.yaml"
 zsp publish -q "$CFG"
 zsp utils has-new-release "$CFG"
@@ -150,8 +154,8 @@ Na **primeira** publicação, o `zsp` pode pedir para vincular o certificado do 
 
 | Sintoma | Causa / fix |
 |---------|-------------|
-| `SIGN_WITH environment variable is required` | Arquivo ausente, linha sem `SIGN_WITH=`, ou valor vazio. Conferir `.credentials.env` + `set -a; . arquivo`. |
-| `SIGN_WITH: -c: line 2: syntax error` | Bunker embutido em `bash -lc`/PowerShell; use script + source de `.credentials.env`. |
+| `SIGN_WITH environment variable is required` / valor “some e some” | Arquivo ausente/vazio, ou `SIGN_WITH=` **sem aspas** (o `&` da URI corta no `source`). Coloque o bunker entre aspas simples. |
+| `SIGN_WITH: -c: line 2: syntax error` | Bunker embutido em `bash -lc`/PowerShell; use script + `source` de `.credentials.env`. |
 | `failed to open config file` com arquivo presente | Path relativo + stdin piped → use absoluto. |
 | `cannot create XDG_RUNTIME_DIR` ao rodar `go` via `wsl -e` | Uma vez: `wsl -u root -e bash -lc "mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000"` |
 | `has_new_release: true` após publish | Publish falhou antes; conferir exit code do `zsp publish -q`. |
