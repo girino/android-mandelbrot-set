@@ -28,6 +28,19 @@ public final class AdaptiveRefiner {
         void onRoundComplete(int[] pixels, int width, int height, int currentLimit);
     }
 
+    /**
+     * Throttled snapshot of the pixel buffer while border retest workers run.
+     * Invoked on the render thread between worker batches (not per pixel).
+     */
+    public interface PreviewListener {
+        void onPreview(int[] pixels, int width, int height, int currentLimit);
+    }
+
+    /** Publish an in-progress frame after this many border samples (approx). */
+    static final int PREVIEW_PIXEL_INTERVAL = 1000;
+    /** Minimum milliseconds between in-progress publishes. */
+    static final long PREVIEW_MIN_INTERVAL_MS = 100L;
+
     private AdaptiveRefiner() {
     }
 
@@ -86,7 +99,7 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0, null);
+                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0, null, null);
     }
 
     public static int refine(
@@ -114,20 +127,9 @@ public final class AdaptiveRefiner {
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
                 workers, cancel, doneSamples, progressTotal, progress, roundListener,
-                seedMinStopIter, null);
+                seedMinStopIter, null, null);
     }
 
-    /**
-     * @param seedMinStopIter minimum iteration limit before an empty border
-     *         pass may stop doubling (usually the Adaptive value shown on the
-     *         overlay from the previous zoom; 0 if none). Doubling always
-     *         starts at pass1MaxIter; early stop only when probed limit is
-     *         already >= seedMinStopIter (so outer borders keep intermediate
-     *         colors). Every border collect unions the image perimeter with
-     *         any fractal seam.
-     * @param orbit optional per-pixel checkpoints from pass-1; when set,
-     *         border retests continue from the stored iteration and Z.
-     */
     public static int refine(
             int[] pixels,
             boolean[] interior,
@@ -150,6 +152,48 @@ public final class AdaptiveRefiner {
             RoundListener roundListener,
             int seedMinStopIter,
             OrbitState orbit) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, roundListener,
+                seedMinStopIter, orbit, null);
+    }
+
+    /**
+     * @param seedMinStopIter minimum iteration limit before an empty border
+     *         pass may stop doubling (usually the Adaptive value shown on the
+     *         overlay from the previous zoom; 0 if none). Doubling always
+     *         starts at pass1MaxIter; early stop only when probed limit is
+     *         already >= seedMinStopIter (so outer borders keep intermediate
+     *         colors). Every border collect unions the image perimeter with
+     *         any fractal seam.
+     * @param orbit optional per-pixel checkpoints from pass-1; when set,
+     *         border retests continue from the stored iteration and Z.
+     * @param previewListener optional throttled UI snapshot while retesting.
+     */
+    public static int refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener,
+            int seedMinStopIter,
+            OrbitState orbit,
+            PreviewListener previewListener) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -169,6 +213,8 @@ public final class AdaptiveRefiner {
         int[] border = new int[width * height];
         int[] frameScratch = new int[width * height];
         boolean[] onBorder = new boolean[width * height];
+        AtomicInteger previewSamples = previewListener != null ? new AtomicInteger(0) : null;
+        int workerCount = workerOperators.length;
 
         int round = 0;
         while (true) {
@@ -201,7 +247,8 @@ public final class AdaptiveRefiner {
                     return -1;
                 }
                 int borderCount = collectBorder(
-                        interior, width, height, border, true, frameScratch, onBorder);
+                        interior, width, height, border, true, frameScratch, onBorder,
+                        workers, workerCount, cancel);
                 if (borderCount == 0) {
                     if (cancel != null && cancel.isCancelled()) {
                         return -1;
@@ -216,7 +263,8 @@ public final class AdaptiveRefiner {
                         width, height, scale, centerX, centerY,
                         workerOperators, palette, smooth, nextLimit,
                         workers, cancel, anyEscaped,
-                        doneSamples, progressTotal, progress, orbit);
+                        doneSamples, progressTotal, progress, orbit,
+                        previewListener, previewSamples, nextLimit);
                 if (!finished) {
                     return -1;
                 }
@@ -340,6 +388,114 @@ public final class AdaptiveRefiner {
     }
 
     /**
+     * Parallel seam scan when workers are available; falls back to serial.
+     */
+    static int collectBorder(
+            boolean[] interior,
+            int width,
+            int height,
+            int[] borderOut,
+            boolean alsoFrame,
+            int[] frameScratch,
+            boolean[] onBorder,
+            ExecutorService workers,
+            int workerCount,
+            ParallelStepRenderer.CancelCheck cancel) {
+        if (workers == null || workerCount <= 1 || height <= 1) {
+            return collectBorder(interior, width, height, borderOut, alsoFrame, frameScratch, onBorder);
+        }
+        AtomicInteger count = new AtomicInteger(0);
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        int tasks = Math.min(workerCount, height);
+        CountDownLatch latch = new CountDownLatch(tasks);
+        List<Future<?>> futures = new ArrayList<>(tasks);
+        for (int t = 0; t < tasks; t++) {
+            final int yStart = t * height / tasks;
+            final int yEnd = (t + 1) * height / tasks;
+            futures.add(workers.submit(() -> {
+                try {
+                    for (int y = yStart; y < yEnd; y++) {
+                        if (cancelled.get()
+                                || Thread.currentThread().isInterrupted()
+                                || (cancel != null && cancel.isCancelled())) {
+                            cancelled.set(true);
+                            return;
+                        }
+                        int row = y * width;
+                        for (int x = 0; x < width; x++) {
+                            int i = row + x;
+                            if (!interior[i]) {
+                                continue;
+                            }
+                            if (hasEscapedNeighbor(interior, width, height, x, y)) {
+                                int slot = count.getAndIncrement();
+                                borderOut[slot] = i;
+                            }
+                        }
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            }));
+        }
+        try {
+            while (true) {
+                if (cancel != null && cancel.isCancelled()) {
+                    cancelled.set(true);
+                    for (Future<?> future : futures) {
+                        future.cancel(true);
+                    }
+                    latch.await();
+                    return 0;
+                }
+                if (latch.await(50, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                    break;
+                }
+            }
+        } catch (InterruptedException e) {
+            cancelled.set(true);
+            for (Future<?> future : futures) {
+                future.cancel(true);
+            }
+            Thread.currentThread().interrupt();
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            return 0;
+        }
+        if (cancelled.get() || (cancel != null && cancel.isCancelled())) {
+            return 0;
+        }
+        int seamCount = count.get();
+        if (seamCount == 0) {
+            return collectFrameInterior(interior, width, height, borderOut);
+        }
+        if (!alsoFrame) {
+            return seamCount;
+        }
+        if (frameScratch == null || onBorder == null) {
+            frameScratch = new int[width * height];
+            onBorder = new boolean[width * height];
+        } else {
+            Arrays.fill(onBorder, false);
+        }
+        for (int i = 0; i < seamCount; i++) {
+            onBorder[borderOut[i]] = true;
+        }
+        int frameCount = collectFrameInterior(interior, width, height, frameScratch);
+        for (int i = 0; i < frameCount; i++) {
+            int idx = frameScratch[i];
+            if (!onBorder[idx]) {
+                borderOut[seamCount++] = idx;
+                onBorder[idx] = true;
+            }
+        }
+        return seamCount;
+    }
+
+    /**
      * Interior pixels on the image edge (top/bottom rows and left/right
      * columns). Used when Adaptive has no interior/exterior seam yet.
      */
@@ -411,15 +567,23 @@ public final class AdaptiveRefiner {
             AtomicInteger doneSamples,
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
-            OrbitState orbit) {
+            OrbitState orbit,
+            PreviewListener previewListener,
+            AtomicInteger previewSamples,
+            int previewLimit) {
         int workerCount = workerOperators.length;
         int tasks = workers != null ? Math.min(workerCount, borderCount) : 1;
         if (tasks <= 1 || workers == null) {
-            return retestRange(
+            boolean ok = retestRange(
                     pixels, interior, border, 0, borderCount,
                     width, height, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, nextLimit,
-                    cancel, anyEscaped, doneSamples, progressTotal, progress, orbit);
+                    cancel, anyEscaped, doneSamples, progressTotal, progress, orbit,
+                    previewSamples);
+            if (ok && previewListener != null) {
+                previewListener.onPreview(pixels, width, height, previewLimit);
+            }
+            return ok;
         }
 
         AtomicBoolean cancelled = new AtomicBoolean(false);
@@ -435,7 +599,8 @@ public final class AdaptiveRefiner {
                             pixels, interior, border, from, to,
                             width, height, scale, centerX, centerY,
                             op, palette, smooth, nextLimit,
-                            cancel, anyEscaped, doneSamples, progressTotal, progress, orbit)) {
+                            cancel, anyEscaped, doneSamples, progressTotal, progress, orbit,
+                            previewSamples)) {
                         cancelled.set(true);
                     }
                 } finally {
@@ -444,6 +609,8 @@ public final class AdaptiveRefiner {
             }));
         }
 
+        int lastPreviewAt = previewSamples != null ? previewSamples.get() : 0;
+        long lastPreviewMs = System.currentTimeMillis();
         try {
             while (true) {
                 if (cancel != null && cancel.isCancelled()) {
@@ -456,6 +623,16 @@ public final class AdaptiveRefiner {
                 }
                 if (latch.await(50, java.util.concurrent.TimeUnit.MILLISECONDS)) {
                     break;
+                }
+                if (previewListener != null && previewSamples != null) {
+                    int done = previewSamples.get();
+                    long now = System.currentTimeMillis();
+                    if (done - lastPreviewAt >= PREVIEW_PIXEL_INTERVAL
+                            || now - lastPreviewMs >= PREVIEW_MIN_INTERVAL_MS) {
+                        previewListener.onPreview(pixels, width, height, previewLimit);
+                        lastPreviewAt = done;
+                        lastPreviewMs = now;
+                    }
                 }
             }
         } catch (InterruptedException e) {
@@ -470,6 +647,9 @@ public final class AdaptiveRefiner {
                 Thread.currentThread().interrupt();
             }
             return false;
+        }
+        if (!cancelled.get() && previewListener != null) {
+            previewListener.onPreview(pixels, width, height, previewLimit);
         }
         return !cancelled.get() && (cancel == null || !cancel.isCancelled());
     }
@@ -494,7 +674,8 @@ public final class AdaptiveRefiner {
             AtomicInteger doneSamples,
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
-            OrbitState orbit) {
+            OrbitState orbit,
+            AtomicInteger previewSamples) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
         final int reportEvery = Math.max(1, Math.max(1, progressTotal) / 100);
@@ -545,6 +726,9 @@ public final class AdaptiveRefiner {
                 if (progress != null && completed % reportEvery == 0) {
                     progress.onProgress(completed, progressTotal);
                 }
+            }
+            if (previewSamples != null) {
+                previewSamples.incrementAndGet();
             }
         }
         return true;

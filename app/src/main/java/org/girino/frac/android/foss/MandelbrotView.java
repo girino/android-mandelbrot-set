@@ -424,9 +424,8 @@ public class MandelbrotView extends View {
         if (adaptive) {
             // Border rounds have no fixed sample budget — indeterminate bar (issue #31).
             postRenderIndeterminate(generation, true);
-            AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
+            AdaptiveRefiner.PreviewListener previewListener = (px, w, h, limit) -> {
                 rendered.setPixels(px, 0, w, 0, 0, w, h);
-                // Same field the overlay reads — also the next zoom's stop-floor.
                 adaptiveMaxIter = limit;
                 post(() -> {
                     if (generation != renderGeneration.get() || activePointers > 0) {
@@ -434,6 +433,15 @@ public class MandelbrotView extends View {
                     }
                     bitmap = rendered;
                     invalidate();
+                    notifyEffectiveMaxIterChanged();
+                });
+            };
+            AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
+                adaptiveMaxIter = limit;
+                post(() -> {
+                    if (generation != renderGeneration.get() || activePointers > 0) {
+                        return;
+                    }
                     notifyEffectiveMaxIterChanged();
                 });
             };
@@ -463,7 +471,8 @@ public class MandelbrotView extends View {
                     null,
                     roundListener,
                     adaptiveMinStopIter,
-                    orbit);
+                    orbit,
+                    previewListener);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
