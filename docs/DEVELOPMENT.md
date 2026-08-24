@@ -54,7 +54,7 @@ All tests run headless on the JVM — no emulator needed.
 | `MandelbrotViewGestureTest` | Gesture flows via Robolectric + `PinchDragMotionSimulator` |
 | `CatalogTest` | Formula/palette catalog labels and index lookup |
 | `ParallelStepRendererTest` | Parallel vs serial pixel match, cancel mid-step, worker counts (issue #25) |
-| `AdaptiveRefinerTest` | Border collect, seed floor, warm-start refine vs brute force (issue #28) |
+| `AdaptiveRefinerTest` | Border collect, seed floor, warm-start refine vs brute force, visited-cache drop (issue #28) |
 | `FractalOperatorContinueTest` | sampleContinue matches full sample for all UI operators |
 | `IterationSettingsStoreTest` | SharedPreferences persistence for iteration modes |
 
@@ -83,6 +83,9 @@ After progressive step 1 in Adaptive mode:
 - Throttled `PreviewListener` publishes in-progress frames (~4000 border
   samples or 250 ms) without blocking workers.
 - Indeterminate progress bar while refine runs (issue #31).
+- Per-limit visited bitmap: border pixels already probed at the current cap
+  are skipped until the limit doubles (see `dropVisitedBorder` in
+  `AdaptiveRefiner`).
 
 Algorithm and tuning notes: [ADAPTIVE-ITERATION.md](ADAPTIVE-ITERATION.md).
 Do not publish bitmaps or start renders while a gesture is active — same gate

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## 1.1.0 - 2026-08-23
+## 1.1.0 - 2026-08-24
 
 ### UI and navigation
 

@@ -83,7 +83,8 @@ animation while border refine runs; the fractal image may update every
 the full-resolution frame is ready or when a new gesture cancels the render.
 Progressive step 1 uses up to eight worker threads; Adaptive border collect
 and retest use a separate pool (up to sixteen threads on typical phones).
-Pan/pinch preview and handoff stay the same.
+While the limit stays fixed, already-probed border pixels are not retested
+until the cap doubles. Pan/pinch preview and handoff stay the same.
 
 There is no options menu (Material NoActionBar + HUD). Leave the app with
 the system Back gesture or Recents. The fractal draws edge-to-edge under the
