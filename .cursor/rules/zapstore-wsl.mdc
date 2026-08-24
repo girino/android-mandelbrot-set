@@ -6,78 +6,152 @@ alwaysApply: false
 
 # Zapstore — publicação manual via WSL
 
-Não há workflow de CI nem secrets de Zapstore neste repositório. Toda publicação é **manual no WSL**.
+Não há workflow de CI nem secrets de Zapstore neste repositório. Toda publicação é
+**manual no WSL**.
 
-O CLI [`zsp`](https://github.com/zapstore/zsp) **não compila no Windows** (`syscall`). **Nunca** use `go install zsp` no PowerShell.
+O CLI [`zsp`](https://github.com/zapstore/zsp) **não compila no Windows** (`syscall`).
+**Nunca** use `go install zsp` no PowerShell.
 
-Config: [`zapstore.yaml`](zapstore.yaml) (npub, Fastlane). APK vem do GitHub Release.
+Config: [`zapstore.yaml`](../../zapstore.yaml) (npub, Fastlane). APK vem do GitHub Release.
 
-## Fluxo completo de release (validado em 1.0.2)
+## Fluxo completo de release
 
-1. Subir `versionCode`/`versionName` em [`app/build.gradle.kts`](../app/build.gradle.kts) + entrada no [`CHANGELOG.md`](../CHANGELOG.md).
-2. Rodar local: lint + testes + build (ver [local-android-sdk.mdc](local-android-sdk.mdc)).
-3. Commitar, criar tag `vX.Y.Z` e **pushar** (pedir aprovação do usuário para push).
-4. Push da tag dispara o workflow *Android release* → publica APK assinado na GitHub Release.
-5. Publicar no Zapstore com `zsp` (abaixo), apontando pra config com **caminho absoluto**.
+1. Subir `versionCode`/`versionName` em `app/build.gradle.kts` + entrada no `CHANGELOG.md`.
+2. Rodar local: lint + testes (ver [local-android-sdk.mdc](local-android-sdk.mdc)).
+3. Commitar, criar tag `vX.Y.Z` e **pushar** (release request cobre o push da tag).
+4. Push da tag dispara *Android release* → APK assinado na GitHub Release.
+5. Confirmar `gh release view vX.Y.Z`, depois publicar no Zapstore (abaixo).
 
-## 1. Abrir o WSL
+## Credenciais — arquivo `.credentials.env`
 
-```bash
-# caminho do repo no WSL
-cd /mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
+Fonte **canônica** (gitignored na raiz do repo):
+
+```text
+.credentials.env
 ```
 
-## 2. Instalar zsp (uma vez)
+### Formato (dotenv, sem `export`)
+
+Uma linha `CHAVE=valor`. Para Zapstore:
+
+```text
+SIGN_WITH=bunker://<pubkey>?relay=wss://...&relay=wss://...&secret=<uuid>
+```
+
+Exemplo de forma (placeholders — **nunca** commitar o valor real):
+
+```text
+SIGN_WITH=bunker://aaaaaaaa...?relay=wss://nostr.oxtr.dev/&relay=wss://theforest.nostr1.com/&relay=wss://relay.primal.net/&secret=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+```
+
+Também aceito: `SIGN_WITH=nsec1...` (mesmo arquivo).
+
+**Nunca** colar o valor de `SIGN_WITH` em chat, commits, regras, logs do agente,
+`echo`, `Write-Output` ou `Select-String` que imprima a linha completa.
+
+**Agente:** se o arquivo faltar ou `SIGN_WITH` estiver vazio após o load, pedir ao
+usuário para preencher `.credentials.env` — não vasculhar transcripts por bunker.
+
+### Verificar sem vazar o valor
 
 ```bash
-# Go no WSL (snap funciona; se der erro XDG_RUNTIME_DIR, veja seção Troubleshooting)
+# Só status — não printenv SIGN_WITH
+if [ -n "${SIGN_WITH:-}" ]; then echo "SIGN_WITH_ok"; else echo "SIGN_WITH_missing_or_empty"; fi
+```
+
+Armadilha: variável **set mas vazia** (`${SIGN_WITH+x}` true, conteúdo vazio) —
+trate como ausente. O `zsp` exige valor não vazio.
+
+### Carregar no WSL a partir do repo
+
+`set -a` faz com que linhas `KEY=value` do arquivo virem exportadas no shell:
+
+```bash
+REPO=/mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
+set -a
+# shellcheck disable=SC1091
+. "$REPO/.credentials.env"
+set +a
+if [ -z "${SIGN_WITH:-}" ]; then
+  echo "ABORT: SIGN_WITH missing or empty in .credentials.env"
+  exit 1
+fi
+```
+
+## Passar do PowerShell → WSL (agentes)
+
+**Não** embutir o bunker em `wsl -e bash -lc '...'`: `?` e `&` quebram o quoting
+(`SIGN_WITH: -c: line 2: syntax error`).
+
+**Não** colocar o bunker no corpo de heredoc/`@'...'@ | wsl` (aparece em logs).
+
+Padrão seguro: script bash **sem segredos** que faz `source` de `.credentials.env`:
+
+```powershell
+$script = @'
+#!/bin/bash
+set -euo pipefail
+export PATH="$HOME/go/bin:$PATH"
+REPO=/mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
+set -a
+. "$REPO/.credentials.env"
+set +a
+if [ -z "${SIGN_WITH:-}" ]; then
+  echo "ABORT: SIGN_WITH missing or empty"
+  exit 1
+fi
+CFG="$REPO/zapstore.yaml"
+zsp publish -q "$CFG"
+zsp utils has-new-release "$CFG"
+'@
+$path = Join-Path $env:TEMP "zapstore-publish.sh"
+[System.IO.File]::WriteAllText($path, ($script -replace "`r`n", "`n"))
+wsl -e bash "/mnt/c/Users/girino/AppData/Local/Temp/zapstore-publish.sh"
+Remove-Item $path -Force
+```
+
+Ajuste o user em `/mnt/c/Users/...` se o perfil Windows for outro. O script
+temporário (`.tmp-zsp-publish.sh` / `%TEMP%`) não deve conter o bunker.
+
+## Instalar zsp (uma vez, dentro do WSL)
+
+```bash
 go install github.com/zapstore/zsp@latest
 export PATH="$HOME/go/bin:$PATH"
 zsp --version
 ```
 
-## 3. Credenciais (só no ambiente do processo, nunca em arquivo nem log)
+## Verificar e publicar — SEMPRE caminho absoluto
+
+Com stdin piped / `wsl -e`, o `zsp` falha em caminhos relativos. Use absoluto:
 
 ```bash
-export SIGN_WITH='bunker://...'   # ou nsec — variável de ambiente local, não GitHub secret
-```
-
-## 4. Verificar e publicar — SEMPRE caminho absoluto
-
-**Importante:** com stdin vindo de pipe (ex.: heredoc no `wsl -e bash`), o `zsp`
-**falha ao resolver caminhos relativos** ("no such file or directory" mesmo com
-o arquivo presente e cwd correto). Sempre passe a config como **caminho absoluto**:
-
-```bash
-zsp publish --check /caminho/absoluto/zapstore.yaml   # dry-run: valida config e busca o release
-zsp publish -q /caminho/absoluto/zapstore.yaml        # publica de fato
-```
-
-Alternativa sem pipe: rodar direto num shell interativo do WSL (aí caminho relativo funciona).
-
-## 5. Confirmar publicação
-
-```bash
-zsp utils has-new-release /caminho/absoluto/zapstore.yaml
+REPO=/mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
+CFG="$REPO/zapstore.yaml"
+zsp publish --check "$CFG"    # dry-run: config + acha o GitHub Release
+zsp publish -q "$CFG"         # publica
+zsp utils has-new-release "$CFG"
 # {"has_new_release":false,"release_version":"X.Y.Z"} = publicado e em dia
+# {"has_new_release":true,...} = release no GitHub ainda não no Zapstore
 ```
 
-Na **primeira** publicação, o `zsp` pode pedir para vincular o certificado de
-assinatura do APK à identidade Nostr (keystore `.jks`).
+Na **primeira** publicação, o `zsp` pode pedir para vincular o certificado do APK
+à identidade Nostr.
 
 ## Windows vs WSL
 
 | Tarefa | Onde |
 |--------|------|
-| Gradle, Android SDK, JDK | Windows — pastas `.jdk/` e `.android-sdk/` do repo |
+| Gradle, Android SDK, JDK | Windows — `.jdk/` e `.android-sdk/` do repo |
 | `zsp publish` | **WSL** |
+| Credencial | `.credentials.env` na raiz do repo (gitignored) |
 
-## Troubleshooting (já visto na prática)
+## Troubleshooting
 
-- **`cannot create XDG_RUNTIME_DIR "/run/user/1000"`** ao rodar `go` via `wsl -e`:
-  corrigir uma vez com root:
-  ```bash
-  wsl -u root -e bash -lc "mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000"
-  ```
-- **"failed to open config file"** com arquivo existente: é o bug de stdin/caminho
-  relativo acima — use caminho absoluto.
+| Sintoma | Causa / fix |
+|---------|-------------|
+| `SIGN_WITH environment variable is required` | Arquivo ausente, linha sem `SIGN_WITH=`, ou valor vazio. Conferir `.credentials.env` + `set -a; . arquivo`. |
+| `SIGN_WITH: -c: line 2: syntax error` | Bunker embutido em `bash -lc`/PowerShell; use script + source de `.credentials.env`. |
+| `failed to open config file` com arquivo presente | Path relativo + stdin piped → use absoluto. |
+| `cannot create XDG_RUNTIME_DIR` ao rodar `go` via `wsl -e` | Uma vez: `wsl -u root -e bash -lc "mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000"` |
+| `has_new_release: true` após publish | Publish falhou antes; conferir exit code do `zsp publish -q`. |

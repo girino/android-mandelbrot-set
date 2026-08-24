@@ -56,8 +56,15 @@ as root in WSL:
 mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000
 ```
 
-Signing uses a Nostr identity. Export `SIGN_WITH` (a `bunker://...` URI or an
-nsec) per-shell — never commit it or paste it into logs/chat.
+Signing uses `SIGN_WITH` (`bunker://...` or nsec) from the gitignored
+[`.credentials.env`](../.credentials.env) at the repo root, in dotenv form:
+
+```text
+SIGN_WITH=bunker://...?relay=wss://...&secret=...
+```
+
+Never commit that file, never print `SIGN_WITH` in chat/logs. Agent load/WSL
+gotchas: [`.cursor/rules/zapstore-wsl.mdc`](../.cursor/rules/zapstore-wsl.mdc).
 
 ## Cutting a stable release
 
@@ -94,14 +101,17 @@ nsec) per-shell — never commit it or paste it into logs/chat.
    gh release view vX.Y.Z -R girino/android-mandelbrot-set
    ```
 
-5. **Publish to Zapstore** (on request). From WSL, with absolute config path —
-   relative paths fail when stdin is piped:
+5. **Publish to Zapstore** (on request). From WSL, load `.credentials.env` then
+   use an **absolute** config path — see `.cursor/rules/zapstore-wsl.mdc`
+   (do not embed the bunker in `bash -lc` / PowerShell strings):
 
    ```bash
-   export SIGN_WITH='bunker://...'
-   zsp publish --check /mnt/f/cygwin64/home/girino/git/android-mandelbrot-set/zapstore.yaml
-   zsp publish -q       /mnt/f/cygwin64/home/girino/git/android-mandelbrot-set/zapstore.yaml
-   zsp utils has-new-release /mnt/f/.../zapstore.yaml
+   REPO=/mnt/f/cygwin64/home/girino/git/android-mandelbrot-set
+   set -a && . "$REPO/.credentials.env" && set +a
+   CFG="$REPO/zapstore.yaml"
+   zsp publish --check "$CFG"
+   zsp publish -q "$CFG"
+   zsp utils has-new-release "$CFG"
    # {"has_new_release":false,"release_version":"X.Y.Z"} confirms publication
    ```
 
@@ -120,3 +130,4 @@ Identical flow; use a suffix tag such as `v1.1.0-alpha`. The workflow marks it
 | Release missing / wrong asset name | Check the workflow's "Prepare release assets" step output and the tag format rule above. |
 | Push opens credential dialogs | Token expired or orphaned git processes — see `.cursor/rules/git-credentials-github.mdc`; never accept the GUI dialog blindly. |
 | `zsp` says "failed to open config file" though the file exists | Piped stdin breaks relative paths; pass an absolute path. |
+| `SIGN_WITH environment variable is required` / bash syntax error around bunker | Empty var, or bunker embedded in `wsl bash -lc`; load `.credentials.env` via `set -a; . file` — see zapstore-wsl.mdc. |
