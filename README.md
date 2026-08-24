@@ -2,8 +2,9 @@
 
 An interactive Android fractal explorer. Pan, pinch, and double-tap to navigate,
 long-press for coordinates, switch formulas and palettes from a bottom HUD,
-toggle smooth coloring, and choose fixed / scale-with-zoom / **adaptive**
-iteration limits. The fractal draws edge-to-edge under the system bars.
+export the viewport as PNG, toggle smooth coloring from the menu, and choose
+fixed / scale-with-zoom / **adaptive** iteration limits. The fractal draws
+edge-to-edge under the system bars.
 
 This FOSS edition uses the application ID `org.girino.frac.android.foss`, so it
 can be installed alongside the historical Google Play edition without conflicts.

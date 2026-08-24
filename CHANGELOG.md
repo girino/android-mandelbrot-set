@@ -2,9 +2,6 @@
 
 ## Unreleased
 
-- HUD bar: Export replaces Smooth as a one-tap icon; Smooth moves to the
-  hamburger overflow with on/off indicator (issue #46).
-
 ## 1.1.0 - 2026-08-24
 
 ### UI and navigation
@@ -28,8 +25,8 @@
 - Corner status overlay shows formula, palette, smooth coloring, iteration
   algorithm, and effective Iter on a more transparent panel; tap to hide, tap
   the chip to show again (issue #17). HUD bar background is more transparent too.
-- HUD icon bar (+, −, Reset, Smooth) and hamburger overflow menu with icon +
-  label rows for all actions including Formula, Palette, and Export (issue #29).
+- HUD icon bar (+, −, Reset, Export) and hamburger overflow with Formula,
+  Palette, Smooth (on/off), Iterations, Help, and About (issues #29 / #46).
 - Help and About screens from the hamburger menu; About includes GAL license
   reference and optional external links (issue #22).
 
@@ -37,7 +34,7 @@
 
 - Export current viewport as PNG: share sheet (FileProvider, no network) or save
   to Pictures/Fractals via MediaStore on Android 10+; older devices use the system
-  save dialog (issue #18).
+  save dialog (issue #18). One-tap Export on the HUD bar (issue #46).
 - Rotation and activity recreate restore viewport, formula, palette, and smooth
   via saved instance state (issue #21).
 - **GAL-only** licensing; drop F-Droid distribution path and BSD dual-license
@@ -70,6 +67,15 @@
 - Adaptive visited cache: while stabilizing at one limit, skip border pixels
   already sampled at that limit; clear the visited set when the iteration cap
   doubles (only newly exposed seam pixels are retested until the next double).
+- Precomputed 1024-entry LUTs for Default Green/Blue/Red, HSB (RGB), and legacy
+  Default palettes (same indexing as SmoothFixed / BGR) (issue #32).
+- Progressive fill maps complex X by incremental column stepping (issue #34).
+- Worker-local reusable EscapeSample via sampleInto / sampleContinueInto
+  (issue #33; no significant FPS change on device).
+- Scalar Mandelbar and Fourth Mandelbrot steps (no per-iteration Complex
+  allocation) (issue #36).
+- Coarse progressive fillBlock uses Arrays.fill per row for steps 8/4/2
+  (issue #37).
 
 ## 1.0.4 - 2026-08-22
 

@@ -69,7 +69,8 @@ iteration limits on interior border pixels only. Key implementation points:
 
 | Piece | Role |
 |-------|------|
-| `OrbitState` | Warm-start checkpoints from pass-1 (`sampleContinue`) |
+| `OrbitState` | Warm-start checkpoints from pass-1 (`sampleContinue` / `sampleContinueInto`) |
+| `EscapeSample` | Mutable worker-local result via `sampleInto` (issue #33; see revert notes on the class) |
 | `workerPool` | Progressive steps 8→4→2→1 — `min(8, cores)` |
 | `adaptiveWorkerPool` | Parallel border collect + retest — `min(16, 2× cores)` |
 | `PreviewListener` | Throttled in-progress bitmap swap (~4000 px / 250 ms) |

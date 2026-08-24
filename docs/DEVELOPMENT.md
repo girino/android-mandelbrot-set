@@ -36,7 +36,7 @@ $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 ```
 
 Debug builds append a compile timestamp to `versionName`, e.g.
-`1.0.2-20260822120000`, so you can tell builds apart on a device.
+`1.1.0-20260824120000`, so you can tell builds apart on a device.
 
 ## Testing
 
@@ -53,9 +53,11 @@ All tests run headless on the JVM — no emulator needed.
 | `ViewportTransformsTest` | Pure viewport math (pan/pinch commits, preview bridge) — reliable |
 | `MandelbrotViewGestureTest` | Gesture flows via Robolectric + `PinchDragMotionSimulator` |
 | `CatalogTest` | Formula/palette catalog labels and index lookup |
-| `ParallelStepRendererTest` | Parallel vs serial pixel match, cancel mid-step, worker counts (issue #25) |
+| `ParallelStepRendererTest` | Parallel vs serial pixel match, cancel mid-step, worker counts, fillBlock edges (issues #25 / #37) |
 | `AdaptiveRefinerTest` | Border collect, seed floor, warm-start refine vs brute force, visited-cache drop (issue #28) |
-| `FractalOperatorContinueTest` | sampleContinue matches full sample for all UI operators |
+| `FractalOperatorContinueTest` | sampleContinue / sampleInto parity for all UI operators (issue #33) |
+| `MandelbarFourthScalarStepTest` | Scalar Mandelbar/Fourth match legacy Complex step (issue #36) |
+| `PaletteLutTest` | Default/HSB LUT matches formula at sample points (issue #32) |
 | `IterationSettingsStoreTest` | SharedPreferences persistence for iteration modes |
 
 Known limitation: Robolectric's `ScaleGestureDetector` does not reproduce real
