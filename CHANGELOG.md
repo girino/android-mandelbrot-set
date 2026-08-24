@@ -50,7 +50,7 @@
 - Adaptive warm-start: pass-1 stores orbit checkpoints; border retests continue
   from the previous iteration and Z via sampleContinue (no full restart).
 - **Experiment (branch experiment/adaptive-parallelism):** Adaptive border
-  refine uses a separate worker pool at 2× CPU cores (cap 16); pass-1 unchanged.
+  refine uses a separate worker pool at 4× CPU cores (cap 32); pass-1 unchanged.
   Border seam scan runs in parallel; in-progress frames publish every ~1000
   border samples or 100 ms (bitmap built on render thread, swapped on UI).
 
