@@ -6,6 +6,7 @@ import org.girino.frac.palettes.PaletteProvider;
 import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -321,15 +322,26 @@ public final class ParallelStepRenderer {
         }
     }
 
-    /** Paints a step-by-step block (or a single pixel when step is 1). */
+    /**
+     * Paints a step-by-step block (or a single pixel when step is 1).
+     * Issue #37: row segments use Arrays.fill when the block is wider than one pixel.
+     */
     static void fillBlock(int[] pixels, int width, int height, int x, int y, int step, int color) {
         int xMax = Math.min(x + step, width);
         int yMax = Math.min(y + step, height);
-        for (int py = y; py < yMax; py++) {
-            int rowOffset = py * width;
-            for (int px = x; px < xMax; px++) {
-                pixels[rowOffset + px] = color;
+        int span = xMax - x;
+        if (span <= 0 || yMax <= y) {
+            return;
+        }
+        if (span == 1) {
+            for (int py = y; py < yMax; py++) {
+                pixels[py * width + x] = color;
             }
+            return;
+        }
+        for (int py = y; py < yMax; py++) {
+            int rowOffset = py * width + x;
+            Arrays.fill(pixels, rowOffset, rowOffset + span, color);
         }
     }
 }

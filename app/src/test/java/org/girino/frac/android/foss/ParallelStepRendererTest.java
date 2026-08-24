@@ -62,6 +62,28 @@ public class ParallelStepRendererTest {
     }
 
     @Test
+    public void fillBlock_stepOneWritesSinglePixel() {
+        int[] pixels = new int[3 * 3];
+        ParallelStepRenderer.fillBlock(pixels, 3, 3, 1, 1, 1, 0xFFAABBCC);
+        assertEquals(0xFFAABBCC, pixels[1 * 3 + 1]);
+        assertEquals(0, pixels[0]);
+        assertEquals(0, pixels[1 * 3 + 2]);
+    }
+
+    @Test
+    public void fillBlock_clipsAtRightAndBottomEdges() {
+        int[] pixels = new int[5 * 5];
+        ParallelStepRenderer.fillBlock(pixels, 5, 5, 3, 3, 8, 0xFF010203);
+        for (int y = 3; y < 5; y++) {
+            for (int x = 3; x < 5; x++) {
+                assertEquals(0xFF010203, pixels[y * 5 + x]);
+            }
+        }
+        assertEquals(0, pixels[2 * 5 + 4]);
+        assertEquals(0, pixels[4 * 5 + 2]);
+    }
+
+    @Test
     public void parallelAndSerial_matchForCoarseSteps() {
         int width = 64;
         int height = 48;
