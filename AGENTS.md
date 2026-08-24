@@ -73,6 +73,7 @@ iteration limits on interior border pixels only. Key implementation points:
 | `workerPool` | Progressive steps 8→4→2→1 — `min(8, cores)` |
 | `adaptiveWorkerPool` | Parallel border collect + retest — `min(16, 2× cores)` |
 | `PreviewListener` | Throttled in-progress bitmap swap (~4000 px / 250 ms) |
+| `visitedAtLimit` | Per-limit bitmap: skip border pixels already probed until cap doubles |
 | Indeterminate bar | After step 1 until refine completes (issue #31) |
 
 **Do not** publish bitmaps or start renders while `activePointers > 0`.

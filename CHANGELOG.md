@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-- **Experiment (branch experiment/adaptive-visited-cache):** while stabilizing
-  at one Adaptive limit, skip border pixels already sampled at that limit;
-  clear the visited set when the iteration cap doubles.
-
 ## 1.1.0 - 2026-08-23
 
 ### UI and navigation
@@ -68,6 +64,9 @@
   collect and retest; pass-1 stays at min(8, cores). Border seam scan runs in
   parallel; in-progress frames publish every ~4000 border samples or 250 ms
   (bitmap built on the render thread, swapped on the UI thread).
+- Adaptive visited cache: while stabilizing at one limit, skip border pixels
+  already sampled at that limit; clear the visited set when the iteration cap
+  doubles (only newly exposed seam pixels are retested until the next double).
 
 ## 1.0.4 - 2026-08-22
 
