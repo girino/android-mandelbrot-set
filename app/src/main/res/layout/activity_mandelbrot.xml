@@ -65,7 +65,7 @@
         android:textColor="@color/hud_text"
         android:visibility="gone" />
 
-    <!-- Issue #29: icon bar (+, −, Reset, Smooth) + hamburger overflow. -->
+    <!-- Issue #46: icon bar (+, −, Reset, Export) + hamburger overflow. -->
     <LinearLayout
         android:id="@+id/hud_bar"
         android:layout_width="match_parent"
@@ -110,13 +110,13 @@
             android:src="@drawable/ic_hud_reset" />
 
         <ImageButton
-            android:id="@+id/hud_smooth"
+            android:id="@+id/hud_export"
             style="@style/HudIconButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:contentDescription="@string/hud_smooth_cd"
-            android:src="@drawable/ic_hud_smooth" />
+            android:contentDescription="@string/hud_export_cd"
+            android:src="@drawable/ic_hud_export" />
 
         <ImageButton
             android:id="@+id/hud_menu"

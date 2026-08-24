@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- HUD bar: Export replaces Smooth as a one-tap icon; Smooth moves to the
+  hamburger overflow with on/off indicator (issue #46).
+
 ## 1.1.0 - 2026-08-24
 
 ### UI and navigation

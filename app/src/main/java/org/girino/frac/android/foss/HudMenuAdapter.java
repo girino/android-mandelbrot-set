@@ -11,18 +11,20 @@ import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
 
-/** Hamburger menu rows: icon + label (issue #29). */
+/** Hamburger menu rows: icon + label (issues #29 / #46). */
 final class HudMenuAdapter extends BaseAdapter {
 
     private static final int TYPE_ACTION = 0;
     private static final int TYPE_SECTION = 1;
 
-    /** Core HUD actions in canonical order (issue #29). */
+    /**
+     * Core menu actions (also on the HUD bar except Formula/Palette).
+     * Export is on the bar (issue #46); Smooth is overflow-only.
+     */
     enum Action {
         ZOOM_IN(R.string.menu_zoom_in, R.drawable.ic_hud_zoom_in, R.string.hud_zoom_in_cd, false),
         ZOOM_OUT(R.string.menu_zoom_out, R.drawable.ic_hud_zoom_out, R.string.hud_zoom_out_cd, false),
         RESET(R.string.menu_reset, R.drawable.ic_hud_reset, R.string.hud_reset_cd, false),
-        SMOOTH(R.string.menu_smooth_palette, R.drawable.ic_hud_smooth, R.string.hud_smooth_cd, true),
         FORMULA(R.string.menu_formula, R.drawable.ic_hud_formula, R.string.hud_formula_cd, false),
         PALETTE(R.string.menu_palette, R.drawable.ic_hud_palette, R.string.hud_palette_cd, false);
 
@@ -40,19 +42,21 @@ final class HudMenuAdapter extends BaseAdapter {
     }
 
     private enum Overflow {
-        EXPORT(R.string.menu_export, R.drawable.ic_hud_export, R.string.hud_export_cd),
-        ITERATIONS(R.string.menu_iterations, R.drawable.ic_hud_iterations, R.string.hud_iterations_cd),
-        HELP(R.string.menu_help, R.drawable.ic_hud_help, R.string.hud_help_cd),
-        ABOUT(R.string.menu_about, R.drawable.ic_hud_about, R.string.hud_about_cd);
+        SMOOTH(R.string.menu_smooth_palette, R.drawable.ic_hud_smooth, R.string.hud_smooth_cd, true),
+        ITERATIONS(R.string.menu_iterations, R.drawable.ic_hud_iterations, R.string.hud_iterations_cd, false),
+        HELP(R.string.menu_help, R.drawable.ic_hud_help, R.string.hud_help_cd, false),
+        ABOUT(R.string.menu_about, R.drawable.ic_hud_about, R.string.hud_about_cd, false);
 
         final int labelRes;
         final int iconRes;
         final int contentDescriptionRes;
+        final boolean toggleIndicator;
 
-        Overflow(int labelRes, int iconRes, int contentDescriptionRes) {
+        Overflow(int labelRes, int iconRes, int contentDescriptionRes, boolean toggleIndicator) {
             this.labelRes = labelRes;
             this.iconRes = iconRes;
             this.contentDescriptionRes = contentDescriptionRes;
+            this.toggleIndicator = toggleIndicator;
         }
     }
 
@@ -80,8 +84,8 @@ final class HudMenuAdapter extends BaseAdapter {
         return position == SECTION_INDEX;
     }
 
-    static boolean isExport(int position) {
-        return overflowAt(position) == Overflow.EXPORT;
+    static boolean isSmooth(int position) {
+        return overflowAt(position) == Overflow.SMOOTH;
     }
 
     static boolean isIterations(int position) {
@@ -179,7 +183,7 @@ final class HudMenuAdapter extends BaseAdapter {
             labelRes = overflow.labelRes;
             iconRes = overflow.iconRes;
             contentDescriptionRes = overflow.contentDescriptionRes;
-            toggleIndicator = false;
+            toggleIndicator = overflow.toggleIndicator;
         }
 
         label.setText(labelRes);

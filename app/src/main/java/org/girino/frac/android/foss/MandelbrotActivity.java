@@ -35,7 +35,7 @@ import java.util.Locale;
  * exit via system back / recents. Edge-to-edge fractal under system bars
  * (issue #14). Corner status overlay for formula + smooth (issue #17).
  * Export viewport as PNG via share sheet or gallery save (issue #18).
- * Icon HUD bar + hamburger overflow menu (issue #29).
+ * Icon HUD bar + hamburger overflow menu (issues #29 / #46).
  * Saves viewport on rotation / process recreate (issue #21).
  * Help and About screens from the menu (issue #22).
  * Iteration settings: fixed max or scale-with-zoom (issue #26).
@@ -51,7 +51,7 @@ public class MandelbrotActivity extends AppCompatActivity {
     private static final int DEFAULT_PALETTE_INDEX = 3;
 
     private MandelbrotView view;
-    private ImageButton hudSmooth;
+    private ImageButton hudExport;
     private ProgressBar renderProgress;
     private Snackbar coordinateSnackbar;
     private TextView statusOverlay;
@@ -85,7 +85,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         applyLightSystemBarIcons();
 
         view = findViewById(R.id.mandelbrot_view);
-        hudSmooth = findViewById(R.id.hud_smooth);
+        hudExport = findViewById(R.id.hud_export);
         renderProgress = findViewById(R.id.render_progress);
         statusOverlay = findViewById(R.id.status_overlay);
         statusOverlayChip = findViewById(R.id.status_overlay_chip);
@@ -145,9 +145,8 @@ public class MandelbrotActivity extends AppCompatActivity {
             refreshStatusOverlay();
         });
         hudReset.setOnClickListener(v -> performFullReset());
-        hudSmooth.setOnClickListener(v -> toggleSmooth());
+        hudExport.setOnClickListener(v -> openExportSheet());
         hudMenu.setOnClickListener(v -> openHudMenu());
-        syncSmoothControls();
         refreshStatusOverlay();
     }
 
@@ -169,7 +168,6 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void toggleSmooth() {
         view.smooth();
-        syncSmoothControls();
         refreshStatusOverlay();
     }
 
@@ -187,8 +185,8 @@ public class MandelbrotActivity extends AppCompatActivity {
                 return;
             }
             dialog.dismiss();
-            if (HudMenuAdapter.isExport(position)) {
-                openExportSheet();
+            if (HudMenuAdapter.isSmooth(position)) {
+                toggleSmooth();
                 return;
             }
             if (HudMenuAdapter.isIterations(position)) {
@@ -219,9 +217,6 @@ public class MandelbrotActivity extends AppCompatActivity {
                     break;
                 case RESET:
                     performFullReset();
-                    break;
-                case SMOOTH:
-                    toggleSmooth();
                     break;
                 case FORMULA:
                     openFormulaPicker();
@@ -431,7 +426,6 @@ public class MandelbrotActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        syncSmoothControls();
         refreshStatusOverlay();
         view.start();
     }
@@ -601,12 +595,6 @@ public class MandelbrotActivity extends AppCompatActivity {
     private void showExportSnackbar(int messageRes) {
         View root = findViewById(R.id.mandelbrot_root);
         Snackbar.make(root, messageRes, Snackbar.LENGTH_SHORT).show();
-    }
-
-    private void syncSmoothControls() {
-        if (hudSmooth != null) {
-            hudSmooth.setSelected(view.isSmooth());
-        }
     }
 
     private interface PickerSelectionListener {

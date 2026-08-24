@@ -39,13 +39,13 @@ A compact bar at the bottom of the screen (icons only):
 | **+** | Zoom in about the screen center |
 | **−** | Zoom out about the screen center |
 | **↻** | Reset viewport to the initial position and scale; also restores iteration settings to defaults (fixed 40) |
-| **▤** | Toggle smooth coloring (highlighted when on) |
+| **⇪** | Export viewport as PNG (share or save to gallery) |
 | **☰** | Open the menu (all actions with icon + name) |
 
-The **menu** lists every action: zoom in/out, reset, smooth, formula, palette,
-export, **Iterations**, **Help**, and **About**. Formula and palette open bottom
-sheets: formula rows show a mini fractal thumbnail; palette rows show a color
-swatch. Export opens share or save to gallery. Iterations opens
+The **menu** lists zoom in/out, reset, formula, palette, then **More**:
+**Smooth** (with on/off), **Iterations**, **Help**, and **About**. Formula and palette
+open bottom sheets: formula rows show a mini fractal thumbnail; palette rows show
+a color swatch. Smooth toggles continuous iteration coloring. Iterations opens
 a settings screen for escape-time max iterations. Help summarizes gestures and
 the HUD; About shows the version, package id, and **Girino Anarchist License
 (GAL)** with a link to the full license text.
@@ -98,7 +98,7 @@ fractal are unchanged. The HUD bar uses a similar translucent background.
 
 ## Export PNG
 
-Tap **Export** in the menu (☰), then choose:
+Tap **Export** on the HUD bar (or use the share/save sheet it opens), then choose:
 
 - **Share…** — opens the system share sheet with a PNG of what you see on screen
   (no network permission; you pick the destination app).
