@@ -70,6 +70,16 @@ and `ParallelStepRenderer.adaptiveWorkerCount()`.
 Cancellation honors `renderGeneration` and thread interrupt
 (`ParallelStepRenderer.CancelCheck`).
 
+## Skip already-probed border pixels (same limit)
+
+While stabilizing at a fixed limit (for example 80), each pixel sampled at
+that limit is recorded in a dense visited bitmap. Later collects at the
+**same** limit drop those indices — only newly exposed seam pixels are
+retested. The visited bitmap is allocated fresh when the limit doubles
+(80 → 160), so the old seam is probed again at the new cap (warm-start
+continues from the checkpoint). Screen-edge pixels follow the same rule:
+tested once per limit, not on every stabilize pass.
+
 ## Alternatives not implemented (v1)
 
 | Approach | Why deferred |

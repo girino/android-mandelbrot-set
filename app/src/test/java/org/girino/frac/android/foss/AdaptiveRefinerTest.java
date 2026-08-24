@@ -37,6 +37,24 @@ public class AdaptiveRefinerTest {
     }
 
     @Test
+    public void dropVisitedBorder_skipsAlreadyProbedIndices() {
+        int[] border = {1, 2, 3, 2};
+        boolean[] visited = new boolean[5];
+        visited[2] = true;
+        int kept = AdaptiveRefiner.dropVisitedBorder(border, 4, visited);
+        assertEquals(2, kept);
+        assertEquals(1, border[0]);
+        assertEquals(3, border[1]);
+    }
+
+    @Test
+    public void dropVisitedBorder_emptyWhenAllVisited() {
+        int[] border = {0, 1};
+        boolean[] visited = {true, true};
+        assertEquals(0, AdaptiveRefiner.dropVisitedBorder(border, 2, visited));
+    }
+
+    @Test
     public void collectBorder_findsInteriorNextToEscaped() {
         // 3x3: center interior, one escaped neighbor → center is border.
         boolean[] interior = {

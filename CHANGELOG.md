@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Experiment (branch experiment/adaptive-visited-cache):** while stabilizing
+  at one Adaptive limit, skip border pixels already sampled at that limit;
+  clear the visited set when the iteration cap doubles.
+
 ## 1.1.0 - 2026-08-23
 
 ### UI and navigation

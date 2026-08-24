@@ -238,6 +238,10 @@ public final class AdaptiveRefiner {
                 break;
             }
 
+            // Pixels already sampled at nextLimit are skipped on later
+            // stabilize passes. Cleared when the iteration cap doubles.
+            boolean[] visitedAtLimit = new boolean[width * height];
+
             // Stabilize at nextLimit: re-collect border and retest until a
             // full pass finds no new escapes (no new border filled).
             // Screen-edge perimeter is always part of the border.
@@ -256,6 +260,12 @@ public final class AdaptiveRefiner {
                     // Nothing left to refine; cannot climb further toward floor.
                     return currentLimit;
                 }
+                borderCount = dropVisitedBorder(border, borderCount, visitedAtLimit);
+                if (borderCount == 0) {
+                    // Geometric border remains, but every candidate was already
+                    // probed at this limit — nothing new can escape until we double.
+                    break;
+                }
 
                 AtomicBoolean anyEscaped = new AtomicBoolean(false);
                 boolean finished = retestBorder(
@@ -264,7 +274,8 @@ public final class AdaptiveRefiner {
                         workerOperators, palette, smooth, nextLimit,
                         workers, cancel, anyEscaped,
                         doneSamples, progressTotal, progress, orbit,
-                        previewListener, previewSamples, nextLimit);
+                        previewListener, previewSamples, nextLimit,
+                        visitedAtLimit);
                 if (!finished) {
                     return -1;
                 }
@@ -496,6 +507,25 @@ public final class AdaptiveRefiner {
     }
 
     /**
+     * Drops indices already probed at the current iteration limit so
+     * stabilize passes only sample newly exposed border pixels.
+     */
+    static int dropVisitedBorder(int[] border, int borderCount, boolean[] visitedAtLimit) {
+        if (border == null || visitedAtLimit == null || borderCount <= 0) {
+            return Math.max(0, borderCount);
+        }
+        int kept = 0;
+        for (int i = 0; i < borderCount; i++) {
+            int idx = border[i];
+            if (idx < 0 || idx >= visitedAtLimit.length || visitedAtLimit[idx]) {
+                continue;
+            }
+            border[kept++] = idx;
+        }
+        return kept;
+    }
+
+    /**
      * Interior pixels on the image edge (top/bottom rows and left/right
      * columns). Used when Adaptive has no interior/exterior seam yet.
      */
@@ -570,7 +600,8 @@ public final class AdaptiveRefiner {
             OrbitState orbit,
             PreviewListener previewListener,
             AtomicInteger previewSamples,
-            int previewLimit) {
+            int previewLimit,
+            boolean[] visitedAtLimit) {
         int workerCount = workerOperators.length;
         int tasks = workers != null ? Math.min(workerCount, borderCount) : 1;
         if (tasks <= 1 || workers == null) {
@@ -579,7 +610,7 @@ public final class AdaptiveRefiner {
                     width, height, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, nextLimit,
                     cancel, anyEscaped, doneSamples, progressTotal, progress, orbit,
-                    previewSamples);
+                    previewSamples, visitedAtLimit);
             if (ok && previewListener != null) {
                 previewListener.onPreview(pixels, width, height, previewLimit);
             }
@@ -600,7 +631,7 @@ public final class AdaptiveRefiner {
                             width, height, scale, centerX, centerY,
                             op, palette, smooth, nextLimit,
                             cancel, anyEscaped, doneSamples, progressTotal, progress, orbit,
-                            previewSamples)) {
+                            previewSamples, visitedAtLimit)) {
                         cancelled.set(true);
                     }
                 } finally {
@@ -675,7 +706,8 @@ public final class AdaptiveRefiner {
             int progressTotal,
             ParallelStepRenderer.ProgressListener progress,
             OrbitState orbit,
-            AtomicInteger previewSamples) {
+            AtomicInteger previewSamples,
+            boolean[] visitedAtLimit) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
         final int reportEvery = Math.max(1, Math.max(1, progressTotal) / 100);
@@ -707,6 +739,9 @@ public final class AdaptiveRefiner {
                         smooth);
             } else {
                 sample = operator.sample(point, nextLimit, smooth);
+            }
+            if (visitedAtLimit != null) {
+                visitedAtLimit[index] = true;
             }
             pixels[index] = palette.getColor(sample.value);
             if (sample.escaped) {
