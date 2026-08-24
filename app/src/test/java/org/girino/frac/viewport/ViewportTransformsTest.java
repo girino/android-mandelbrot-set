@@ -17,6 +17,24 @@ class ViewportTransformsTest {
     private static final double EPS = 1e-12;
 
     @Test
+    void incrementalComplexXStep_matchesDirectMapping() {
+        int width = 1081;
+        double scale = 123.456;
+        double centerX = -0.75;
+        for (int sampleStep : new int[] {1, 2, 4, 8}) {
+            double cRe = ViewportTransforms.complexX(0, width, centerX, scale);
+            double cReStep = sampleStep / scale;
+            for (int x = 0; x < width; x += sampleStep) {
+                assertEquals(
+                        ViewportTransforms.complexX(x, width, centerX, scale),
+                        cRe,
+                        EPS);
+                cRe += cReStep;
+            }
+        }
+    }
+
+    @Test
     void complexMappingMatchesRendererConvention() {
         assertEquals(
                 0.25,

@@ -3,6 +3,7 @@ package org.girino.frac.android.foss;
 import org.girino.frac.operators.Complex;
 import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.palettes.PaletteProvider;
+import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -288,6 +289,9 @@ public final class ParallelStepRenderer {
                 return;
             }
             int y = row * step;
+            double cIm = ViewportTransforms.complexY(y, height, centerY, scale);
+            double cRe = ViewportTransforms.complexX(0, width, centerX, scale);
+            double cReStep = step / scale;
             for (int x = 0; x < width; x += step) {
                 if (Thread.currentThread().isInterrupted()
                         || cancelled.get()
@@ -295,9 +299,7 @@ public final class ParallelStepRenderer {
                     cancelled.set(true);
                     return;
                 }
-                point.set(
-                        (x - width / 2.0) / scale + centerX,
-                        (y - height / 2.0) / scale + centerY);
+                point.set(cRe, cIm);
                 FractalOperator.EscapeSample sample = operator.sample(point, maxIter, smooth);
                 int color = palette.getColor(sample.value);
                 fillBlock(pixels, width, height, x, y, step, color);
@@ -312,6 +314,7 @@ public final class ParallelStepRenderer {
                 if (progress != null && completed % reportEvery == 0) {
                     progress.onProgress(completed, totalSamples);
                 }
+                cRe += cReStep;
             }
         }
     }

@@ -62,6 +62,47 @@ public class ParallelStepRendererTest {
     }
 
     @Test
+    public void parallelAndSerial_matchForCoarseSteps() {
+        int width = 64;
+        int height = 48;
+        double scale = 100.0 * 300.0 / width;
+        PaletteProvider palette = new HSBPalette();
+        int maxIter = 40;
+
+        for (int step : new int[] {8, 4, 2}) {
+            int[] serial = new int[width * height];
+            Arrays.fill(serial, 0xff0a0a0a);
+            AtomicInteger serialDone = new AtomicInteger();
+            FractalOperator[] one = {new OptimizedMandelbrotOperator()};
+            assertTrue(ParallelStepRenderer.fillStep(
+                    serial, width, height, step, scale, 0, 0,
+                    one, palette, false, maxIter,
+                    null, null, serialDone, countSamples(width, height, step), null));
+
+            int[] parallel = new int[width * height];
+            Arrays.fill(parallel, 0xff0a0a0a);
+            AtomicInteger parallelDone = new AtomicInteger();
+            FractalOperator[] many = {
+                    new OptimizedMandelbrotOperator(),
+                    new OptimizedMandelbrotOperator(),
+                    new OptimizedMandelbrotOperator(),
+                    new OptimizedMandelbrotOperator()
+            };
+            assertTrue(ParallelStepRenderer.fillStep(
+                    parallel, width, height, step, scale, 0, 0,
+                    many, palette, false, maxIter,
+                    workers, null, parallelDone, countSamples(width, height, step), null));
+
+            assertEquals(serialDone.get(), parallelDone.get());
+            assertArrayEquals(serial, parallel);
+        }
+    }
+
+    private static int countSamples(int width, int height, int step) {
+        return ((width - 1) / step + 1) * ((height - 1) / step + 1);
+    }
+
+    @Test
     public void parallelAndSerial_matchForSmallViewport() {
         int width = 64;
         int height = 48;

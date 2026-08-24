@@ -3,6 +3,7 @@ package org.girino.frac.android.foss;
 import org.girino.frac.operators.Complex;
 import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.palettes.PaletteProvider;
+import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -726,8 +727,8 @@ public final class AdaptiveRefiner {
             int x = index % width;
             int y = index / width;
             point.set(
-                    (x - width / 2.0) / scale + centerX,
-                    (y - height / 2.0) / scale + centerY);
+                    ViewportTransforms.complexX(x, width, centerX, scale),
+                    ViewportTransforms.complexY(y, height, centerY, scale));
             FractalOperator.EscapeSample sample;
             if (orbit != null && orbit.hasCheckpoint(index)) {
                 sample = operator.sampleContinue(
