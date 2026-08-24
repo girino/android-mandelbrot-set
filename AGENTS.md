@@ -19,6 +19,7 @@ follow it.
 | [`.cursor/rules/viewport-smooth-transition.mdc`](.cursor/rules/viewport-smooth-transition.mdc) | always | Mandatory smooth pan/pinch model: deferred commit + atomic handoff in `MandelbrotView` — read before touching it |
 | [`.cursor/rules/headless-gesture-tests.mdc`](.cursor/rules/headless-gesture-tests.mdc) | gesture/view files | Robolectric headless tests for pinch+drag; run `MandelbrotViewGestureTest` after gesture changes |
 | [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc) | `zapstore.yaml` / release publishing | Zapstore via WSL; `.credentials.env` with **quoted** `SIGN_WITH='bunker://...?&...'` (unquoted `&` breaks `source`) |
+| [`.cursor/rules/readme-user-facing.mdc`](.cursor/rules/readme-user-facing.mdc) | always | README is end-user only; maintainer/CI/Zapstore/agent how-tos go in `docs/` or `.cursor/rules/` |
 
 Conflict order observed in this repo: explicit user request > these rules >
 your own defaults.

@@ -1,0 +1,43 @@
+---
+description: README só para o usuário final — docs de dev/deploy/agente ficam em docs/ e .cursor/rules
+alwaysApply: true
+---
+
+# README — conteúdo só para o usuário
+
+O [`README.md`](../../README.md) é a porta de entrada de **quem instala ou usa o
+app**. Não é manual do mantenedor, nem playbook do agente.
+
+## Pertence ao README
+
+- O que o app é (em linguagem de produto).
+- Como **instalar** (Obtainium, Zapstore como canal de usuário, etc.).
+- Como **compilar o debug** no mínimo necessário para um contribuinte casual
+  (JDK/SDK + um comando) — sem secrets, sem WSL/`zsp`, sem fluxo de tag.
+- Licença e canais de distribuição **do ponto de vista do usuário**.
+- Link curto para docs de desenvolvimento/deploy se alguém precisar aprofundar.
+
+## Não pertence ao README → mover
+
+| Conteúdo | Destino |
+|----------|---------|
+| Secrets do GitHub Actions, keystore, assinatura de release | [`docs/DEPLOY.md`](../../docs/DEPLOY.md) |
+| Tag → CI → GitHub Release → Zapstore, `SIGN_WITH`, `zsp`, WSL | `docs/DEPLOY.md` + [zapstore-wsl.mdc](zapstore-wsl.mdc) |
+| Toolchain local do repo (`.jdk/`, `.android-sdk/`), lint traps, testes headless | [`docs/DEVELOPMENT.md`](../../docs/DEVELOPMENT.md) + regras em `.cursor/rules/` |
+| Postmortems, modelo de viewport, convenções de agente | `docs/POSTMORTEM-*.md`, `AGENTS.md`, `.cursor/rules/` |
+
+## Ao editar o README
+
+1. Pergunte: **um usuário do app** precisa disso para instalar, usar ou abrir um
+   issue trivial? Se não, não vá para o README.
+2. Não duplique how-to de release/Zapstore/CI — um link para `docs/DEPLOY.md`
+   basta.
+3. Não coloque credenciais, paths de agente, nem “como o mantenedor publica”.
+
+```text
+# ❌ BAD — README
+Configure ANDROID_KEYSTORE_* secrets, then zsp publish with SIGN_WITH=...
+
+# ✅ GOOD — README
+Signed releases and Zapstore: see docs/DEPLOY.md.
+```
