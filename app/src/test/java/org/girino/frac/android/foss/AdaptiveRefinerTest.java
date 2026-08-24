@@ -28,7 +28,8 @@ public class AdaptiveRefinerTest {
 
     @Before
     public void setUp() {
-        workers = Executors.newFixedThreadPool(2);
+        workers = Executors.newFixedThreadPool(
+                2, ParallelStepRenderer.workerThreadFactory("test-adaptive-"));
     }
 
     @After

@@ -51,7 +51,7 @@ public final class ParallelStepRenderer {
         return Math.max(1, Math.min(16, cores * 2));
     }
 
-    /** Shared factory for fractal sample worker threads. */
+    /** Shared factory for fractal sample worker threads (daemon so tests can exit). */
     public static ThreadFactory workerThreadFactory(String namePrefix) {
         return new ThreadFactory() {
             private final AtomicInteger next = new AtomicInteger();
@@ -59,6 +59,7 @@ public final class ParallelStepRenderer {
             @Override
             public Thread newThread(Runnable runnable) {
                 Thread thread = new Thread(runnable, namePrefix + next.getAndIncrement());
+                thread.setDaemon(true);
                 thread.setPriority(Thread.NORM_PRIORITY - 1);
                 return thread;
             }

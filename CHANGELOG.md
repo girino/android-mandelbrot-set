@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fix CI hang on testDebugUnitTest: MandelbrotView render pools are daemon
+  threads and tests shut them down in tearDown; unit-test task times out after
+  5 minutes instead of stalling the job.
+
 ## 1.1.0 - 2026-08-24
 
 ### UI and navigation

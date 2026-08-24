@@ -64,12 +64,13 @@ public class MandelbrotView extends View {
     private final Paint bitmapPaint = new Paint(Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final ScaleGestureDetector scaleDetector;
     private final GestureDetector gestureDetector;
-    private final ExecutorService renderExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService renderExecutor = Executors.newSingleThreadExecutor(
+            ParallelStepRenderer.workerThreadFactory("fractal-render-"));
     /** Parallel sample workers for progressive steps (issue #25). */
     private final ExecutorService workerPool = Executors.newFixedThreadPool(
             ParallelStepRenderer.defaultWorkerCount(),
             ParallelStepRenderer.workerThreadFactory("fractal-worker-"));
-    /** Extra workers for Adaptive border refine only (experiment: 2× cores, cap 16). */
+    /** Extra workers for Adaptive border refine only (2x cores, cap 16). */
     private final ExecutorService adaptiveWorkerPool = Executors.newFixedThreadPool(
             ParallelStepRenderer.adaptiveWorkerCount(),
             ParallelStepRenderer.workerThreadFactory("fractal-adaptive-"));
@@ -868,9 +869,15 @@ public class MandelbrotView extends View {
         stop();
     }
 
-    /** Releases the display bitmap after tests (Robolectric heap). */
+    /**
+     * Releases the display bitmap and shuts down render pools after tests.
+     * Non-daemon leaks here used to hang CI on testDebugUnitTest (JVM never exits).
+     */
     void testingReleaseBitmap() {
         stop();
+        renderExecutor.shutdownNow();
+        workerPool.shutdownNow();
+        adaptiveWorkerPool.shutdownNow();
         Bitmap old = bitmap;
         bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
         if (old != null && !old.isRecycled()) {

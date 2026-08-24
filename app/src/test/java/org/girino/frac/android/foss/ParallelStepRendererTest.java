@@ -26,7 +26,8 @@ public class ParallelStepRendererTest {
 
     @Before
     public void setUp() {
-        workers = Executors.newFixedThreadPool(4);
+        workers = Executors.newFixedThreadPool(
+                4, ParallelStepRenderer.workerThreadFactory("test-step-"));
     }
 
     @After

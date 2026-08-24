@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
 }
 
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -66,6 +67,8 @@ android {
             all {
                 it.useJUnitPlatform()
                 it.maxHeapSize = "1g"
+                // Fail the task instead of hanging the CI job for 20 minutes.
+                it.timeout.set(Duration.ofMinutes(5))
             }
         }
     }
