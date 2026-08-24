@@ -36,6 +36,8 @@ your own defaults.
   [docs/DEPLOY.md](docs/DEPLOY.md).
 - User-facing behavior: [docs/USAGE.md](docs/USAGE.md).
 - Adaptive iteration algorithm: [docs/ADAPTIVE-ITERATION.md](docs/ADAPTIVE-ITERATION.md).
+- **Post-v1.1.0 agent handoff:** [docs/HANDOFF.md](docs/HANDOFF.md).
+- Release retrospective: [docs/POSTMORTEM-1.1.0.md](docs/POSTMORTEM-1.1.0.md).
 
 ## Working conventions
 
@@ -90,6 +92,9 @@ Tests: `AdaptiveRefinerTest`, `FractalOperatorContinueTest`.
 
 | Document | Topic |
 |----------|-------|
+| [docs/HANDOFF.md](docs/HANDOFF.md) | Next-agent onboarding after v1.1.0 (not a postmortem; read first) |
+| [docs/POSTMORTEM-1.1.0.md](docs/POSTMORTEM-1.1.0.md) | v1.1.0 release retrospective (UI, Adaptive, opts, Zapstore, CI hang) |
+| [docs/POSTMORTEM-adaptive-iteration.md](docs/POSTMORTEM-adaptive-iteration.md) | Adaptive wrong turns (carry pass-1, full remap, #35, pool tuning) |
 | [docs/POSTMORTEM-viewport-gestures.md](docs/POSTMORTEM-viewport-gestures.md) | Failed approaches before v1.0.2-alpha2 (handoff, bridge, manual pinch, publish gates) |
 | [docs/POSTMORTEM-viewport-flicker.md](docs/POSTMORTEM-viewport-flicker.md) | The fix that worked: deferred commit + atomic handoff (v1.0.2) |
 | [docs/POSTMORTEM-pinch-anchor.md](docs/POSTMORTEM-pinch-anchor.md) | Focus-anchored pinch (issue #3) — failed attempts and v1.0.3 fix |

@@ -177,3 +177,5 @@ and regression tests in `MandelbrotViewGestureTest`.
   [DEPLOY.md](DEPLOY.md)). Tags matching `vMAJOR.MINOR.PATCH` publish as
   stable; any other tag publishes as pre-release. Zapstore publish is manual
   from WSL after the GitHub Release — details in DEPLOY.md (not in the README).
+- New agent continuing after v1.1.0: start at [HANDOFF.md](HANDOFF.md).
+  Release retrospective: [POSTMORTEM-1.1.0.md](POSTMORTEM-1.1.0.md).

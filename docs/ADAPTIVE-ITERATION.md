@@ -1,5 +1,9 @@
 # Adaptive iteration (issue #28)
 
+Canonical algorithm notes for the Adaptive mode shipped in v1.1.0. Wrong turns
+and abandoned ideas: [POSTMORTEM-adaptive-iteration.md](POSTMORTEM-adaptive-iteration.md).
+Release context: [POSTMORTEM-1.1.0.md](POSTMORTEM-1.1.0.md).
+
 ## Chosen algorithm: border doubling
 
 After the progressive fill reaches step 1 at the configured pass-1 max
