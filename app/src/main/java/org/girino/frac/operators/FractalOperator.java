@@ -15,15 +15,23 @@ public abstract class FractalOperator {
 	/**
 	 * Escape-time sample: palette value plus whether the orbit escaped
 	 * before hitting maxiter (issue #28 adaptive border refinement).
+	 * Mutable so workers can reuse one instance per pixel sample (issue #33).
 	 */
 	public static final class EscapeSample {
-		public final double value;
+		public double value;
 		/** True when the orbit escaped (left the set) before maxiter. */
-		public final boolean escaped;
+		public boolean escaped;
 		/** Iterations performed (maxiter means still interior). */
-		public final int iterations;
+		public int iterations;
+
+		public EscapeSample() {
+		}
 
 		public EscapeSample(double value, boolean escaped, int iterations) {
+			set(value, escaped, iterations);
+		}
+
+		public void set(double value, boolean escaped, int iterations) {
 			this.value = value;
 			this.escaped = escaped;
 			this.iterations = iterations;
@@ -31,11 +39,24 @@ public abstract class FractalOperator {
 	}
 
 	private Complex Z = new Complex();
+	/** Reused by apply() only; not shared across sample() callers. */
+	private final EscapeSample applyScratch = new EscapeSample();
+
 	public final double apply(Complex C, int maxiter, boolean isSmooth) {
-		return sample(C, maxiter, isSmooth).value;
+		sampleInto(C, maxiter, isSmooth, applyScratch);
+		return applyScratch.value;
 	}
 
+	/**
+	 * Allocating convenience API for tests and one-off callers.
+	 * Hot path should use sampleInto with a worker-local holder.
+	 */
 	public final EscapeSample sample(Complex C, int maxiter, boolean isSmooth) {
+		return sampleInto(C, maxiter, isSmooth, new EscapeSample());
+	}
+
+	/** Writes the escape-time result into out (no allocation). */
+	public final EscapeSample sampleInto(Complex C, int maxiter, boolean isSmooth, EscapeSample out) {
 		int i = 0;
 		Z.set(0, 0);
 		beforeIteration(i, Z, C, maxiter);
@@ -43,7 +64,7 @@ public abstract class FractalOperator {
 			step(i, Z, C, maxiter);
 		}
 		afterIteration(i, Z, C, maxiter);
-		return finishSample(i, Z, C, maxiter, isSmooth);
+		return finishSample(i, Z, C, maxiter, isSmooth, out);
 	}
 
 	/**
@@ -57,8 +78,20 @@ public abstract class FractalOperator {
 			double zIm,
 			int maxiter,
 			boolean isSmooth) {
+		return sampleContinueInto(C, startIter, zRe, zIm, maxiter, isSmooth, new EscapeSample());
+	}
+
+	/** Continues an orbit into out (no allocation). */
+	public final EscapeSample sampleContinueInto(
+			Complex C,
+			int startIter,
+			double zRe,
+			double zIm,
+			int maxiter,
+			boolean isSmooth,
+			EscapeSample out) {
 		if (startIter <= 0) {
-			return sample(C, maxiter, isSmooth);
+			return sampleInto(C, maxiter, isSmooth, out);
 		}
 		int i = startIter;
 		Z.set(zRe, zIm);
@@ -67,7 +100,7 @@ public abstract class FractalOperator {
 			step(i, Z, C, maxiter);
 		}
 		afterIteration(i, Z, C, maxiter);
-		return finishSample(i, Z, C, maxiter, isSmooth);
+		return finishSample(i, Z, C, maxiter, isSmooth, out);
 	}
 
 	/** Copies the orbit Z after sample / sampleContinue (worker-local). */
@@ -77,12 +110,14 @@ public abstract class FractalOperator {
 		}
 	}
 
-	private EscapeSample finishSample(int i, Complex Z, Complex C, int maxiter, boolean isSmooth) {
+	private EscapeSample finishSample(
+			int i, Complex Z, Complex C, int maxiter, boolean isSmooth, EscapeSample out) {
 		boolean escaped = i < maxiter;
 		double value = isSmooth
 				? produceSmoothResult(i, Z, C, maxiter)
 				: produceResult(i, Z, C, maxiter);
-		return new EscapeSample(value, escaped, i);
+		out.set(value, escaped, i);
+		return out;
 	}
 
 	protected void beforeIteration(int step, Complex Z, Complex C, int maxiter) { ; }

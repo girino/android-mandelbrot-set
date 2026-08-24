@@ -281,6 +281,7 @@ public final class ParallelStepRenderer {
             OrbitState orbit) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
+        FractalOperator.EscapeSample sample = new FractalOperator.EscapeSample();
         for (int row = rowStart; row < rowEnd; row++) {
             if (Thread.currentThread().isInterrupted()
                     || cancelled.get()
@@ -300,7 +301,7 @@ public final class ParallelStepRenderer {
                     return;
                 }
                 point.set(cRe, cIm);
-                FractalOperator.EscapeSample sample = operator.sample(point, maxIter, smooth);
+                operator.sampleInto(point, maxIter, smooth, sample);
                 int color = palette.getColor(sample.value);
                 fillBlock(pixels, width, height, x, y, step, color);
                 if (interior != null && step == 1) {

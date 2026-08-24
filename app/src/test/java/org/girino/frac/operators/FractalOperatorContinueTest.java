@@ -23,6 +23,47 @@ class FractalOperatorContinueTest {
 
     @ParameterizedTest
     @MethodSource("uiOperators")
+    void sampleInto_reusesHolderAndMatchesSample(FractalOperator operator) {
+        FractalOperator.EscapeSample allocated =
+                operator.sample(new Complex(0.3, 0.4), 60, false);
+        FractalOperator.EscapeSample reused = new FractalOperator.EscapeSample();
+        FractalOperator.EscapeSample returned =
+                operator.sampleInto(new Complex(0.3, 0.4), 60, false, reused);
+        assertEquals(reused, returned);
+        assertEquals(allocated.escaped, reused.escaped);
+        assertEquals(allocated.iterations, reused.iterations);
+        assertEquals(allocated.value, reused.value, 1e-12);
+
+        operator.sampleInto(new Complex(0.3, 0.4), 60, true, reused);
+        FractalOperator.EscapeSample smooth = operator.sample(new Complex(0.3, 0.4), 60, true);
+        assertEquals(smooth.value, reused.value, 1e-12);
+        assertEquals(smooth.escaped, reused.escaped);
+    }
+
+    @ParameterizedTest
+    @MethodSource("uiOperators")
+    void sampleContinueInto_reusesHolderAndMatchesContinue(FractalOperator operator) {
+        Complex point = new Complex(0, 0);
+        int maxIter = 80;
+        int mid = maxIter / 2;
+        FractalOperator.EscapeSample partial = operator.sample(point, mid, false);
+        assertFalse(partial.escaped, operator.getClass().getSimpleName());
+
+        Complex scratch = new Complex();
+        operator.readOrbitZ(scratch);
+        FractalOperator.EscapeSample expected = operator.sampleContinue(
+                point, partial.iterations, scratch.getReal(), scratch.getImag(), maxIter, false);
+        FractalOperator.EscapeSample reused = new FractalOperator.EscapeSample();
+        FractalOperator.EscapeSample returned = operator.sampleContinueInto(
+                point, partial.iterations, scratch.getReal(), scratch.getImag(), maxIter, false, reused);
+        assertEquals(reused, returned);
+        assertEquals(expected.escaped, reused.escaped);
+        assertEquals(expected.iterations, reused.iterations);
+        assertEquals(expected.value, reused.value, 1e-12);
+    }
+
+    @ParameterizedTest
+    @MethodSource("uiOperators")
     void sampleContinue_matchesFullSample(FractalOperator operator) {
         Complex point = new Complex(0, 0);
         int maxIter = 120;

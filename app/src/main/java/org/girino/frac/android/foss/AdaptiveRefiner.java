@@ -711,6 +711,7 @@ public final class AdaptiveRefiner {
             boolean[] visitedAtLimit) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
+        FractalOperator.EscapeSample sample = new FractalOperator.EscapeSample();
         final int reportEvery = Math.max(1, Math.max(1, progressTotal) / 100);
         for (int b = from; b < to; b++) {
             if (Thread.currentThread().isInterrupted()
@@ -729,17 +730,17 @@ public final class AdaptiveRefiner {
             point.set(
                     ViewportTransforms.complexX(x, width, centerX, scale),
                     ViewportTransforms.complexY(y, height, centerY, scale));
-            FractalOperator.EscapeSample sample;
             if (orbit != null && orbit.hasCheckpoint(index)) {
-                sample = operator.sampleContinue(
+                operator.sampleContinueInto(
                         point,
                         orbit.iter[index],
                         orbit.re[index],
                         orbit.im[index],
                         nextLimit,
-                        smooth);
+                        smooth,
+                        sample);
             } else {
-                sample = operator.sample(point, nextLimit, smooth);
+                operator.sampleInto(point, nextLimit, smooth, sample);
             }
             if (visitedAtLimit != null) {
                 visitedAtLimit[index] = true;
