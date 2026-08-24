@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -69,16 +68,11 @@ public class MandelbrotView extends View {
     /** Parallel sample workers for progressive steps (issue #25). */
     private final ExecutorService workerPool = Executors.newFixedThreadPool(
             ParallelStepRenderer.defaultWorkerCount(),
-            new ThreadFactory() {
-                private final AtomicInteger next = new AtomicInteger();
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    Thread thread = new Thread(r, "fractal-worker-" + next.getAndIncrement());
-                    thread.setPriority(Thread.NORM_PRIORITY - 1);
-                    return thread;
-                }
-            });
+            ParallelStepRenderer.workerThreadFactory("fractal-worker-"));
+    /** Extra workers for Adaptive border refine only (experiment: 2× cores, cap 16). */
+    private final ExecutorService adaptiveWorkerPool = Executors.newFixedThreadPool(
+            ParallelStepRenderer.adaptiveWorkerCount(),
+            ParallelStepRenderer.workerThreadFactory("fractal-adaptive-"));
     private final AtomicInteger renderGeneration = new AtomicInteger();
 
     private volatile Bitmap bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
@@ -223,6 +217,7 @@ public class MandelbrotView extends View {
     public void start() {
         stop();
         if (activePointers > 0 || renderExecutor.isShutdown() || workerPool.isShutdown()
+                || adaptiveWorkerPool.isShutdown()
                 || getWidth() <= 0 || getHeight() <= 0) {
             return;
         }
@@ -442,6 +437,11 @@ public class MandelbrotView extends View {
                     notifyEffectiveMaxIterChanged();
                 });
             };
+            int adaptiveWorkers = ParallelStepRenderer.adaptiveWorkerCount();
+            FractalOperator[] adaptiveOps = new FractalOperator[adaptiveWorkers];
+            for (int i = 0; i < adaptiveWorkers; i++) {
+                adaptiveOps[i] = FormulaCatalog.createLike(renderOperator);
+            }
             int maxReached = AdaptiveRefiner.refine(
                     pixels,
                     interior,
@@ -450,13 +450,13 @@ public class MandelbrotView extends View {
                     renderScale,
                     renderCenterX,
                     renderCenterY,
-                    workerOps,
+                    adaptiveOps,
                     renderPalette,
                     renderSmooth,
                     renderMaxIter,
                     iterationSettings.maxRounds,
                     iterationSettings.absoluteCap,
-                    workerPool,
+                    adaptiveWorkerPool,
                     cancel,
                     null,
                     0,
@@ -767,6 +767,7 @@ public class MandelbrotView extends View {
         stop();
         renderExecutor.shutdownNow();
         workerPool.shutdownNow();
+        adaptiveWorkerPool.shutdownNow();
         super.onDetachedFromWindow();
     }
 

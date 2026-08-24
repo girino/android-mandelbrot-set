@@ -49,6 +49,8 @@
   Adaptive border refine uses an indeterminate top progress bar (issue #31).
 - Adaptive warm-start: pass-1 stores orbit checkpoints; border retests continue
   from the previous iteration and Z via sampleContinue (no full restart).
+- **Experiment (branch experiment/adaptive-parallelism):** Adaptive border
+  refine uses a separate worker pool at 2× CPU cores (cap 16); pass-1 unchanged.
 
 ## 1.0.4 - 2026-08-22
 

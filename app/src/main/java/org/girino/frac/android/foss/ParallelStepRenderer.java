@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +38,29 @@ public final class ParallelStepRenderer {
     public static int defaultWorkerCount() {
         int cores = Runtime.getRuntime().availableProcessors();
         return Math.max(1, Math.min(8, cores));
+    }
+
+    /**
+     * Higher worker count for Adaptive border retests: 2× cores, capped at 16.
+     * Pass-1 stays on defaultWorkerCount to avoid oversubscribing coarse steps.
+     */
+    public static int adaptiveWorkerCount() {
+        int cores = Runtime.getRuntime().availableProcessors();
+        return Math.max(1, Math.min(16, cores * 2));
+    }
+
+    /** Shared factory for fractal sample worker threads. */
+    public static ThreadFactory workerThreadFactory(String namePrefix) {
+        return new ThreadFactory() {
+            private final AtomicInteger next = new AtomicInteger();
+
+            @Override
+            public Thread newThread(Runnable runnable) {
+                Thread thread = new Thread(runnable, namePrefix + next.getAndIncrement());
+                thread.setPriority(Thread.NORM_PRIORITY - 1);
+                return thread;
+            }
+        };
     }
 
     /**

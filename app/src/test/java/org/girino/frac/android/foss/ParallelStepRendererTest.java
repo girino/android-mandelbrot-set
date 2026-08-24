@@ -42,6 +42,15 @@ public class ParallelStepRendererTest {
     }
 
     @Test
+    public void adaptiveWorkerCount_isAtLeastDefault_andCappedAtSixteen() {
+        int adaptive = ParallelStepRenderer.adaptiveWorkerCount();
+        int step = ParallelStepRenderer.defaultWorkerCount();
+        assertTrue(adaptive >= step);
+        assertTrue(adaptive >= 1);
+        assertTrue(adaptive <= 16);
+    }
+
+    @Test
     public void fillBlock_paintsStepRect() {
         int[] pixels = new int[4 * 4];
         ParallelStepRenderer.fillBlock(pixels, 4, 4, 1, 1, 2, 0xFF112233);
