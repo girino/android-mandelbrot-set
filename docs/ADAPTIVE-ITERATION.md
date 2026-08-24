@@ -32,11 +32,43 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
    the pass that first found them — no full-frame palette remap.
 
 Refinement runs only after step 1 so coarse progressive blocks are not
-re-tested. Border retests use **warm-start**: pass-1 stores each interior
-pixel's orbit checkpoint (iteration count and Z); each border round
-continues from that checkpoint via FractalOperator.sampleContinue instead
-of restarting from iteration 0. Cancellation still honors `renderGeneration` and thread interrupt
-(`ParallelStepRenderer.CancelCheck`). Workers reuse the same pool as issue #25.
+re-tested.
+
+## Warm-start (orbit continuation)
+
+Pass-1 stores each interior pixel's orbit checkpoint (iteration count and Z).
+Each border retest continues from that checkpoint via
+`FractalOperator.sampleContinue` instead of restarting from iteration 0.
+Checkpoints update after each successful border retest that keeps the pixel
+interior.
+
+## Parallelism and UI preview
+
+Adaptive refine uses **two thread pools**:
+
+| Phase | Pool | Size |
+|-------|------|------|
+| Progressive pass-1 (steps 8→4→2→1) | `workerPool` | `min(8, cores)` |
+| Border collect + retest | `adaptiveWorkerPool` | `min(16, 2× cores)` |
+
+Border **seam collection** (`collectBorder`) partitions rows across the
+Adaptive pool instead of scanning the full frame on one thread. Border **retest**
+splits the border index list across workers; each worker uses its own
+`FractalOperator` instance.
+
+While retest workers run, the render thread publishes throttled in-progress
+frames: `PreviewListener` fires every ~4000 border samples or 250 ms (whichever
+comes first). The listener copies the shared `int[]` buffer into the publish
+bitmap on the render thread and posts a UI swap — workers keep writing the
+buffer; brief tearing on preview is acceptable. Round completion still updates
+the overlay **Iter** line; the final frame is published atomically at refine end.
+
+Tuning constants live in `AdaptiveRefiner`: `PREVIEW_PIXEL_INTERVAL`,
+`PREVIEW_MIN_INTERVAL_MS`. Worker counts: `ParallelStepRenderer.defaultWorkerCount()`
+and `ParallelStepRenderer.adaptiveWorkerCount()`.
+
+Cancellation honors `renderGeneration` and thread interrupt
+(`ParallelStepRenderer.CancelCheck`).
 
 ## Alternatives not implemented (v1)
 

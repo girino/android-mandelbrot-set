@@ -53,7 +53,10 @@ All tests run headless on the JVM — no emulator needed.
 | `ViewportTransformsTest` | Pure viewport math (pan/pinch commits, preview bridge) — reliable |
 | `MandelbrotViewGestureTest` | Gesture flows via Robolectric + `PinchDragMotionSimulator` |
 | `CatalogTest` | Formula/palette catalog labels and index lookup |
-| `ParallelStepRendererTest` | Parallel vs serial pixel match, cancel mid-step (issue #25) |
+| `ParallelStepRendererTest` | Parallel vs serial pixel match, cancel mid-step, worker counts (issue #25) |
+| `AdaptiveRefinerTest` | Border collect, seed floor, warm-start refine vs brute force (issue #28) |
+| `FractalOperatorContinueTest` | sampleContinue matches full sample for all UI operators |
+| `IterationSettingsStoreTest` | SharedPreferences persistence for iteration modes |
 
 Known limitation: Robolectric's `ScaleGestureDetector` does not reproduce real
 pinch faithfully, so full-gesture tests are conservative. Always validate
@@ -68,6 +71,22 @@ workers write non-overlapping bands into an `int[]` buffer, then the
 coordinator calls `Bitmap.setPixels` and posts the existing atomic handoff.
 Each worker gets a fresh `FormulaCatalog.createLike(...)` operator because
 `FractalOperator` holds mutable iteration state.
+
+### Adaptive refine (issues #28 / #31)
+
+After progressive step 1 in Adaptive mode:
+
+- Pass-1 fills `interior[]` and `OrbitState` checkpoints (warm-start).
+- `AdaptiveRefiner.refine()` runs on the render coordinator thread; border
+  **collect** and **retest** use a separate `adaptiveWorkerPool` sized
+  `min(16, 2× cores)`.
+- Throttled `PreviewListener` publishes in-progress frames (~4000 border
+  samples or 250 ms) without blocking workers.
+- Indeterminate progress bar while refine runs (issue #31).
+
+Algorithm and tuning notes: [ADAPTIVE-ITERATION.md](ADAPTIVE-ITERATION.md).
+Do not publish bitmaps or start renders while a gesture is active — same gate
+as progressive fill.
 
 ## Lint
 
@@ -100,6 +119,10 @@ app/src/main/java/org/girino/frac/
   android/foss/
     MandelbrotActivity.java    main screen, HUD, pickers, insets, edge-to-edge
     MandelbrotView.java        fractal rendering surface + gestures (the hot file)
+    AdaptiveRefiner.java       border-doubling adaptive iteration (issue #28)
+    OrbitState.java            per-pixel orbit checkpoints for warm-start
+    ParallelStepRenderer.java  parallel progressive step fill (issue #25)
+    IterationSettings.java     fixed / scale-with-zoom / adaptive policy
     FormulaCatalog.java        formula labels + operators for the picker
     PaletteCatalog.java        palette labels + providers for the picker
   operators/                   FractalOperator implementations (z <- f(z, c))
@@ -111,7 +134,10 @@ app/src/test/java/org/girino/frac/
   android/foss/MandelbrotViewGestureTest.java
   android/foss/PinchDragMotionSimulator.java
   android/foss/CatalogTest.java
-docs/                          usage, deploy, postmortems
+  android/foss/AdaptiveRefinerTest.java
+  android/foss/ParallelStepRendererTest.java
+  operators/FractalOperatorContinueTest.java
+docs/                          usage, deploy, postmortems, ADAPTIVE-ITERATION.md
 ```
 
 ### The gesture/render model (read before touching MandelbrotView)

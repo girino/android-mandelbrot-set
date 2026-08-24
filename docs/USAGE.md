@@ -78,10 +78,12 @@ While a progressive render is running after you lift your finger (or after
 zoom / reset / palette change), a thin progress bar at the top fills in
 proportion to completed samples (steps 8→4→2→1, weighted by work). In
 **Adaptive** mode, after step 1 the bar switches to an indeterminate
-animation while border refine runs. It disappears when the full-resolution
-frame is ready or when a new gesture cancels the render. Each progressive
-step is filled in parallel across CPU cores (up to eight workers); pan/pinch
-preview and handoff stay the same.
+animation while border refine runs; the fractal image may update every
+~4000 border pixels or ~250 ms as the refine progresses. It disappears when
+the full-resolution frame is ready or when a new gesture cancels the render.
+Progressive step 1 uses up to eight worker threads; Adaptive border collect
+and retest use a separate pool (up to sixteen threads on typical phones).
+Pan/pinch preview and handoff stay the same.
 
 There is no options menu (Material NoActionBar + HUD). Leave the app with
 the system Back gesture or Recents. The fractal draws edge-to-edge under the

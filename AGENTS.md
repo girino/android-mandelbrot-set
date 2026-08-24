@@ -28,10 +28,13 @@ your own defaults.
 - Android app, pure Java. UI uses AppCompat + Material Components (HUD,
   bottom-sheet pickers, edge-to-edge); fractal rendering stays on platform
   graphics. Application ID `org.girino.frac.android.foss`.
+- **Current release line:** 1.1.0 (see `app/build.gradle.kts` and
+  [CHANGELOG.md](CHANGELOG.md)).
 - Build/test/lint commands and repo-local toolchain: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 - Release/deploy flow (tag → CI signed APK → GitHub Release → Zapstore):
   [docs/DEPLOY.md](docs/DEPLOY.md).
 - User-facing behavior: [docs/USAGE.md](docs/USAGE.md).
+- Adaptive iteration algorithm: [docs/ADAPTIVE-ITERATION.md](docs/ADAPTIVE-ITERATION.md).
 
 ## Working conventions
 
@@ -58,6 +61,27 @@ Read [docs/POSTMORTEM-viewport-flicker.md](docs/POSTMORTEM-viewport-flicker.md)
 `.cursor/rules/viewport-smooth-transition.mdc` (deferred commit, commit only
 on last-pointer-up, atomic bitmap+preview swap). Run
 `MandelbrotViewGestureTest` and validate on-device for any gesture change.
+
+## Adaptive render (issues #28 / #31)
+
+After progressive step 1 in **Adaptive** mode, `AdaptiveRefiner` doubles
+iteration limits on interior border pixels only. Key implementation points:
+
+| Piece | Role |
+|-------|------|
+| `OrbitState` | Warm-start checkpoints from pass-1 (`sampleContinue`) |
+| `workerPool` | Progressive steps 8→4→2→1 — `min(8, cores)` |
+| `adaptiveWorkerPool` | Parallel border collect + retest — `min(16, 2× cores)` |
+| `PreviewListener` | Throttled in-progress bitmap swap (~4000 px / 250 ms) |
+| Indeterminate bar | After step 1 until refine completes (issue #31) |
+
+**Do not** publish bitmaps or start renders while `activePointers > 0`.
+**Do not** remap the full palette on each border round — only retested pixels
+change color. Overlay **Iter** (`adaptiveMaxIter`) is the stop-floor for the
+next zoom's refine.
+
+Tuning and algorithm details: [docs/ADAPTIVE-ITERATION.md](docs/ADAPTIVE-ITERATION.md).
+Tests: `AdaptiveRefinerTest`, `FractalOperatorContinueTest`.
 
 ## Historical postmortems
 

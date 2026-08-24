@@ -2,11 +2,13 @@
 
 ## Unreleased
 
+## 1.1.0 - 2026-08-23
+
+### UI and navigation
+
 - Bottom HUD for formula, palette, smooth, zoom −/+, and reset (issue #5);
   HUD sits above the system navigation bar.
 - Zoom in/out controls and double-tap zoom at the touch point (issue #6).
-- Determinate top progress bar while progressive render runs (issue #9),
-  weighted by samples across steps 8→4→2→1.
 - Material 3 dark theme with AppCompat; formula/palette pickers as bottom
   sheets with the current item marked (issues #10 / #13). Removed full-screen
   `ListActivity` pickers.
@@ -15,44 +17,53 @@
   leave via system Back or Recents.
 - Edge-to-edge display: fractal draws under transparent status and navigation
   bars with light system icons; HUD and progress stay clear of chrome (issue #14).
-- **GAL-only** licensing; drop F-Droid distribution path and BSD dual-license
-  (issue #23). GitHub Releases and Zapstore remain the supported channels.
 - Adaptive launcher icon with monochrome layer for Android 13+ themed icons
   (issue #15).
 - Palette picker rows show a color swatch strip from PaletteProvider (issue #16).
-- Palette labels: RGB (HSB hue sweep) and BGR (blue→green→red LUT) replace Rainbow 1/2.
+- Palette labels: RGB (HSB hue sweep) and BGR (blue→green→red LUT) replace
+  Rainbow 1/2.
 - Corner status overlay shows formula, palette, smooth coloring, iteration
   algorithm, and effective Iter on a more transparent panel; tap to hide, tap
   the chip to show again (issue #17). HUD bar background is more transparent too.
+- HUD icon bar (+, −, Reset, Smooth) and hamburger overflow menu with icon +
+  label rows for all actions including Formula, Palette, and Export (issue #29).
+- Help and About screens from the hamburger menu; About includes GAL license
+  reference and optional external links (issue #22).
+
+### Export, state, licensing
+
 - Export current viewport as PNG: share sheet (FileProvider, no network) or save
   to Pictures/Fractals via MediaStore on Android 10+; older devices use the system
   save dialog (issue #18).
-- HUD icon bar (+, −, Reset, Smooth) and hamburger overflow menu with icon + label
-  rows for all actions including Formula, Palette, and Export (issue #29).
 - Rotation and activity recreate restore viewport, formula, palette, and smooth
   via saved instance state (issue #21).
-- Help and About screens from the hamburger menu; About includes GAL license
-  reference and optional external links (issue #22).
-- Iteration settings screen: fixed max (default 40) or scale-with-zoom (base 40,
-  multiplier 1.2); values persist in SharedPreferences (issue #26).
+- **GAL-only** licensing; drop F-Droid distribution path and BSD dual-license
+  (issue #23). GitHub Releases and Zapstore remain the supported channels.
+
+### Rendering and performance
+
+- Determinate top progress bar while progressive render runs (issue #9),
+  weighted by samples across steps 8→4→2→1.
 - Parallel progressive render: row-banded workers (up to min(8, CPU cores)) fill
   each step 8→4→2→1; gesture gate and atomic handoff unchanged (issue #25).
 - Formula picker rows show a mini fractal thumbnail preview (issue #30).
-- Adaptive iteration mode: after progressive step 1, refine only interior
-  border pixels by doubling the limit each round (issue #28). Iteration
-  fields accept up to 1048576 (hard); values above 4096 show a soft warning.
-  Overlay Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
+- Iteration settings screen: fixed max (default 40) or scale-with-zoom (base 40,
+  multiplier 1.2); values persist in SharedPreferences (issue #26).
+- Adaptive iteration mode (issue #28): after progressive step 1, refine only
+  interior border pixels by doubling the limit each round. Iteration fields
+  accept up to 1048576 (hard); values above 4096 show a soft warning. Overlay
+  Iter shows the last Adaptive border limit; pass-1 is not raised on zoom.
   Adaptive recolors only retested border pixels (no full-frame palette remap).
   Doubling always starts at pass-1; early-stop on an empty border pass only
-  after reaching the Adaptive max shown on the overlay (same field). maxRounds
-  Screen-edge perimeter is always part of the Adaptive border (every round).
-  Adaptive border refine uses an indeterminate top progress bar (issue #31).
+  after reaching the Adaptive max shown on the overlay (same field). Screen-edge
+  perimeter is always part of the Adaptive border (every round).
 - Adaptive warm-start: pass-1 stores orbit checkpoints; border retests continue
   from the previous iteration and Z via sampleContinue (no full restart).
-- **Experiment (branch experiment/adaptive-parallelism):** Adaptive border
-  refine uses a separate worker pool at 2× CPU cores (cap 16); pass-1 unchanged.
-  Border seam scan runs in parallel; in-progress frames publish every ~4000
-  border samples or 250 ms (bitmap built on render thread, swapped on UI).
+- Adaptive border refine uses an indeterminate top progress bar (issue #31).
+- Adaptive performance: separate worker pool at 2× CPU cores (cap 16) for border
+  collect and retest; pass-1 stays at min(8, cores). Border seam scan runs in
+  parallel; in-progress frames publish every ~4000 border samples or 250 ms
+  (bitmap built on the render thread, swapped on the UI thread).
 
 ## 1.0.4 - 2026-08-22
 
