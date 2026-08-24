@@ -711,6 +711,7 @@ public final class AdaptiveRefiner {
             boolean[] visitedAtLimit) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
+        // Issue #33: one EscapeSample per worker border slice (see FractalOperator.EscapeSample).
         FractalOperator.EscapeSample sample = new FractalOperator.EscapeSample();
         final int reportEvery = Math.max(1, Math.max(1, progressTotal) / 100);
         for (int b = from; b < to; b++) {

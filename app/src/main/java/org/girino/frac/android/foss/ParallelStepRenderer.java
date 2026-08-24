@@ -281,6 +281,7 @@ public final class ParallelStepRenderer {
             OrbitState orbit) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
+        // Issue #33: one EscapeSample per worker row band (see FractalOperator.EscapeSample).
         FractalOperator.EscapeSample sample = new FractalOperator.EscapeSample();
         for (int row = rowStart; row < rowEnd; row++) {
             if (Thread.currentThread().isInterrupted()

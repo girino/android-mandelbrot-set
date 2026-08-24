@@ -15,7 +15,16 @@ public abstract class FractalOperator {
 	/**
 	 * Escape-time sample: palette value plus whether the orbit escaped
 	 * before hitting maxiter (issue #28 adaptive border refinement).
-	 * Mutable so workers can reuse one instance per pixel sample (issue #33).
+	 *
+	 * Issue #33 (2026-08): fields are mutable so render workers reuse one
+	 * EscapeSample per row band / border slice instead of allocating per pixel.
+	 * No measurable FPS gain on device; no regression either. To revert:
+	 * - make value/escaped/iterations final again and drop set()
+	 * - remove sampleInto / sampleContinueInto; finishSample returns new EscapeSample
+	 * - in ParallelStepRenderer.fillRowRange and AdaptiveRefiner.retestRange,
+	 *   call operator.sample / sampleContinue per pixel again
+	 * - drop applyScratch; apply() reads sample(...).value
+	 * See git tag v1.1.0 (pre-#33) or commit before merge of feature/reuse-escape-sample.
 	 */
 	public static final class EscapeSample {
 		public double value;
