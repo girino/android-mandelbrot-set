@@ -30,4 +30,12 @@ public class OptimizedMandelbrotOperator extends FractalOperator {
 	protected void afterIteration(int step, Complex Z, Complex C, int maxiter) {
 		Z.set(x, y);
 	}
+
+	@Override
+	protected void resumeIteration(int step, Complex Z, Complex C, int maxiter) {
+		x0 = C.getReal();
+		y0 = C.getImag();
+		x = Z.getReal();
+		y = Z.getImag();
+	}
 }

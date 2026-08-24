@@ -32,7 +32,10 @@ iterations (`IterationSettings.fixedMax` in Adaptive mode):
    the pass that first found them — no full-frame palette remap.
 
 Refinement runs only after step 1 so coarse progressive blocks are not
-re-tested. Cancellation still honors `renderGeneration` and thread interrupt
+re-tested. Border retests use **warm-start**: pass-1 stores each interior
+pixel's orbit checkpoint (iteration count and Z); each border round
+continues from that checkpoint via FractalOperator.sampleContinue instead
+of restarting from iteration 0. Cancellation still honors `renderGeneration` and thread interrupt
 (`ParallelStepRenderer.CancelCheck`). Workers reuse the same pool as issue #25.
 
 ## Alternatives not implemented (v1)

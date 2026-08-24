@@ -261,16 +261,17 @@ public class AdaptiveRefinerTest {
 
         int[] adaptive = new int[width * height];
         boolean[] interior = new boolean[width * height];
+        OrbitState orbit = new OrbitState(width * height);
         Arrays.fill(adaptive, 0xff0a0a0a);
         AtomicInteger done = new AtomicInteger();
         assertTrue(ParallelStepRenderer.fillStep(
                 adaptive, width, height, 1, scale, 0, 0,
                 ops, palette, false, pass1,
-                workers, null, done, width * height, null, interior));
+                workers, null, done, width * height, null, interior, orbit));
         assertTrue(AdaptiveRefiner.refine(
                 adaptive, interior, width, height, scale, 0, 0,
                 ops, palette, false, pass1, rounds, cap,
-                workers, null, done, width * height * 2, null) >= pass1);
+                workers, null, done, width * height * 2, null, null, 0, orbit) >= pass1);
 
         OptimizedMandelbrotOperator probe = new OptimizedMandelbrotOperator();
         org.girino.frac.operators.Complex point = new org.girino.frac.operators.Complex();
@@ -302,13 +303,14 @@ public class AdaptiveRefinerTest {
         };
         int[] pixels = new int[width * height];
         boolean[] interior = new boolean[width * height];
+        OrbitState orbit = new OrbitState(width * height);
         Arrays.fill(pixels, 0xff0a0a0a);
         AtomicInteger done = new AtomicInteger();
         AtomicInteger publishes = new AtomicInteger();
         assertTrue(ParallelStepRenderer.fillStep(
                 pixels, width, height, 1, scale, 0, 0,
                 ops, palette, false, pass1,
-                workers, null, done, width * height, null, interior));
+                workers, null, done, width * height, null, interior, orbit));
         int borderBefore = AdaptiveRefiner.collectBorder(
                 interior, width, height, new int[width * height]);
         assertTrue("expected an interior/exterior border at low pass1", borderBefore > 0);
@@ -317,7 +319,7 @@ public class AdaptiveRefinerTest {
                 pixels, interior, width, height, scale, 0, 0,
                 ops, palette, false, pass1, 8, cap,
                 workers, null, done, width * height * 4, null,
-                (px, w, h, limit) -> publishes.incrementAndGet());
+                (px, w, h, limit) -> publishes.incrementAndGet(), 0, orbit);
         assertTrue(maxReached >= pass1);
         assertTrue("expected at least one border-fill publish", publishes.get() > 0);
         // After stabilize+doubling up to cap, classification matches brute at cap.
@@ -349,19 +351,20 @@ public class AdaptiveRefinerTest {
         };
         int[] pixels = new int[width * height];
         boolean[] interior = new boolean[width * height];
+        OrbitState orbit = new OrbitState(width * height);
         Arrays.fill(pixels, 0xff0a0a0a);
         AtomicInteger done = new AtomicInteger();
         assertTrue(ParallelStepRenderer.fillStep(
                 pixels, width, height, 1, scale, 0, 0,
                 ops, palette, false, 16,
-                workers, null, done, width * height, null, interior));
+                workers, null, done, width * height, null, interior, orbit));
 
         int finished = AdaptiveRefiner.refine(
                 pixels, interior, width, height, scale, 0, 0,
                 ops, palette, false, 16, 8, 4096,
                 workers,
                 () -> true,
-                done, width * height * 4, null);
+                done, width * height * 4, null, null, 0, orbit);
         assertEquals(-1, finished);
     }
 
@@ -379,16 +382,17 @@ public class AdaptiveRefinerTest {
         };
         int[] pixels = new int[width * height];
         boolean[] interior = new boolean[width * height];
+        OrbitState orbit = new OrbitState(width * height);
         Arrays.fill(pixels, 0xff0a0a0a);
         AtomicInteger done = new AtomicInteger();
         assertTrue(ParallelStepRenderer.fillStep(
                 pixels, width, height, 1, scale, 0, 0,
                 ops, palette, false, pass1,
-                workers, null, done, width * height, null, interior));
+                workers, null, done, width * height, null, interior, orbit));
         int maxReached = AdaptiveRefiner.refine(
                 pixels, interior, width, height, scale, 0, 0,
                 ops, palette, false, pass1, 8, cap,
-                workers, null, done, width * height * 4, null);
+                workers, null, done, width * height * 4, null, null, 0, orbit);
         assertTrue(maxReached >= pass1);
         assertTrue(maxReached <= cap);
         // Carried pass-1 for the next zoom must be at least this high.

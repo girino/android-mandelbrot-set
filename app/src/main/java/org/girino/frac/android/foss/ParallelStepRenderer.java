@@ -89,6 +89,35 @@ public final class ParallelStepRenderer {
             int totalSamples,
             ProgressListener progress,
             boolean[] interior) {
+        return fillStep(
+                pixels, width, height, step, scale, centerX, centerY,
+                workerOperators, palette, smooth, maxIter,
+                workers, cancel, doneSamples, totalSamples, progress, interior, null);
+    }
+
+    /**
+     * Like fillStep with interior; when orbit is non-null and step is 1,
+     * stores per-pixel orbit checkpoints for Adaptive warm-start.
+     */
+    public static boolean fillStep(
+            int[] pixels,
+            int width,
+            int height,
+            int step,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int maxIter,
+            ExecutorService workers,
+            CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int totalSamples,
+            ProgressListener progress,
+            boolean[] interior,
+            OrbitState orbit) {
         if (pixels == null || width <= 0 || height <= 0 || step <= 0) {
             return false;
         }
@@ -105,7 +134,7 @@ public final class ParallelStepRenderer {
                             ? workerOperators[0]
                             : null,
                     palette, smooth, maxIter, cancel, doneSamples, totalSamples, progress,
-                    interior);
+                    interior, orbit);
         }
 
         int tasks = Math.min(workerCount, rowCount);
@@ -113,7 +142,7 @@ public final class ParallelStepRenderer {
             return fillStepSerial(
                     pixels, width, height, step, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, maxIter,
-                    cancel, doneSamples, totalSamples, progress, interior);
+                    cancel, doneSamples, totalSamples, progress, interior, orbit);
         }
 
         final int reportEvery = Math.max(1, totalSamples / 100);
@@ -131,7 +160,7 @@ public final class ParallelStepRenderer {
                             pixels, width, height, step, scale, centerX, centerY,
                             operator, palette, smooth, maxIter,
                             rowStart, rowEnd, cancel, cancelled,
-                            doneSamples, totalSamples, reportEvery, progress, interior);
+                            doneSamples, totalSamples, reportEvery, progress, interior, orbit);
                 } finally {
                     latch.countDown();
                 }
@@ -187,7 +216,8 @@ public final class ParallelStepRenderer {
             AtomicInteger doneSamples,
             int totalSamples,
             ProgressListener progress,
-            boolean[] interior) {
+            boolean[] interior,
+            OrbitState orbit) {
         if (operator == null) {
             return false;
         }
@@ -198,7 +228,7 @@ public final class ParallelStepRenderer {
                 pixels, width, height, step, scale, centerX, centerY,
                 operator, palette, smooth, maxIter,
                 0, rowCount, cancel, cancelled,
-                doneSamples, totalSamples, reportEvery, progress, interior);
+                doneSamples, totalSamples, reportEvery, progress, interior, orbit);
         return !cancelled.get() && (cancel == null || !cancel.isCancelled());
     }
 
@@ -222,8 +252,10 @@ public final class ParallelStepRenderer {
             int totalSamples,
             int reportEvery,
             ProgressListener progress,
-            boolean[] interior) {
+            boolean[] interior,
+            OrbitState orbit) {
         Complex point = new Complex();
+        Complex orbitScratch = orbit != null ? new Complex() : null;
         for (int row = rowStart; row < rowEnd; row++) {
             if (Thread.currentThread().isInterrupted()
                     || cancelled.get()
@@ -246,7 +278,11 @@ public final class ParallelStepRenderer {
                 int color = palette.getColor(sample.value);
                 fillBlock(pixels, width, height, x, y, step, color);
                 if (interior != null && step == 1) {
-                    interior[y * width + x] = !sample.escaped;
+                    int index = y * width + x;
+                    interior[index] = !sample.escaped;
+                    if (orbit != null) {
+                        orbit.storeInterior(index, operator, sample, orbitScratch);
+                    }
                 }
                 int completed = doneSamples.incrementAndGet();
                 if (progress != null && completed % reportEvery == 0) {

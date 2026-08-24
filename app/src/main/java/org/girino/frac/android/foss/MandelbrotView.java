@@ -351,6 +351,7 @@ public class MandelbrotView extends View {
         Arrays.fill(pixels, 0xff0a0a0a);
         Bitmap rendered = Bitmap.createBitmap(renderWidth, renderHeight, Bitmap.Config.ARGB_8888);
         boolean[] interior = adaptive ? new boolean[renderWidth * renderHeight] : null;
+        OrbitState orbit = adaptive ? new OrbitState(renderWidth * renderHeight) : null;
 
         int workerCount = ParallelStepRenderer.defaultWorkerCount();
         FractalOperator[] workerOps = new FractalOperator[workerCount];
@@ -382,7 +383,8 @@ public class MandelbrotView extends View {
                     doneSamples,
                     totalSamples,
                     progress,
-                    step == 1 ? interior : null);
+                    step == 1 ? interior : null,
+                    step == 1 ? orbit : null);
             if (!finished) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
@@ -460,7 +462,8 @@ public class MandelbrotView extends View {
                     0,
                     null,
                     roundListener,
-                    adaptiveMinStopIter);
+                    adaptiveMinStopIter,
+                    orbit);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;

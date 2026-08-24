@@ -43,13 +43,56 @@ public abstract class FractalOperator {
 			step(i, Z, C, maxiter);
 		}
 		afterIteration(i, Z, C, maxiter);
+		return finishSample(i, Z, C, maxiter, isSmooth);
+	}
+
+	/**
+	 * Continue an orbit from a checkpoint (Adaptive warm-start). When
+	 * startIter is 0, behaves like sample().
+	 */
+	public final EscapeSample sampleContinue(
+			Complex C,
+			int startIter,
+			double zRe,
+			double zIm,
+			int maxiter,
+			boolean isSmooth) {
+		if (startIter <= 0) {
+			return sample(C, maxiter, isSmooth);
+		}
+		int i = startIter;
+		Z.set(zRe, zIm);
+		resumeIteration(i, Z, C, maxiter);
+		for (; i < maxiter && diverge(i, Z, C, maxiter); i++) {
+			step(i, Z, C, maxiter);
+		}
+		afterIteration(i, Z, C, maxiter);
+		return finishSample(i, Z, C, maxiter, isSmooth);
+	}
+
+	/** Copies the orbit Z after sample / sampleContinue (worker-local). */
+	public final void readOrbitZ(Complex dest) {
+		if (dest != null) {
+			dest.set(Z.getReal(), Z.getImag());
+		}
+	}
+
+	private EscapeSample finishSample(int i, Complex Z, Complex C, int maxiter, boolean isSmooth) {
 		boolean escaped = i < maxiter;
 		double value = isSmooth
 				? produceSmoothResult(i, Z, C, maxiter)
 				: produceResult(i, Z, C, maxiter);
 		return new EscapeSample(value, escaped, i);
 	}
+
 	protected void beforeIteration(int step, Complex Z, Complex C, int maxiter) { ; }
+
+	/**
+	 * One-time setup when resuming from a checkpoint (e.g. sync primitive
+	 * fields, apply C transforms that beforeIteration would have done once).
+	 */
+	protected void resumeIteration(int step, Complex Z, Complex C, int maxiter) { ; }
+
 	protected void afterIteration(int step, Complex Z, Complex C, int maxiter) { ; }
 	abstract protected void step(int step, Complex Z, Complex C, int maxiter);
 	protected boolean diverge(int step, Complex Z, Complex C, int maxiter) {

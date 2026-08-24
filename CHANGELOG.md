@@ -47,6 +47,8 @@
   after reaching the Adaptive max shown on the overlay (same field). maxRounds
   Screen-edge perimeter is always part of the Adaptive border (every round).
   Adaptive border refine uses an indeterminate top progress bar (issue #31).
+- Adaptive warm-start: pass-1 stores orbit checkpoints; border retests continue
+  from the previous iteration and Z via sampleContinue (no full restart).
 
 ## 1.0.4 - 2026-08-22
 

@@ -19,6 +19,11 @@ public class BurningShipOperator extends FractalOperator {
 		C.lconjugate(C);
 	}
 
+	@Override
+	protected void resumeIteration(int step, Complex Z, Complex C, int maxiter) {
+		C.lconjugate(C);
+	}
+
 	protected void step(int step, Complex Z, Complex C, int maxiter) {
     	tmp.ltimes(Z, Z);
     	if (tmp.getImag() < 0) {

@@ -86,18 +86,9 @@ public final class AdaptiveRefiner {
         return refine(
                 pixels, interior, width, height, scale, centerX, centerY,
                 workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
-                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0);
+                workers, cancel, doneSamples, progressTotal, progress, roundListener, 0, null);
     }
 
-    /**
-     * @param seedMinStopIter minimum iteration limit before an empty border
-     *         pass may stop doubling (usually the Adaptive value shown on the
-     *         overlay from the previous zoom; 0 if none). Doubling always
-     *         starts at pass1MaxIter; early stop only when probed limit is
-     *         already >= seedMinStopIter (so outer borders keep intermediate
-     *         colors). Every border collect unions the image perimeter with
-     *         any fractal seam.
-     */
     public static int refine(
             int[] pixels,
             boolean[] interior,
@@ -119,6 +110,46 @@ public final class AdaptiveRefiner {
             ParallelStepRenderer.ProgressListener progress,
             RoundListener roundListener,
             int seedMinStopIter) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, roundListener,
+                seedMinStopIter, null);
+    }
+
+    /**
+     * @param seedMinStopIter minimum iteration limit before an empty border
+     *         pass may stop doubling (usually the Adaptive value shown on the
+     *         overlay from the previous zoom; 0 if none). Doubling always
+     *         starts at pass1MaxIter; early stop only when probed limit is
+     *         already >= seedMinStopIter (so outer borders keep intermediate
+     *         colors). Every border collect unions the image perimeter with
+     *         any fractal seam.
+     * @param orbit optional per-pixel checkpoints from pass-1; when set,
+     *         border retests continue from the stored iteration and Z.
+     */
+    public static int refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener,
+            int seedMinStopIter,
+            OrbitState orbit) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -185,7 +216,7 @@ public final class AdaptiveRefiner {
                         width, height, scale, centerX, centerY,
                         workerOperators, palette, smooth, nextLimit,
                         workers, cancel, anyEscaped,
-                        doneSamples, progressTotal, progress);
+                        doneSamples, progressTotal, progress, orbit);
                 if (!finished) {
                     return -1;
                 }
@@ -379,7 +410,8 @@ public final class AdaptiveRefiner {
             AtomicBoolean anyEscaped,
             AtomicInteger doneSamples,
             int progressTotal,
-            ParallelStepRenderer.ProgressListener progress) {
+            ParallelStepRenderer.ProgressListener progress,
+            OrbitState orbit) {
         int workerCount = workerOperators.length;
         int tasks = workers != null ? Math.min(workerCount, borderCount) : 1;
         if (tasks <= 1 || workers == null) {
@@ -387,7 +419,7 @@ public final class AdaptiveRefiner {
                     pixels, interior, border, 0, borderCount,
                     width, height, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, nextLimit,
-                    cancel, anyEscaped, doneSamples, progressTotal, progress);
+                    cancel, anyEscaped, doneSamples, progressTotal, progress, orbit);
         }
 
         AtomicBoolean cancelled = new AtomicBoolean(false);
@@ -403,7 +435,7 @@ public final class AdaptiveRefiner {
                             pixels, interior, border, from, to,
                             width, height, scale, centerX, centerY,
                             op, palette, smooth, nextLimit,
-                            cancel, anyEscaped, doneSamples, progressTotal, progress)) {
+                            cancel, anyEscaped, doneSamples, progressTotal, progress, orbit)) {
                         cancelled.set(true);
                     }
                 } finally {
@@ -461,8 +493,10 @@ public final class AdaptiveRefiner {
             AtomicBoolean anyEscaped,
             AtomicInteger doneSamples,
             int progressTotal,
-            ParallelStepRenderer.ProgressListener progress) {
+            ParallelStepRenderer.ProgressListener progress,
+            OrbitState orbit) {
         Complex point = new Complex();
+        Complex orbitScratch = orbit != null ? new Complex() : null;
         final int reportEvery = Math.max(1, Math.max(1, progressTotal) / 100);
         for (int b = from; b < to; b++) {
             if (Thread.currentThread().isInterrupted()
@@ -481,13 +515,30 @@ public final class AdaptiveRefiner {
             point.set(
                     (x - width / 2.0) / scale + centerX,
                     (y - height / 2.0) / scale + centerY);
-            FractalOperator.EscapeSample sample = operator.sample(point, nextLimit, smooth);
+            FractalOperator.EscapeSample sample;
+            if (orbit != null && orbit.hasCheckpoint(index)) {
+                sample = operator.sampleContinue(
+                        point,
+                        orbit.iter[index],
+                        orbit.re[index],
+                        orbit.im[index],
+                        nextLimit,
+                        smooth);
+            } else {
+                sample = operator.sample(point, nextLimit, smooth);
+            }
             pixels[index] = palette.getColor(sample.value);
             if (sample.escaped) {
                 interior[index] = false;
                 anyEscaped.set(true);
+                if (orbit != null) {
+                    orbit.clear(index);
+                }
             } else {
                 interior[index] = true;
+                if (orbit != null) {
+                    orbit.storeInterior(index, operator, sample, orbitScratch);
+                }
             }
             if (doneSamples != null) {
                 int completed = doneSamples.incrementAndGet();
