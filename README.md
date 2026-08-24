@@ -48,23 +48,7 @@ Set `sdk.dir` in an untracked `local.properties` file or export
 
 The debug APK is written to `app/build/outputs/apk/debug/`.
 
-## GitHub releases
-
-Every pushed tag builds a signed release APK and publishes it on the GitHub
-Releases page. Tags that exactly match `vMAJOR.MINOR.PATCH`, such as `v1.3.0`,
-create a final release. Every other tag creates a pre-release.
-
-Configure these GitHub Actions repository secrets before pushing a tag:
-
-- `ANDROID_KEYSTORE_BASE64`: the release keystore encoded with Base64
-- `ANDROID_KEYSTORE_PASSWORD`: the keystore password
-- `ANDROID_KEY_ALIAS`: the signing key alias
-- `ANDROID_KEY_PASSWORD`: the signing key password
-
-Keep the historical signing key if releases must update existing installations.
-
-For cutting releases and publishing to Zapstore, see
-[docs/DEPLOY.md](docs/DEPLOY.md).
+Signed GitHub Releases and Zapstore publishing: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## License
 

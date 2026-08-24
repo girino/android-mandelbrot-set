@@ -16,6 +16,9 @@ git tag vX.Y.Z  ->  push tag  ->  GitHub Actions "Android release" workflow
                               Zapstore via zsp from WSL
 ```
 
+Tags that exactly match `vMAJOR.MINOR.PATCH` (e.g. `v1.3.0`) create a **stable**
+GitHub Release. Any other tag (e.g. `v1.1.0-alpha`) creates a **pre-release**.
+
 ## Prerequisites (one-time)
 
 ### GitHub Actions secrets
