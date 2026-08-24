@@ -175,4 +175,5 @@ and regression tests in `MandelbrotViewGestureTest`.
   change gets an entry in [CHANGELOG.md](../CHANGELOG.md).
 - A pushed tag triggers the signed release build (see
   [DEPLOY.md](DEPLOY.md)). Tags matching `vMAJOR.MINOR.PATCH` publish as
-  stable; any other tag publishes as pre-release.
+  stable; any other tag publishes as pre-release. Zapstore publish is manual
+  from WSL after the GitHub Release — details in DEPLOY.md (not in the README).

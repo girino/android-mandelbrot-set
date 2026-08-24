@@ -63,26 +63,8 @@ Configure these GitHub Actions repository secrets before pushing a tag:
 
 Keep the historical signing key if releases must update existing installations.
 
-## Zapstore
-
-Stable GitHub releases can be published to [Zapstore](https://zapstore.dev) with
-[`zsp`](https://github.com/zapstore/zsp). The repo root contains
-[`zapstore.yaml`](zapstore.yaml) with the publisher npub and Fastlane metadata
-sources.
-
-Publish manually from **WSL** (required — `zsp` does not build on native Windows).
-Credentials: gitignored `.credentials.env` with a **quoted** value
-(`SIGN_WITH='bunker://...?relay=...&secret=...'` — quotes required because of `&`).
-See [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc) for the full flow.
-
-```shell
-# inside WSL, repo root:
-set -a && . ./.credentials.env && set +a
-zsp publish -q /absolute/path/to/zapstore.yaml
-```
-
-On the first publish, `zsp` may prompt to link the Android signing certificate
-to your Nostr identity.
+For cutting releases and publishing to Zapstore, see
+[docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## License
 

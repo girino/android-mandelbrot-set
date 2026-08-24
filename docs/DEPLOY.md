@@ -41,6 +41,10 @@ gh secret list -R girino/android-mandelbrot-set
 
 ### Zapstore tooling
 
+Stable GitHub releases can be published to [Zapstore](https://zapstore.dev) with
+[`zsp`](https://github.com/zapstore/zsp). Repo root [`zapstore.yaml`](../zapstore.yaml)
+holds the publisher npub and Fastlane metadata sources.
+
 `zsp` does not build on Windows; publish from WSL (one-time setup):
 
 ```bash
@@ -67,6 +71,9 @@ SIGN_WITH='bunker://...?relay=wss://...&secret=...'
 Never commit that file, never print `SIGN_WITH` in chat/logs. Before publish,
 validate quotes/`&` per [`.cursor/rules/zapstore-wsl.mdc`](../.cursor/rules/zapstore-wsl.mdc)
 (unquoted bunker URI breaks `source`).
+
+On the **first** publish, `zsp` may prompt to link the Android signing certificate
+to your Nostr identity.
 
 ## Cutting a stable release
 
