@@ -37,9 +37,9 @@ public final class AdaptiveRefiner {
     }
 
     /** Publish an in-progress frame after this many border samples (approx). */
-    static final int PREVIEW_PIXEL_INTERVAL = 1000;
+    static final int PREVIEW_PIXEL_INTERVAL = 4000;
     /** Minimum milliseconds between in-progress publishes. */
-    static final long PREVIEW_MIN_INTERVAL_MS = 100L;
+    static final long PREVIEW_MIN_INTERVAL_MS = 250L;
 
     private AdaptiveRefiner() {
     }

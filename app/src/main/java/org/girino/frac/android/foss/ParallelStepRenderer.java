@@ -41,12 +41,12 @@ public final class ParallelStepRenderer {
     }
 
     /**
-     * Higher worker count for Adaptive border retests: 4× cores, capped at 32.
+     * Higher worker count for Adaptive border retests: 2× cores, capped at 16.
      * Pass-1 stays on defaultWorkerCount to avoid oversubscribing coarse steps.
      */
     public static int adaptiveWorkerCount() {
         int cores = Runtime.getRuntime().availableProcessors();
-        return Math.max(1, Math.min(32, cores * 4));
+        return Math.max(1, Math.min(16, cores * 2));
     }
 
     /** Shared factory for fractal sample worker threads. */
