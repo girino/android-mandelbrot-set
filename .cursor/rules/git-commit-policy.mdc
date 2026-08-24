@@ -30,7 +30,8 @@ Quando o usuário pedir uma release (ex.: "vamos lançar a 1.0.3"):
 2. Commitar, criar a tag, e **pushar branch + tag** (a tag dispara o workflow
    *Android release*, que publica o APK assinado na GitHub Release).
 3. Se o pedido incluir Zapstore, seguir [zapstore-wsl.mdc](zapstore-wsl.mdc)
-   (WSL + `zsp`, caminho absoluto da config, `SIGN_WITH` no ambiente).
+   (WSL + `zsp`, path absoluto, `SIGN_WITH` em `.credentials.env` **com aspas** —
+   URI `bunker://` tem `&`; sem aspas o `source` corta o valor).
 4. Confirmar a GitHub Release publicada (`gh release view <tag>`) antes de anunciar.
 
 Push de branch/tag conta como parte do pedido de release — não precisa pedir

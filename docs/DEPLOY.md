@@ -64,8 +64,9 @@ Signing uses `SIGN_WITH` (`bunker://...` or nsec) from the gitignored
 SIGN_WITH='bunker://...?relay=wss://...&secret=...'
 ```
 
-Never commit that file, never print `SIGN_WITH` in chat/logs. Agent load/WSL
-gotchas: [`.cursor/rules/zapstore-wsl.mdc`](../.cursor/rules/zapstore-wsl.mdc).
+Never commit that file, never print `SIGN_WITH` in chat/logs. Before publish,
+validate quotes/`&` per [`.cursor/rules/zapstore-wsl.mdc`](../.cursor/rules/zapstore-wsl.mdc)
+(unquoted bunker URI breaks `source`).
 
 ## Cutting a stable release
 

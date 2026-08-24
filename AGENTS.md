@@ -18,7 +18,7 @@ follow it.
 | [`.cursor/rules/local-android-sdk.mdc`](.cursor/rules/local-android-sdk.mdc) | always | Use repo-local `.jdk/` and `.android-sdk/`; never global SDK/JDK; no JDoc inline tags in `app/src/main/**` (lint crash) |
 | [`.cursor/rules/viewport-smooth-transition.mdc`](.cursor/rules/viewport-smooth-transition.mdc) | always | Mandatory smooth pan/pinch model: deferred commit + atomic handoff in `MandelbrotView` — read before touching it |
 | [`.cursor/rules/headless-gesture-tests.mdc`](.cursor/rules/headless-gesture-tests.mdc) | gesture/view files | Robolectric headless tests for pinch+drag; run `MandelbrotViewGestureTest` after gesture changes |
-| [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc) | `zapstore.yaml` / release publishing | Zapstore publishing from WSL with absolute config paths |
+| [`.cursor/rules/zapstore-wsl.mdc`](.cursor/rules/zapstore-wsl.mdc) | `zapstore.yaml` / release publishing | Zapstore via WSL; `.credentials.env` with **quoted** `SIGN_WITH='bunker://...?&...'` (unquoted `&` breaks `source`) |
 
 Conflict order observed in this repo: explicit user request > these rules >
 your own defaults.

@@ -53,6 +53,44 @@ Também aceito: `SIGN_WITH='nsec1...'` (mesmo arquivo).
 **Agente:** se o arquivo faltar ou `SIGN_WITH` estiver vazio após o load, pedir ao
 usuário para preencher `.credentials.env` — não vasculhar transcripts por bunker.
 
+### Validação obrigatória — aspas e `&` (antes de `zsp publish`)
+
+O agente **deve** validar isto antes de publicar. Não imprima o valor.
+
+1. **Aspas no arquivo** — a linha tem de ser `SIGN_WITH='...'` ou `SIGN_WITH="..."`:
+   - Sem aspas, cada `&` da query (`relay=...&secret=...`) é operador do bash no
+     `source`/`.` → o valor fica truncado (só até o primeiro `&`) ou a variável
+     nem fica setada no shell atual → sintoma falso de “SIGN_WITH missing”.
+2. **Após o `source`** — prefixo ok e não vazio (nunca `printenv` / `echo` do valor):
+
+```bash
+set -a
+. "$REPO/.credentials.env"
+set +a
+case "${SIGN_WITH:-}" in
+  bunker://*|nsec1*) echo "SIGN_WITH_ok" ;;
+  *) echo "SIGN_WITH_bad: confira aspas em .credentials.env (URI tem &)" >&2; exit 1 ;;
+esac
+```
+
+3. **Não** embutir a URI em `bash -lc` / strings PowerShell: `?` e `&` quebram o
+   quoting mesmo com aspas no arquivo.
+
+Checklist rápido (PowerShell, sem vazar segredo — só estrutura da linha):
+
+```powershell
+# key + quoted? + bunkerPrefix after stripping one pair of quotes — never print value
+Get-Content .credentials.env | Where-Object { $_ -match '^\s*SIGN_WITH=' } | ForEach-Object {
+  $v = ($_ -split '=', 2)[1]
+  $quoted = ($v.StartsWith("'") -and $v.EndsWith("'")) -or ($v.StartsWith('"') -and $v.EndsWith('"'))
+  if ($quoted) { $v = $v.Substring(1, $v.Length - 2) }
+  "quoted=$quoted bunkerPrefix=$($v.StartsWith('bunker://') -or $v.StartsWith('nsec1'))"
+}
+```
+
+Se `quoted=False`, **pare** e peça ao usuário para colocar o valor entre aspas
+simples. Não tente “consertar” colando bunker no chat ou no script.
+
 ### Verificar sem vazar o valor
 
 ```bash
