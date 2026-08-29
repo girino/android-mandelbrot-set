@@ -402,6 +402,7 @@ public class MandelbrotView extends View {
                 postRenderProgress(generation, completed, total);
 
         AtomicBoolean stepEscapes = adaptive ? new AtomicBoolean(false) : null;
+        AtomicBoolean adaptiveColoredEscape = adaptive ? new AtomicBoolean(false) : null;
 
         for (int step = 8; step > 0; step /= 2) {
             boolean finished = ParallelStepRenderer.fillStep(
@@ -427,6 +428,9 @@ public class MandelbrotView extends View {
             if (!finished) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
+            }
+            if (adaptiveColoredEscape != null && stepEscapes != null && stepEscapes.get()) {
+                adaptiveColoredEscape.set(true);
             }
             postRenderProgress(generation, doneSamples.get(), totalSamples);
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
@@ -475,16 +479,13 @@ public class MandelbrotView extends View {
             // Border rounds have no fixed sample budget — indeterminate bar (issue #31).
             postRenderIndeterminate(generation, true);
             AdaptiveRefiner.PreviewListener previewListener = (px, w, h, limit) -> {
+                if (skipAdaptiveUiPublish(adaptiveColoredEscape)) {
+                    return;
+                }
                 rendered.setPixels(px, 0, w, 0, 0, w, h);
                 adaptiveMaxIter = limit;
-                post(() -> {
-                    if (generation != renderGeneration.get() || activePointers > 0) {
-                        return;
-                    }
-                    bitmap = rendered;
-                    invalidate();
-                    notifyEffectiveMaxIterChanged();
-                });
+                post(() -> publishRenderedFrame(
+                        generation, rendered, renderCenterX, renderCenterY, renderScale, false));
             };
             AdaptiveRefiner.RoundListener roundListener = (px, w, h, limit) -> {
                 adaptiveMaxIter = limit;
@@ -522,32 +523,69 @@ public class MandelbrotView extends View {
                     roundListener,
                     adaptiveMinStopIter,
                     orbit,
-                    previewListener);
+                    previewListener,
+                    adaptiveColoredEscape);
             if (maxReached < 0) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
             }
             adaptiveMaxIter = maxReached;
-            rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
-            post(() -> {
-                if (generation != renderGeneration.get() || activePointers > 0) {
-                    clearRenderBusyIfCurrent(generation);
-                    return;
-                }
-                bitmap = rendered;
-                invalidate();
-                notifyEffectiveMaxIterChanged();
-                clearRenderBusyIfCurrent(generation);
-            });
+            if (!skipAdaptiveUiPublish(adaptiveColoredEscape)) {
+                rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
+                post(() -> publishRenderedFrame(
+                        generation, rendered, renderCenterX, renderCenterY, renderScale, true));
+            } else {
+                post(() -> clearRenderBusyIfCurrent(generation));
+            }
         }
     }
 
     /**
-     * Issue #48: when Adaptive pass-1 (any progressive step) found no escapes,
-     * keep the on-screen bitmap/preview until border refine colors edges.
+     * Atomic handoff: published bitmap matches target viewport under identity
+     * transform; frozen gesture preview cleared together (issue #48).
+     */
+    private void publishRenderedFrame(
+            int generation,
+            Bitmap renderedBitmap,
+            double publishCenterX,
+            double publishCenterY,
+            double publishScale,
+            boolean clearBusy) {
+        if (generation != renderGeneration.get() || activePointers > 0) {
+            if (clearBusy) {
+                clearRenderBusyIfCurrent(generation);
+            }
+            return;
+        }
+        bitmap = renderedBitmap;
+        centerX = publishCenterX;
+        centerY = publishCenterY;
+        scale = publishScale;
+        hasPendingTarget = false;
+        accumulatedScale = 1f;
+        positionX = 0f;
+        positionY = 0f;
+        startFocusX = width / 2f;
+        startFocusY = height / 2f;
+        focusX = startFocusX;
+        focusY = startFocusY;
+        invalidate();
+        notifyEffectiveMaxIterChanged();
+        if (clearBusy) {
+            clearRenderBusyIfCurrent(generation);
+        }
+    }
+
+    /**
+     * Issue #48: keep prior preview until pass-1 or border refine finds an
+     * escaped (colored) pixel.
      */
     static boolean skipAdaptiveProgressivePublish(boolean adaptive, AtomicBoolean stepEscapes) {
         return adaptive && stepEscapes != null && !stepEscapes.get();
+    }
+
+    static boolean skipAdaptiveUiPublish(AtomicBoolean coloredEscapeSeen) {
+        return coloredEscapeSeen != null && !coloredEscapeSeen.get();
     }
 
     @Override

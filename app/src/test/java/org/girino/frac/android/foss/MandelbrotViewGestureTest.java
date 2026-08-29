@@ -389,6 +389,16 @@ public class MandelbrotViewGestureTest {
         assertFalse(MandelbrotView.skipAdaptiveProgressivePublish(true, null));
     }
 
+    /** Issue #48: skip Adaptive UI publish until first colored escape. */
+    @Test
+    public void skipAdaptiveUiPublish_untilColoredEscapeSeen() {
+        AtomicBoolean seen = new AtomicBoolean(false);
+        assertTrue(MandelbrotView.skipAdaptiveUiPublish(seen));
+        seen.set(true);
+        assertFalse(MandelbrotView.skipAdaptiveUiPublish(seen));
+        assertFalse(MandelbrotView.skipAdaptiveUiPublish(null));
+    }
+
     /** Issue #9: sample count matches progressive 8→4→2→1 grid visits. */
     @Test
     public void progressiveSampleCount_matchesNestedLoops() {

@@ -1,6 +1,7 @@
 package org.girino.frac.android.foss;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.girino.frac.operators.FractalOperator;
@@ -16,6 +17,7 @@ import org.junit.rules.Timeout;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Border-doubling adaptive refinement (issue #28). */
@@ -222,6 +224,29 @@ public class AdaptiveRefinerTest {
                 ops, palette, false, pass1, 1, cap,
                 workers, null, done, width * height, null, null, seed);
         assertEquals(seed, reached);
+    }
+
+    @Test
+    public void refine_allInterior_doesNotCallPreviewUntilEscape() {
+        int width = 3;
+        int height = 3;
+        double deepScale = 1e12;
+        boolean[] interior = new boolean[width * height];
+        Arrays.fill(interior, true);
+        int[] pixels = new int[width * height];
+        Arrays.fill(pixels, 0xff000000);
+        AtomicInteger previewCalls = new AtomicInteger();
+        AtomicBoolean coloredEscape = new AtomicBoolean(false);
+        AdaptiveRefiner.PreviewListener preview = (px, w, h, limit) -> previewCalls.incrementAndGet();
+        int reached = AdaptiveRefiner.refine(
+                pixels, interior, width, height, deepScale, 0, 0,
+                new FractalOperator[] {new OptimizedMandelbrotOperator()},
+                new HSBPalette(), false, 8, 1, 16,
+                workers, null, new AtomicInteger(), width * height, null,
+                null, 0, null, preview, coloredEscape);
+        assertTrue(reached >= 8);
+        assertFalse(coloredEscape.get());
+        assertEquals(0, previewCalls.get());
     }
 
     @Test

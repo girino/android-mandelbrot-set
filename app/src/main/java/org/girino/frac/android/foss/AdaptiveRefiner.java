@@ -160,18 +160,6 @@ public final class AdaptiveRefiner {
                 seedMinStopIter, orbit, null);
     }
 
-    /**
-     * @param seedMinStopIter minimum iteration limit before an empty border
-     *         pass may stop doubling (usually the Adaptive value shown on the
-     *         overlay from the previous zoom; 0 if none). Doubling always
-     *         starts at pass1MaxIter; early stop only when probed limit is
-     *         already >= seedMinStopIter (so outer borders keep intermediate
-     *         colors). Every border collect unions the image perimeter with
-     *         any fractal seam.
-     * @param orbit optional per-pixel checkpoints from pass-1; when set,
-     *         border retests continue from the stored iteration and Z.
-     * @param previewListener optional throttled UI snapshot while retesting.
-     */
     public static int refine(
             int[] pixels,
             boolean[] interior,
@@ -195,6 +183,51 @@ public final class AdaptiveRefiner {
             int seedMinStopIter,
             OrbitState orbit,
             PreviewListener previewListener) {
+        return refine(
+                pixels, interior, width, height, scale, centerX, centerY,
+                workerOperators, palette, smooth, pass1MaxIter, maxRounds, absoluteCap,
+                workers, cancel, doneSamples, progressTotal, progress, roundListener,
+                seedMinStopIter, orbit, previewListener, null);
+    }
+
+    /**
+     * @param seedMinStopIter minimum iteration limit before an empty border
+     *         pass may stop doubling (usually the Adaptive value shown on the
+     *         overlay from the previous zoom; 0 if none). Doubling always
+     *         starts at pass1MaxIter; early stop only when probed limit is
+     *         already >= seedMinStopIter (so outer borders keep intermediate
+     *         colors). Every border collect unions the image perimeter with
+     *         any fractal seam.
+     * @param orbit optional per-pixel checkpoints from pass-1; when set,
+     *         border retests continue from the stored iteration and Z.
+     * @param previewListener optional throttled UI snapshot while retesting.
+     * @param coloredEscapeSeen when non-null, set true on the first border
+     *         pixel that escapes during refine (issue #48).
+     */
+    public static int refine(
+            int[] pixels,
+            boolean[] interior,
+            int width,
+            int height,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int pass1MaxIter,
+            int maxRounds,
+            int absoluteCap,
+            ExecutorService workers,
+            ParallelStepRenderer.CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int progressTotal,
+            ParallelStepRenderer.ProgressListener progress,
+            RoundListener roundListener,
+            int seedMinStopIter,
+            OrbitState orbit,
+            PreviewListener previewListener,
+            AtomicBoolean coloredEscapeSeen) {
         if (pixels == null || interior == null || width <= 0 || height <= 0) {
             return -1;
         }
@@ -280,10 +313,15 @@ public final class AdaptiveRefiner {
                 if (!finished) {
                     return -1;
                 }
+                if (anyEscaped.get()) {
+                    anyEscapedAtThisLimit = true;
+                    if (coloredEscapeSeen != null) {
+                        coloredEscapeSeen.set(true);
+                    }
+                }
                 if (!anyEscaped.get()) {
                     break;
                 }
-                anyEscapedAtThisLimit = true;
                 if (roundListener != null) {
                     roundListener.onRoundComplete(pixels, width, height, nextLimit);
                 }
@@ -612,7 +650,7 @@ public final class AdaptiveRefiner {
                     workerOperators[0], palette, smooth, nextLimit,
                     cancel, anyEscaped, doneSamples, progressTotal, progress, orbit,
                     previewSamples, visitedAtLimit);
-            if (ok && previewListener != null) {
+            if (ok && previewListener != null && anyEscaped.get()) {
                 previewListener.onPreview(pixels, width, height, previewLimit);
             }
             return ok;
@@ -656,7 +694,7 @@ public final class AdaptiveRefiner {
                 if (latch.await(50, java.util.concurrent.TimeUnit.MILLISECONDS)) {
                     break;
                 }
-                if (previewListener != null && previewSamples != null) {
+                if (previewListener != null && previewSamples != null && anyEscaped.get()) {
                     int done = previewSamples.get();
                     long now = System.currentTimeMillis();
                     if (done - lastPreviewAt >= PREVIEW_PIXEL_INTERVAL
@@ -680,7 +718,7 @@ public final class AdaptiveRefiner {
             }
             return false;
         }
-        if (!cancelled.get() && previewListener != null) {
+        if (!cancelled.get() && previewListener != null && anyEscaped.get()) {
             previewListener.onPreview(pixels, width, height, previewLimit);
         }
         return !cancelled.get() && (cancel == null || !cancel.isCancelled());

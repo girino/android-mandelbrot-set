@@ -79,9 +79,10 @@ Cancellation honors `renderGeneration` and thread interrupt
 At deep zoom, pass-1 at the configured Fixed max often escapes **no** pixels
 (the whole frame is interior/black). In Adaptive mode those progressive steps
 (8→4→2→1) still run (OrbitState / interior seed is needed), but **UI bitmap
-swap is skipped** when a step sampled zero escapes. The previous on-screen
-frame (gesture preview or last good publish) stays until Adaptive border refine
-posts a frame with escaped pixels via `PreviewListener` or the final handoff.
+swap is skipped** when a step sampled zero escapes. Border refine likewise
+skips throttled PreviewListener publishes until the **first border pixel
+escapes** (colored/divergent). The previous on-screen frame (gesture preview
+or last good publish) stays until then.
 
 Gated by `SKIP_ALL_BLACK_ADAPTIVE_PROGRESSIVE` in `MandelbrotView`. Non-Adaptive
 progressive publish is unchanged. Mid-gesture and stale-generation gates still
