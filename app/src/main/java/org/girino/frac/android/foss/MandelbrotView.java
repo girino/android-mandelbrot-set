@@ -92,6 +92,9 @@ public class MandelbrotView extends View {
     private RenderBusyListener renderBusyListener;
     private CoordinateReadoutListener coordinateReadoutListener;
     private boolean renderBusy;
+    /** Render worker lifecycle — tests await zero before shutting pools down. */
+    private final AtomicInteger renderActiveCount = new AtomicInteger(0);
+    private final Object renderIdleLock = new Object();
 
     private int width = 320;
     private int height = 480;
@@ -325,6 +328,40 @@ public class MandelbrotView extends View {
     }
 
     private void render(
+            int generation,
+            int renderWidth,
+            int renderHeight,
+            double renderScale,
+            double renderCenterX,
+            double renderCenterY,
+            FractalOperator renderOperator,
+            PaletteProvider renderPalette,
+            boolean renderSmooth,
+            int renderMaxIter,
+            int adaptiveMinStopIter) {
+        renderActiveCount.incrementAndGet();
+        try {
+            renderBody(
+                    generation,
+                    renderWidth,
+                    renderHeight,
+                    renderScale,
+                    renderCenterX,
+                    renderCenterY,
+                    renderOperator,
+                    renderPalette,
+                    renderSmooth,
+                    renderMaxIter,
+                    adaptiveMinStopIter);
+        } finally {
+            renderActiveCount.decrementAndGet();
+            synchronized (renderIdleLock) {
+                renderIdleLock.notifyAll();
+            }
+        }
+    }
+
+    private void renderBody(
             int generation,
             int renderWidth,
             int renderHeight,
@@ -865,8 +902,35 @@ public class MandelbrotView extends View {
 
     // --- Robolectric gesture tests (same package) ---
 
+    /** Test-only: set policy without scheduling a render. */
+    void testingSetIterationSettings(IterationSettings settings) {
+        this.iterationSettings = settings != null ? settings : IterationSettings.defaults();
+        if (this.iterationSettings.mode != IterationSettings.Mode.ADAPTIVE) {
+            adaptiveMaxIter = 0;
+        }
+    }
+
     void testingStopRender() {
         stop();
+    }
+
+    /** Waits until the render worker finishes (tests only). */
+    void testingAwaitRenderIdle(long timeoutMs) {
+        long deadline = System.currentTimeMillis() + Math.max(0L, timeoutMs);
+        synchronized (renderIdleLock) {
+            while (renderActiveCount.get() > 0 && System.currentTimeMillis() < deadline) {
+                long waitMs = deadline - System.currentTimeMillis();
+                if (waitMs <= 0) {
+                    break;
+                }
+                try {
+                    renderIdleLock.wait(waitMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -875,6 +939,7 @@ public class MandelbrotView extends View {
      */
     void testingReleaseBitmap() {
         stop();
+        testingAwaitRenderIdle(3000L);
         renderExecutor.shutdownNow();
         workerPool.shutdownNow();
         adaptiveWorkerPool.shutdownNow();

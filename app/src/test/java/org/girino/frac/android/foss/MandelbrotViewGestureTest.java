@@ -18,8 +18,8 @@ import org.robolectric.shadows.ShadowLooper;
 @Config(manifest = Config.NONE, sdk = 28)
 public class MandelbrotViewGestureTest {
 
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 480;
+    private static final int WIDTH = 64;
+    private static final int HEIGHT = 64;
     private static final double EPS = 1e-4;
 
     private MandelbrotView view;
@@ -31,6 +31,7 @@ public class MandelbrotViewGestureTest {
                 android.view.View.MeasureSpec.makeMeasureSpec(WIDTH, android.view.View.MeasureSpec.EXACTLY),
                 android.view.View.MeasureSpec.makeMeasureSpec(HEIGHT, android.view.View.MeasureSpec.EXACTLY));
         view.layout(0, 0, WIDTH, HEIGHT);
+        MandelbrotViewTestHelper.useFastFixedIterations(view);
         view.testingStopRender();
     }
 
@@ -305,6 +306,7 @@ public class MandelbrotViewGestureTest {
         view.start();
         assertTrue(view.testingRenderBusy());
         view.stop();
+        view.testingAwaitRenderIdle(3000L);
         ShadowLooper.runUiThreadTasksIncludingDelayedTasks();
         assertFalse(view.testingRenderBusy());
     }

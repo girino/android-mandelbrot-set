@@ -66,9 +66,11 @@ android {
             isIncludeAndroidResources = false
             all {
                 it.useJUnitPlatform()
-                it.maxHeapSize = "1g"
-                // Fail the task instead of hanging the CI job for 20 minutes.
-                it.timeout.set(Duration.ofMinutes(10))
+                it.maxHeapSize = "512m"
+                // One JVM per class: stray render threads must not block the whole suite.
+                it.forkEvery = 1L
+                it.maxParallelForks = 1
+                it.timeout.set(Duration.ofMinutes(3))
             }
         }
     }

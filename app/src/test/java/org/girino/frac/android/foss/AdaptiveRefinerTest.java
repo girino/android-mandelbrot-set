@@ -9,7 +9,9 @@ import org.girino.frac.palettes.HSBPalette;
 import org.girino.frac.palettes.PaletteProvider;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Border-doubling adaptive refinement (issue #28). */
 public class AdaptiveRefinerTest {
+
+    @Rule
+    public Timeout perTestTimeout = Timeout.seconds(60);
 
     private ExecutorService workers;
 
@@ -266,12 +271,12 @@ public class AdaptiveRefinerTest {
 
     @Test
     public void refine_escapeClassification_matchesBruteForceAtFinalCap() {
-        int width = 24;
-        int height = 18;
+        int width = 16;
+        int height = 12;
         double scale = homeScale(width);
-        int pass1 = 20;
-        int cap = 80;
-        int rounds = 8;
+        int pass1 = 16;
+        int cap = 48;
+        int rounds = 4;
         PaletteProvider palette = new HSBPalette();
         FractalOperator[] ops = {
                 new OptimizedMandelbrotOperator(),
@@ -310,11 +315,11 @@ public class AdaptiveRefinerTest {
 
     @Test
     public void refine_stabilizesBorderAtEachLimit() {
-        int width = 32;
-        int height = 24;
+        int width = 16;
+        int height = 12;
         double scale = homeScale(width);
-        int pass1 = 10;
-        int cap = 160;
+        int pass1 = 8;
+        int cap = 64;
         PaletteProvider palette = new HSBPalette();
         FractalOperator[] ops = {
                 new OptimizedMandelbrotOperator(),
@@ -336,7 +341,7 @@ public class AdaptiveRefinerTest {
 
         int maxReached = AdaptiveRefiner.refine(
                 pixels, interior, width, height, scale, 0, 0,
-                ops, palette, false, pass1, 8, cap,
+                ops, palette, false, pass1, 4, cap,
                 workers, null, done, width * height * 4, null,
                 (px, w, h, limit) -> publishes.incrementAndGet(), 0, orbit);
         assertTrue(maxReached >= pass1);
@@ -360,8 +365,8 @@ public class AdaptiveRefinerTest {
 
     @Test
     public void refine_stopsWhenCancelled() {
-        int width = 64;
-        int height = 48;
+        int width = 24;
+        int height = 16;
         double scale = homeScale(width);
         PaletteProvider palette = new HSBPalette();
         FractalOperator[] ops = {

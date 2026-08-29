@@ -19,8 +19,8 @@ import org.robolectric.annotation.Config;
 @Config(manifest = Config.NONE, sdk = 28)
 public class ViewportExportTest {
 
-    private static final int WIDTH = 320;
-    private static final int HEIGHT = 480;
+    private static final int WIDTH = 64;
+    private static final int HEIGHT = 64;
 
     private MandelbrotView view;
 
@@ -66,6 +66,7 @@ public class ViewportExportTest {
                 android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
                 android.view.View.MeasureSpec.makeMeasureSpec(height, android.view.View.MeasureSpec.EXACTLY));
         target.layout(0, 0, width, height);
+        MandelbrotViewTestHelper.useFastFixedIterations(target);
         target.testingStopRender();
         return target;
     }

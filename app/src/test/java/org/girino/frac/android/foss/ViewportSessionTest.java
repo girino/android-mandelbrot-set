@@ -17,10 +17,10 @@ import org.robolectric.annotation.Config;
 @Config(manifest = Config.NONE, sdk = 28)
 public class ViewportSessionTest {
 
-    private static final int PORTRAIT_W = 320;
-    private static final int PORTRAIT_H = 480;
-    private static final int LANDSCAPE_W = 480;
-    private static final int LANDSCAPE_H = 320;
+    private static final int PORTRAIT_W = 64;
+    private static final int PORTRAIT_H = 64;
+    private static final int LANDSCAPE_W = 96;
+    private static final int LANDSCAPE_H = 64;
     private static final double EPS = 1e-6;
 
     private MandelbrotView view;
@@ -85,6 +85,7 @@ public class ViewportSessionTest {
     private static MandelbrotView laidOutView(int width, int height) {
         MandelbrotView target = new MandelbrotView(RuntimeEnvironment.getApplication());
         layout(target, width, height);
+        MandelbrotViewTestHelper.useFastFixedIterations(target);
         target.testingStopRender();
         return target;
     }

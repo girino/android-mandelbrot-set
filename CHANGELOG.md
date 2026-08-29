@@ -7,6 +7,8 @@
 - Fix flaky Android CI hang on testDebugUnitTest: drain Robolectric main
   looper in MandelbrotView test tearDown, run tests before lint in CI, raise
   unit-test task timeout to 10 minutes.
+- Shorten headless render tests (64×64, low iter caps), await render worker
+  shutdown, and fork one JVM per test class so CI fails fast instead of hanging.
 
 ## 1.1.1 - 2026-08-29
 

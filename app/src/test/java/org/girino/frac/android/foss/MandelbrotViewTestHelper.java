@@ -13,7 +13,19 @@ final class MandelbrotViewTestHelper {
             return;
         }
         view.testingStopRender();
+        view.testingAwaitRenderIdle(3000L);
         ShadowLooper.runUiThreadTasksIncludingDelayedTasks();
         view.testingReleaseBitmap();
+    }
+
+    /** Low iteration cap so accidental renders stay fast and deterministic. */
+    static void useFastFixedIterations(MandelbrotView view) {
+        view.testingSetIterationSettings(new IterationSettings(
+                IterationSettings.Mode.FIXED,
+                12,
+                12,
+                1.2,
+                1,
+                64));
     }
 }
