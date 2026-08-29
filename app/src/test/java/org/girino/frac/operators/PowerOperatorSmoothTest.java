@@ -13,7 +13,7 @@ class PowerOperatorSmoothTest {
 
     @ParameterizedTest
     @ValueSource(ints = {3, 4, 5})
-    void iterationPower_matchesMapDegree(int power) {
+    void iterationPower_matchesMapDegree(int power) throws Exception {
         FractalOperator operator = operatorForPower(power);
         assertEquals(Math.log(power), logEscapeRadius(operator), 1e-12);
     }

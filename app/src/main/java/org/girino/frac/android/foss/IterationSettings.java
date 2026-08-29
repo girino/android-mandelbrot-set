@@ -75,6 +75,20 @@ public final class IterationSettings {
                 DEFAULT_ABSOLUTE_CAP);
     }
 
+    /**
+     * Whether saving should show the soft iter warning for the active mode
+     * only (disabled fields such as Adaptive cap in Fixed mode are ignored).
+     */
+    public static boolean exceedsSoftWarn(Mode mode, int fixed, int base, int absoluteCap) {
+        if (mode == Mode.SCALE_WITH_ZOOM) {
+            return base > SOFT_ITER_WARN;
+        }
+        if (mode == Mode.ADAPTIVE) {
+            return fixed > SOFT_ITER_WARN || absoluteCap > SOFT_ITER_WARN;
+        }
+        return fixed > SOFT_ITER_WARN;
+    }
+
     private static int clampInt(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }
