@@ -59,6 +59,8 @@ public class MandelbrotActivity extends AppCompatActivity {
     private TextView statusOverlayChip;
     private int operatorIndex = DEFAULT_OPERATOR_INDEX;
     private int paletteIndex = DEFAULT_PALETTE_INDEX;
+    /** Set when pausing mid-render; cleared after resume restart. */
+    private boolean resumeInterruptedRender;
     private Bitmap pendingSaveBitmap;
     private final ActivityResultLauncher<String> saveDocumentLauncher =
             registerForActivityResult(
@@ -428,13 +430,19 @@ public class MandelbrotActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshStatusOverlay();
-        view.start();
+        if (resumeInterruptedRender) {
+            resumeInterruptedRender = false;
+            view.start();
+        }
     }
 
     @Override
     protected void onPause() {
-        view.stop();
-        onRenderBusy(false);
+        resumeInterruptedRender = view.isRenderBusy();
+        if (resumeInterruptedRender) {
+            view.stop();
+            onRenderBusy(false);
+        }
         super.onPause();
     }
 
