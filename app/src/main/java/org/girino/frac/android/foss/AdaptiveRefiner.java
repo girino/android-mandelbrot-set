@@ -772,9 +772,9 @@ public final class AdaptiveRefiner {
             if (orbit != null && orbit.hasCheckpoint(index)) {
                 operator.sampleContinueInto(
                         point,
-                        orbit.checkpointIter(index),
-                        orbit.checkpointRe(index),
-                        orbit.checkpointIm(index),
+                        orbit.iter[index],
+                        orbit.re[index],
+                        orbit.im[index],
                         nextLimit,
                         smooth,
                         sample);
