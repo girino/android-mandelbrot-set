@@ -7,6 +7,11 @@ package org.girino.frac.operators;
  */
 public class FourthMandelbrotOperator extends FractalOperator {
 
+	@Override
+	protected int iterationPower() {
+		return 4;
+	}
+
 	public void step(int step, Complex Z, Complex C, int maxiter) {
 		double x = Z.getReal();
 		double y = Z.getImag();

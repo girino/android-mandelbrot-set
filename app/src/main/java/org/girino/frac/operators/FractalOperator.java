@@ -10,7 +10,18 @@ package org.girino.frac.operators;
 public abstract class FractalOperator {
 	protected static final double omega = 4;
 	protected static final double omega2 = omega*omega;
-	private static final double logEscapeRadius = Math.log(2.0);
+
+	/**
+	 * Degree k for maps z -> z^k + c. Smooth escape-time renormalization
+	 * divides by log(k) (issue #40). Default 2 matches Mandelbrot / Mandelbar.
+	 */
+	protected int iterationPower() {
+		return 2;
+	}
+
+	protected double getLogEscapeRadius() {
+		return Math.log(iterationPower());
+	}
 
 	/**
 	 * Escape-time sample: palette value plus whether the orbit escaped
@@ -144,9 +155,6 @@ public abstract class FractalOperator {
 	}
 	protected double produceResult(int step, Complex Z, Complex C, int maxiter) {
 		return ((double)step)/((double)maxiter);
-	}
-	protected double getLogEscapeRadius() {
-		return logEscapeRadius;
 	}
 	protected double produceSmoothResult(int step, Complex Z, Complex C, int maxiter) {
 		double mu = 0.0;

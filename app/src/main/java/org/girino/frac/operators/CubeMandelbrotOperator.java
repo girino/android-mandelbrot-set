@@ -11,6 +11,12 @@ package org.girino.frac.operators;
 public class CubeMandelbrotOperator extends FractalOperator {
 	
     Complex tmp = new Complex();
+
+	@Override
+	protected int iterationPower() {
+		return 3;
+	}
+
 	/**
 	 * yeah,m teh old stuff, Z = Z^3 + C.
 	 */
