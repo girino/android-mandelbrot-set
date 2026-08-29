@@ -74,6 +74,19 @@ and `ParallelStepRenderer.adaptiveWorkerCount()`.
 Cancellation honors `renderGeneration` and thread interrupt
 (`ParallelStepRenderer.CancelCheck`).
 
+## Skip all-black progressive publishes (issue #48, experimental)
+
+At deep zoom, pass-1 at the configured Fixed max often escapes **no** pixels
+(the whole frame is interior/black). In Adaptive mode those progressive steps
+(8→4→2→1) still run (OrbitState / interior seed is needed), but **UI bitmap
+swap is skipped** when a step sampled zero escapes. The previous on-screen
+frame (gesture preview or last good publish) stays until Adaptive border refine
+posts a frame with escaped pixels via `PreviewListener` or the final handoff.
+
+Gated by `SKIP_ALL_BLACK_ADAPTIVE_PROGRESSIVE` in `MandelbrotView`. Non-Adaptive
+progressive publish is unchanged. Mid-gesture and stale-generation gates still
+apply — skipped publishes do not clear frozen affine preview.
+
 ## Skip already-probed border pixels (same limit)
 
 While stabilizing at a fixed limit (for example 80), each pixel sampled at

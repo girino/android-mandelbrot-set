@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -33,6 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MandelbrotView extends View {
     private static final int INVALID_POINTER_ID = -1;
+    /** Issue #48: gate Adaptive progressive UI publishes when pass-1 has no escapes. */
+    private static final boolean SKIP_ALL_BLACK_ADAPTIVE_PROGRESSIVE = true;
     /** Discrete zoom step for HUD / menu / double-tap (issue #6). */
     private static final double ZOOM_STEP = 1.5;
 
@@ -398,6 +401,8 @@ public class MandelbrotView extends View {
         ParallelStepRenderer.ProgressListener progress = (completed, total) ->
                 postRenderProgress(generation, completed, total);
 
+        AtomicBoolean stepEscapes = adaptive ? new AtomicBoolean(false) : null;
+
         for (int step = 8; step > 0; step /= 2) {
             boolean finished = ParallelStepRenderer.fillStep(
                     pixels,
@@ -417,7 +422,8 @@ public class MandelbrotView extends View {
                     totalSamples,
                     progress,
                     step == 1 ? interior : null,
-                    step == 1 ? orbit : null);
+                    step == 1 ? orbit : null,
+                    stepEscapes);
             if (!finished) {
                 post(() -> clearRenderBusyIfCurrent(generation));
                 return;
@@ -426,9 +432,15 @@ public class MandelbrotView extends View {
             rendered.setPixels(pixels, 0, renderWidth, 0, 0, renderWidth, renderHeight);
             final int publishStep = step;
             final boolean clearBusy = publishStep == 1 && !adaptive;
+            final boolean skipPublish =
+                    SKIP_ALL_BLACK_ADAPTIVE_PROGRESSIVE
+                            && skipAdaptiveProgressivePublish(adaptive, stepEscapes);
             post(() -> {
                 if (generation != renderGeneration.get() || activePointers > 0) {
                     clearRenderBusyIfCurrent(generation);
+                    return;
+                }
+                if (skipPublish) {
                     return;
                 }
                 // Atomic handoff: swap bitmap and clear the frozen preview together —
@@ -528,6 +540,14 @@ public class MandelbrotView extends View {
                 clearRenderBusyIfCurrent(generation);
             });
         }
+    }
+
+    /**
+     * Issue #48: when Adaptive pass-1 (any progressive step) found no escapes,
+     * keep the on-screen bitmap/preview until border refine colors edges.
+     */
+    static boolean skipAdaptiveProgressivePublish(boolean adaptive, AtomicBoolean stepEscapes) {
+        return adaptive && stepEscapes != null && !stepEscapes.get();
     }
 
     @Override

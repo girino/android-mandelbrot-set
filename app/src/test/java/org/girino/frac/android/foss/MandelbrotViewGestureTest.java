@@ -13,6 +13,8 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /** Headless gesture tests for {@link MandelbrotView} (deferred-commit model). */
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 28)
@@ -374,6 +376,17 @@ public class MandelbrotViewGestureTest {
                     probes[i][1], HEIGHT, view.testingTargetCenterY(), view.testingTargetScale());
             assertEquals(previewCy[i], targetCy, EPS * Math.max(1, scale0));
         }
+    }
+
+    /** Issue #48: skip Adaptive progressive publish when pass found no escapes. */
+    @Test
+    public void skipAdaptiveProgressivePublish_onlyWhenAdaptiveAndAllInterior() {
+        AtomicBoolean escapes = new AtomicBoolean(false);
+        assertTrue(MandelbrotView.skipAdaptiveProgressivePublish(true, escapes));
+        escapes.set(true);
+        assertFalse(MandelbrotView.skipAdaptiveProgressivePublish(true, escapes));
+        assertFalse(MandelbrotView.skipAdaptiveProgressivePublish(false, escapes));
+        assertFalse(MandelbrotView.skipAdaptiveProgressivePublish(true, null));
     }
 
     /** Issue #9: sample count matches progressive 8→4→2→1 grid visits. */

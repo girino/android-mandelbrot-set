@@ -145,11 +145,44 @@ public final class ParallelStepRenderer {
             ProgressListener progress,
             boolean[] interior,
             OrbitState orbit) {
+        return fillStep(
+                pixels, width, height, step, scale, centerX, centerY,
+                workerOperators, palette, smooth, maxIter,
+                workers, cancel, doneSamples, totalSamples, progress, interior, orbit, null);
+    }
+
+    /**
+     * Like fillStep with interior and orbit; when anyEscapedOut is non-null,
+     * set to true if any sampled pixel escaped at maxIter (issue #48).
+     */
+    public static boolean fillStep(
+            int[] pixels,
+            int width,
+            int height,
+            int step,
+            double scale,
+            double centerX,
+            double centerY,
+            FractalOperator[] workerOperators,
+            PaletteProvider palette,
+            boolean smooth,
+            int maxIter,
+            ExecutorService workers,
+            CancelCheck cancel,
+            AtomicInteger doneSamples,
+            int totalSamples,
+            ProgressListener progress,
+            boolean[] interior,
+            OrbitState orbit,
+            AtomicBoolean anyEscapedOut) {
         if (pixels == null || width <= 0 || height <= 0 || step <= 0) {
             return false;
         }
         if (cancel != null && cancel.isCancelled()) {
             return false;
+        }
+        if (anyEscapedOut != null) {
+            anyEscapedOut.set(false);
         }
 
         int rowCount = (height - 1) / step + 1;
@@ -161,7 +194,7 @@ public final class ParallelStepRenderer {
                             ? workerOperators[0]
                             : null,
                     palette, smooth, maxIter, cancel, doneSamples, totalSamples, progress,
-                    interior, orbit);
+                    interior, orbit, anyEscapedOut);
         }
 
         int tasks = Math.min(workerCount, rowCount);
@@ -169,7 +202,7 @@ public final class ParallelStepRenderer {
             return fillStepSerial(
                     pixels, width, height, step, scale, centerX, centerY,
                     workerOperators[0], palette, smooth, maxIter,
-                    cancel, doneSamples, totalSamples, progress, interior, orbit);
+                    cancel, doneSamples, totalSamples, progress, interior, orbit, anyEscapedOut);
         }
 
         final int reportEvery = Math.max(1, totalSamples / 100);
@@ -187,7 +220,8 @@ public final class ParallelStepRenderer {
                             pixels, width, height, step, scale, centerX, centerY,
                             operator, palette, smooth, maxIter,
                             rowStart, rowEnd, cancel, cancelled,
-                            doneSamples, totalSamples, reportEvery, progress, interior, orbit);
+                            doneSamples, totalSamples, reportEvery, progress, interior, orbit,
+                            anyEscapedOut);
                 } finally {
                     latch.countDown();
                 }
@@ -244,7 +278,8 @@ public final class ParallelStepRenderer {
             int totalSamples,
             ProgressListener progress,
             boolean[] interior,
-            OrbitState orbit) {
+            OrbitState orbit,
+            AtomicBoolean anyEscapedOut) {
         if (operator == null) {
             return false;
         }
@@ -255,7 +290,8 @@ public final class ParallelStepRenderer {
                 pixels, width, height, step, scale, centerX, centerY,
                 operator, palette, smooth, maxIter,
                 0, rowCount, cancel, cancelled,
-                doneSamples, totalSamples, reportEvery, progress, interior, orbit);
+                doneSamples, totalSamples, reportEvery, progress, interior, orbit,
+                anyEscapedOut);
         return !cancelled.get() && (cancel == null || !cancel.isCancelled());
     }
 
@@ -280,7 +316,8 @@ public final class ParallelStepRenderer {
             int reportEvery,
             ProgressListener progress,
             boolean[] interior,
-            OrbitState orbit) {
+            OrbitState orbit,
+            AtomicBoolean anyEscapedOut) {
         Complex point = new Complex();
         Complex orbitScratch = orbit != null ? new Complex() : null;
         // Issue #33: one EscapeSample per worker row band (see FractalOperator.EscapeSample).
@@ -305,6 +342,9 @@ public final class ParallelStepRenderer {
                 }
                 point.set(cRe, cIm);
                 operator.sampleInto(point, maxIter, smooth, sample);
+                if (sample.escaped && anyEscapedOut != null) {
+                    anyEscapedOut.set(true);
+                }
                 int color = palette.getColor(sample.value);
                 fillBlock(pixels, width, height, x, y, step, color);
                 if (interior != null && step == 1) {
