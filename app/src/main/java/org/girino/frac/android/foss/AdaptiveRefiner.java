@@ -229,8 +229,8 @@ public final class AdaptiveRefiner {
                 break;
             }
 
-            int nextLimit = currentLimit > IterationSettings.MAX_ITER_CAP / 2
-                    ? IterationSettings.MAX_ITER_CAP
+            int nextLimit = currentLimit > IterationSettings.MAX_ABSOLUTE_CAP / 2
+                    ? IterationSettings.MAX_ABSOLUTE_CAP
                     : currentLimit * 2;
             if (nextLimit > cap) {
                 nextLimit = cap;

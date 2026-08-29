@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowInsets;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -155,13 +156,8 @@ public class MandelbrotActivity extends AppCompatActivity {
         refreshStatusOverlay();
     }
 
-    private void resetIterationSettingsToDefaults() {
-        applyIterationSettings(IterationSettingsStore.resetToDefaults(this));
-    }
-
-    /** Viewport home + iteration defaults (HUD Reset). */
+    /** Viewport home (HUD Reset). Iteration settings unchanged — use Iterations screen. */
     private void performFullReset() {
-        resetIterationSettingsToDefaults();
         view.reset();
         refreshStatusOverlay();
     }
@@ -359,6 +355,11 @@ public class MandelbrotActivity extends AppCompatActivity {
     }
 
     private void onRenderBusy(boolean busy) {
+        if (busy) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
         if (renderProgress == null) {
             return;
         }
@@ -451,7 +452,6 @@ public class MandelbrotActivity extends AppCompatActivity {
         list.setOnItemClickListener((parent, view1, position, id) -> {
             operatorIndex = position;
             view.setOper(FormulaCatalog.get(position));
-            resetIterationSettingsToDefaults();
             view.reset();
             refreshStatusOverlay();
             dialog.dismiss();

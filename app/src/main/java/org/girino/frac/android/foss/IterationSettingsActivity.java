@@ -138,7 +138,7 @@ public class IterationSettingsActivity extends AppCompatActivity {
         Integer base = parseInt(baseValue, IterationSettings.MIN_ITER, IterationSettings.MAX_ITER_CAP);
         Double multiplier = parseDouble(multiplierValue);
         Integer rounds = parseInt(roundsValue, IterationSettings.MIN_ROUNDS, IterationSettings.MAX_ROUNDS);
-        Integer cap = parseInt(capValue, IterationSettings.MIN_ITER, IterationSettings.MAX_ITER_CAP);
+        Integer cap = parseInt(capValue, IterationSettings.MIN_ITER, IterationSettings.MAX_ABSOLUTE_CAP);
         if (fixed == null || base == null || multiplier == null || rounds == null || cap == null) {
             Toast.makeText(this, R.string.iteration_invalid, Toast.LENGTH_SHORT).show();
             return;

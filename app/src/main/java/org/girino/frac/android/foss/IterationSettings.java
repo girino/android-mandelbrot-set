@@ -22,17 +22,18 @@ public final class IterationSettings {
     /** Soft advisory: settings UI warns when any iter field exceeds this. */
     public static final int SOFT_ITER_WARN = 4096;
     /**
-     * Hard safety clamp (2^20). Deep zooms may need far more than 4096;
-     * doubling in AdaptiveRefiner stays below Integer overflow.
+     * Hard safety clamp for Fixed / Scale-with-zoom fields (2^20).
      */
-    public static final int MAX_ITER_CAP = 1_048_576;
-    public static final int DEFAULT_FIXED_MAX = 40;
+    public static final int MAX_ITER_CAP = 1 << 20;
+    /** Hard ceiling for Adaptive absolute cap (2^30). */
+    public static final int MAX_ABSOLUTE_CAP = 1 << 30;
+    public static final int DEFAULT_FIXED_MAX = 64;
     public static final int DEFAULT_BASE_MAX = 40;
     public static final double DEFAULT_MULTIPLIER = 1.2;
-    public static final int DEFAULT_MAX_ROUNDS = 8;
-    public static final int DEFAULT_ABSOLUTE_CAP = SOFT_ITER_WARN;
+    public static final int DEFAULT_MAX_ROUNDS = 18;
+    public static final int DEFAULT_ABSOLUTE_CAP = 1 << 18;
     public static final int MIN_ROUNDS = 1;
-    public static final int MAX_ROUNDS = 16;
+    public static final int MAX_ROUNDS = 31;
     public static final double MIN_MULTIPLIER = 1.01;
     public static final double MAX_MULTIPLIER = 4.0;
 
@@ -61,7 +62,7 @@ public final class IterationSettings {
         this.baseMax = clampInt(baseMax, MIN_ITER, MAX_ITER_CAP);
         this.multiplier = clampDouble(multiplier, MIN_MULTIPLIER, MAX_MULTIPLIER);
         this.maxRounds = clampInt(maxRounds, MIN_ROUNDS, MAX_ROUNDS);
-        this.absoluteCap = clampInt(absoluteCap, MIN_ITER, MAX_ITER_CAP);
+        this.absoluteCap = clampInt(absoluteCap, MIN_ITER, MAX_ABSOLUTE_CAP);
     }
 
     public static IterationSettings defaults() {

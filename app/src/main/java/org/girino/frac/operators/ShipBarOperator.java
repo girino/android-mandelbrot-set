@@ -20,6 +20,7 @@ public class ShipBarOperator extends FractalOperator {
 	}
 	protected void step(int step, Complex Z, Complex C, int maxiter) {
 		Z.abs();
+		Z.conjugate();
 		Z.square();
 		Z.lsub(Z, C);
 	}

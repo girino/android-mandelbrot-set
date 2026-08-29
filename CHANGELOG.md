@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 1.1.1 - 2026-08-29
+
+### Iteration settings
+
+- Changing formula or HUD Reset no longer resets iteration mode or values; only
+  **Reset to defaults** on the Iterations screen restores factory settings.
+- Formula change still returns viewport to home.
+- New defaults: Fixed / Adaptive pass-1 max **64**; adaptive absolute cap default
+  **2^18** (max **2^30**); max refinement rounds **1–31** (default **18**).
+
+### Fractals and UX
+
+- **Shipbar** fixed: conjugate after abs so it is the Mandelbar-style variant of
+  Burning Ship (was a duplicate).
+- Keep screen on while a render is in progress.
+
 ## 1.1.0 - 2026-08-24
 
 ### UI and navigation
