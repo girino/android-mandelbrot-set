@@ -149,9 +149,7 @@ public class IterationSettingsActivity extends AppCompatActivity {
             return;
         }
 
-        if (fixed > IterationSettings.SOFT_ITER_WARN
-                || base > IterationSettings.SOFT_ITER_WARN
-                || cap > IterationSettings.SOFT_ITER_WARN) {
+        if (IterationSettings.exceedsSoftWarn(mode, fixed, base, cap)) {
             Toast.makeText(this, R.string.iteration_soft_warn, Toast.LENGTH_LONG).show();
         }
 

@@ -10,6 +10,11 @@ package org.girino.frac.operators;
  */
 public class FifthMandelbrotOperator extends FractalOperator {
 	
+	@Override
+	protected int iterationPower() {
+		return 5;
+	}
+
 	/**
 	 * yeah,m teh old stuff, Z = Z^5 + C.
 	 */
