@@ -637,10 +637,14 @@ public class MandelbrotView extends View {
                 activePointers = 1;
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
-                startFocusX = width / 2f;
-                startFocusY = height / 2f;
-                focusX = startFocusX;
-                focusY = startFocusY;
+                // Frozen preview from a prior commit (render still in flight):
+                // keep focus/startFocus so the affine map stays continuous.
+                if (!hasFrozenPreview()) {
+                    startFocusX = width / 2f;
+                    startFocusY = height / 2f;
+                    focusX = startFocusX;
+                    focusY = startFocusY;
+                }
                 activePointerId = event.getPointerId(0);
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
@@ -733,6 +737,11 @@ public class MandelbrotView extends View {
 
     private boolean movedFocus() {
         return focusX != startFocusX || focusY != startFocusY;
+    }
+
+    /** Non-identity affine preview still on screen (awaiting bitmap handoff). */
+    private boolean hasFrozenPreview() {
+        return accumulatedScale != 1f || positionX != 0f || positionY != 0f || movedFocus();
     }
 
     private void requestRender(double newScale, double newCenterX, double newCenterY) {
@@ -948,6 +957,11 @@ public class MandelbrotView extends View {
         if (old != null && !old.isRecycled()) {
             old.recycle();
         }
+    }
+
+    /** True while a progressive or adaptive render is in progress. */
+    public boolean isRenderBusy() {
+        return renderBusy;
     }
 
     boolean testingRenderBusy() {

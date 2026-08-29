@@ -319,6 +319,63 @@ public class MandelbrotViewGestureTest {
         assertFalse(view.testingRenderBusy());
     }
 
+    /**
+     * Regression: second pinch while the first zoom's frozen preview is still
+     * on screen (render 8→4→2→1 in flight) must not reset focus to center on
+     * ACTION_DOWN — that breaks the pinch anchor and throws content off-screen.
+     */
+    @Test
+    public void secondPinchDuringFrozenPreview_preservesAnchorAndCommit() {
+        double scale0 = view.testingScale();
+        float focusX = 48f;
+        float focusY = 40f;
+        float spanStart = 300f;
+        float spanEnd = 540f;
+
+        PinchDragMotionSimulator sim = new PinchDragMotionSimulator();
+        sim.pinchDown(view, focusX, focusY, spanStart);
+        sim.pinchMove(view, focusX, focusY, spanStart);
+        sim.pinchMove(view, focusX + 4f, focusY + 3f, (spanStart + spanEnd) / 2f);
+        sim.pinchMove(view, focusX + 6f, focusY + 4f, spanEnd);
+        assertTrue(view.testingAccumulatedScale() > 1.05f);
+        sim.lastFingerUp(view, focusX + 6f, focusY + 4f);
+
+        assertTrue(view.testingHasPendingTarget());
+        float focusAfterFirst = view.testingFocusX();
+        assertTrue(Math.abs(focusAfterFirst - WIDTH / 2f) > 1f);
+
+        view.start();
+
+        sim.pinchDown(view, focusX + 6f, focusY + 4f, spanStart);
+        assertEquals(focusAfterFirst, view.testingFocusX(), 1f);
+
+        sim.pinchMove(view, focusX + 6f, focusY + 4f, spanStart);
+        sim.pinchMove(view, focusX + 10f, focusY + 7f, spanEnd);
+
+        float[][] probes = {
+            {16f, 20f}, {WIDTH / 2f, HEIGHT / 2f}, {52f, 44f}, {focusX + 10f, focusY + 7f}
+        };
+        double[] previewCx = new double[probes.length];
+        double[] previewCy = new double[probes.length];
+        for (int i = 0; i < probes.length; i++) {
+            previewCx[i] = view.testingPreviewComplexX(probes[i][0], probes[i][1]);
+            previewCy[i] = view.testingPreviewComplexY(probes[i][0], probes[i][1]);
+        }
+
+        sim.lastFingerUp(view, focusX + 10f, focusY + 7f);
+        assertTrue(view.testingHasPendingTarget());
+        assertTrue(view.testingTargetScale() > scale0 * 1.2);
+
+        for (int i = 0; i < probes.length; i++) {
+            double targetCx = org.girino.frac.viewport.ViewportTransforms.complexX(
+                    probes[i][0], WIDTH, view.testingTargetCenterX(), view.testingTargetScale());
+            assertEquals(previewCx[i], targetCx, EPS * Math.max(1, scale0));
+            double targetCy = org.girino.frac.viewport.ViewportTransforms.complexY(
+                    probes[i][1], HEIGHT, view.testingTargetCenterY(), view.testingTargetScale());
+            assertEquals(previewCy[i], targetCy, EPS * Math.max(1, scale0));
+        }
+    }
+
     /** Issue #9: sample count matches progressive 8→4→2→1 grid visits. */
     @Test
     public void progressiveSampleCount_matchesNestedLoops() {
