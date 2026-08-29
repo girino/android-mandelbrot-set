@@ -26,10 +26,8 @@ public class ViewportExportTest {
 
     @After
     public void tearDown() {
-        if (view != null) {
-            view.testingReleaseBitmap();
-            view = null;
-        }
+        MandelbrotViewTestHelper.release(view);
+        view = null;
     }
 
     @Test

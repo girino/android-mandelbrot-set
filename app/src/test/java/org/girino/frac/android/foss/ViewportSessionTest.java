@@ -28,14 +28,10 @@ public class ViewportSessionTest {
 
     @After
     public void tearDown() {
-        if (view != null) {
-            view.testingReleaseBitmap();
-            view = null;
-        }
-        if (rotated != null) {
-            rotated.testingReleaseBitmap();
-            rotated = null;
-        }
+        MandelbrotViewTestHelper.release(view);
+        view = null;
+        MandelbrotViewTestHelper.release(rotated);
+        rotated = null;
     }
 
     @Test

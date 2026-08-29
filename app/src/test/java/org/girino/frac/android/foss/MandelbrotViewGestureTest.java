@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
 
 /** Headless gesture tests for {@link MandelbrotView} (deferred-commit model). */
 @RunWith(RobolectricTestRunner.class)
@@ -35,10 +36,8 @@ public class MandelbrotViewGestureTest {
 
     @After
     public void tearDown() {
-        if (view != null) {
-            view.testingReleaseBitmap();
-            view = null;
-        }
+        MandelbrotViewTestHelper.release(view);
+        view = null;
     }
 
     /**
@@ -306,6 +305,7 @@ public class MandelbrotViewGestureTest {
         view.start();
         assertTrue(view.testingRenderBusy());
         view.stop();
+        ShadowLooper.runUiThreadTasksIncludingDelayedTasks();
         assertFalse(view.testingRenderBusy());
     }
 

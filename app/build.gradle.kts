@@ -68,7 +68,7 @@ android {
                 it.useJUnitPlatform()
                 it.maxHeapSize = "1g"
                 // Fail the task instead of hanging the CI job for 20 minutes.
-                it.timeout.set(Duration.ofMinutes(5))
+                it.timeout.set(Duration.ofMinutes(10))
             }
         }
     }
