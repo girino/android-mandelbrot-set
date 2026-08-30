@@ -38,6 +38,7 @@ import java.util.Locale;
  * Export viewport as PNG via share sheet or gallery save (issue #18).
  * Icon HUD bar + hamburger overflow menu (issues #29 / #46).
  * Saves viewport on rotation / process recreate (issue #21).
+ * Persists last session across cold start (issue #19).
  * Help and About screens from the menu (issue #22).
  * Iteration settings: fixed max or scale-with-zoom (issue #26).
  */
@@ -141,10 +142,12 @@ public class MandelbrotActivity extends AppCompatActivity {
 
         hudZoomIn.setOnClickListener(v -> {
             view.zoomIn();
+            persistCurrentSession();
             refreshStatusOverlay();
         });
         hudZoomOut.setOnClickListener(v -> {
             view.zoomOut();
+            persistCurrentSession();
             refreshStatusOverlay();
         });
         hudReset.setOnClickListener(v -> performFullReset());
@@ -161,11 +164,13 @@ public class MandelbrotActivity extends AppCompatActivity {
     /** Viewport home (HUD Reset). Iteration settings unchanged — use Iterations screen. */
     private void performFullReset() {
         view.reset();
+        persistCurrentSession();
         refreshStatusOverlay();
     }
 
     private void toggleSmooth() {
         view.smooth();
+        persistCurrentSession();
         refreshStatusOverlay();
     }
 
@@ -207,10 +212,12 @@ public class MandelbrotActivity extends AppCompatActivity {
             switch (action) {
                 case ZOOM_IN:
                     view.zoomIn();
+                    persistCurrentSession();
                     refreshStatusOverlay();
                     break;
                 case ZOOM_OUT:
                     view.zoomOut();
+                    persistCurrentSession();
                     refreshStatusOverlay();
                     break;
                 case RESET:
@@ -244,20 +251,38 @@ public class MandelbrotActivity extends AppCompatActivity {
     }
 
     private void restoreSessionState(Bundle savedInstanceState) {
-        if (savedInstanceState == null || view == null) {
+        if (view == null) {
             return;
         }
-        ViewportSession session =
-                ViewportSession.fromBundle(savedInstanceState.getBundle(STATE_VIEWPORT));
+        ViewportSession session;
+        if (savedInstanceState != null) {
+            session = ViewportSession.fromBundle(savedInstanceState.getBundle(STATE_VIEWPORT));
+            setStatusOverlayVisible(savedInstanceState.getBoolean(STATE_OVERLAY_VISIBLE, true));
+        } else {
+            session = SessionStore.load(this);
+        }
         if (session == null) {
             return;
         }
+        applySession(session);
+    }
+
+    private void applySession(ViewportSession session) {
         view.restoreSession(session);
         operatorIndex = Math.max(
                 0, Math.min(session.operatorIndex, FormulaCatalog.size() - 1));
         paletteIndex = Math.max(
                 0, Math.min(session.paletteIndex, PaletteCatalog.size() - 1));
-        setStatusOverlayVisible(savedInstanceState.getBoolean(STATE_OVERLAY_VISIBLE, true));
+    }
+
+    private void persistCurrentSession() {
+        if (view == null) {
+            return;
+        }
+        ViewportSession session = view.captureSession();
+        SessionStore.save(this, session);
+        operatorIndex = session.operatorIndex;
+        paletteIndex = session.paletteIndex;
     }
 
     /**
@@ -443,6 +468,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             view.stop();
             onRenderBusy(false);
         }
+        persistCurrentSession();
         super.onPause();
     }
 
@@ -461,6 +487,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             operatorIndex = position;
             view.setOper(FormulaCatalog.get(position));
             view.reset();
+            persistCurrentSession();
             refreshStatusOverlay();
             dialog.dismiss();
         });
@@ -483,6 +510,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             paletteIndex = position;
             view.setPalette(PaletteCatalog.get(position));
             view.start();
+            persistCurrentSession();
             refreshStatusOverlay();
             dialog.dismiss();
         });
