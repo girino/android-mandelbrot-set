@@ -2,6 +2,9 @@ package org.girino.frac.palettes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.girino.frac.palettes.FirePalette;
+import org.girino.frac.palettes.NeonPalette;
+import org.girino.frac.palettes.ViridisPalette;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -17,6 +20,9 @@ class PaletteLutTest {
             assertEquals(DefaultPaletteRed.colorAt(value), new DefaultPaletteRed().getColor(value));
             assertEquals(DefaultPalette.colorAt(value), new DefaultPalette().getColor(value));
             assertEquals(HSBPalette.colorAt(value), new HSBPalette().getColor(value));
+            assertEquals(FirePalette.colorAt(value), new FirePalette().getColor(value));
+            assertEquals(NeonPalette.colorAt(value), new NeonPalette().getColor(value));
+            assertEquals(ViridisPalette.colorAt(value), new ViridisPalette().getColor(value));
         }
     }
 

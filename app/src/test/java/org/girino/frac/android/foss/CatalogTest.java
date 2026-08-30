@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.palettes.HSBPalette;
+import org.girino.frac.palettes.ViridisPalette;
 import org.junit.Test;
 
 /** Catalog indices for formula/palette pickers (issue #10). */
@@ -30,10 +31,13 @@ public class CatalogTest {
 
     @Test
     public void paletteCatalog_defaultsAndLookup() {
-        assertEquals(5, PaletteCatalog.size());
+        assertEquals(12, PaletteCatalog.size());
         assertEquals(3, PaletteCatalog.indexOf(new HSBPalette()));
         assertEquals("RGB", PaletteCatalog.labels()[3]);
         assertEquals("BGR", PaletteCatalog.labels()[4]);
+        assertEquals("Fire", PaletteCatalog.labels()[5]);
+        assertEquals("Electric", PaletteCatalog.labels()[11]);
         assertTrue(PaletteCatalog.get(3) instanceof HSBPalette);
+        assertTrue(PaletteCatalog.get(10) instanceof ViridisPalette);
     }
 }

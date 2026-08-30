@@ -3,9 +3,16 @@ package org.girino.frac.android.foss;
 import org.girino.frac.palettes.DefaultPaletteBlue;
 import org.girino.frac.palettes.DefaultPaletteGreen;
 import org.girino.frac.palettes.DefaultPaletteRed;
+import org.girino.frac.palettes.ElectricTealPalette;
+import org.girino.frac.palettes.FirePalette;
+import org.girino.frac.palettes.GrayscalePalette;
 import org.girino.frac.palettes.HSBPalette;
+import org.girino.frac.palettes.NeonPalette;
+import org.girino.frac.palettes.OceanPalette;
 import org.girino.frac.palettes.PaletteProvider;
 import org.girino.frac.palettes.SmoothFixedPalette;
+import org.girino.frac.palettes.SunsetPalette;
+import org.girino.frac.palettes.ViridisPalette;
 
 /** Named palettes available in the picker (issues #10 / #13). */
 public final class PaletteCatalog {
@@ -15,6 +22,13 @@ public final class PaletteCatalog {
             "Red",
             "RGB",
             "BGR",
+            "Fire",
+            "Ocean",
+            "Grayscale",
+            "Sunset",
+            "Neon",
+            "Viridis",
+            "Electric",
     };
 
     private static final PaletteProvider[] PALETTES = {
@@ -23,6 +37,13 @@ public final class PaletteCatalog {
             new DefaultPaletteRed(),
             new HSBPalette(),
             new SmoothFixedPalette(),
+            new FirePalette(),
+            new OceanPalette(),
+            new GrayscalePalette(),
+            new SunsetPalette(),
+            new NeonPalette(),
+            new ViridisPalette(),
+            new ElectricTealPalette(),
     };
 
     private PaletteCatalog() {
