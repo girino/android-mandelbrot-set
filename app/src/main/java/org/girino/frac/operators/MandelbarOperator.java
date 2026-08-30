@@ -2,7 +2,7 @@ package org.girino.frac.operators;
 
 
 /**
- * Mandelbar (tricorn): z_{n+1} = conjugate(z_n)^2 + c.
+ * Tricorn (Mandelbar): z(n+1) = conjugate(z(n))^2 + c.
  * Scalar step — no Complex allocation per iteration (issue #36).
  */
 public class MandelbarOperator extends FractalOperator {

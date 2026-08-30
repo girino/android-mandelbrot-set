@@ -14,12 +14,14 @@ import org.girino.frac.operators.ShipBarOperator;
 public final class FormulaCatalog {
 
     public static final int PHOENIX_INDEX = 7;
+    /** Tricorn / Mandelbar: conj(z)^2 + c (same operator, experiment label). */
+    public static final int TRICORN_INDEX = 3;
 
     private static final String[] LABELS = {
             "Mandelbrot Set",
             "Burning Ship",
             "Nova Set",
-            "Mandelbar",
+            "Tricorn",
             "Cube Mandelbrot",
             "Mandelbrot to the fourth power",
             "Shipbar",
