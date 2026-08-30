@@ -33,8 +33,8 @@ class OptimizedMandelbrotOperatorTest {
     }
 
     @Test
-    void smoothInteriorPointIsZero() {
-        assertEquals(0.0, operator.apply(new Complex(0, 0), 40, true));
+    void smoothInteriorPointMatchesDiscreteInterior() {
+        assertEquals(1.0, operator.apply(new Complex(0, 0), 40, true));
     }
 
     @ParameterizedTest

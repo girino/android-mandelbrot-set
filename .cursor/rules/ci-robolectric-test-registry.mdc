@@ -4,19 +4,19 @@ globs: app/src/test/**/*.java,app/build.gradle.kts,.github/workflows/android-*.y
 alwaysApply: false
 ---
 
-# CI — suite completa + subset backend opcional
+# CI — backend no CI; Robolectric só local
 
-O CI executa **`testDebugUnitTest`** (backend + Robolectric/GUI). Timeout da task:
-**4 minutos**; suite completa usa `forkEvery=1` (JVM por classe — threads de render
-no `MandelbrotViewGestureTest`).
+O CI executa **`backendTestDebugUnitTest`** (operators, palettes, viewport, render
+puro — sem Robolectric). Timeout da task: **4 minutos**; subset backend usa
+`forkEvery=0` (1 JVM).
 
 | Comando | Escopo |
 |---------|--------|
-| `.\gradlew.bat testDebugUnitTest` | CI e local — suite completa |
-| `.\gradlew.bat backendTestDebugUnitTest` | Local rápido — só backend (1 JVM) |
+| `.\gradlew.bat backendTestDebugUnitTest` | CI e local rápido — só backend |
+| `.\gradlew.bat testDebugUnitTest` | Local — suite completa (+ Robolectric) |
 
 Lista [`robolectricUnitTestClasses`](app/build.gradle.kts): exclusão do subset
-`backendTestDebugUnitTest` apenas.
+`backendTestDebugUnitTest`.
 
 ## Ao adicionar ou renomear teste Robolectric
 

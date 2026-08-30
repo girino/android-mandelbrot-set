@@ -134,7 +134,7 @@ afterEvaluate {
     tasks.register("backendTestDebugUnitTest") {
         group = "verification"
         description =
-            "Backend unit tests only (no Robolectric). CI/full suite: testDebugUnitTest."
+            "Backend unit tests only (no Robolectric). CI uses this task; local full suite: testDebugUnitTest."
         dependsOn("testDebugUnitTest")
     }
 }
