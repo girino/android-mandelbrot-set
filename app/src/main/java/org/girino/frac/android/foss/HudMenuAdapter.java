@@ -31,72 +31,82 @@ final class HudMenuAdapter extends BaseAdapter {
         final int labelRes;
         final int iconRes;
         final int contentDescriptionRes;
-        final boolean toggleIndicator;
+        final boolean valueIndicator;
 
-        Action(int labelRes, int iconRes, int contentDescriptionRes, boolean toggleIndicator) {
+        Action(int labelRes, int iconRes, int contentDescriptionRes, boolean valueIndicator) {
             this.labelRes = labelRes;
             this.iconRes = iconRes;
             this.contentDescriptionRes = contentDescriptionRes;
-            this.toggleIndicator = toggleIndicator;
+            this.valueIndicator = valueIndicator;
         }
     }
 
     private enum Overflow {
         SMOOTH(R.string.menu_smooth_palette, R.drawable.ic_hud_smooth, R.string.hud_smooth_cd, true),
         ITERATIONS(R.string.menu_iterations, R.drawable.ic_hud_iterations, R.string.hud_iterations_cd, false),
+        PHOENIX_PARAMS(
+                R.string.menu_phoenix_params,
+                R.drawable.ic_hud_phoenix_params,
+                R.string.hud_phoenix_params_cd,
+                true),
         HELP(R.string.menu_help, R.drawable.ic_hud_help, R.string.hud_help_cd, false),
         ABOUT(R.string.menu_about, R.drawable.ic_hud_about, R.string.hud_about_cd, false);
 
         final int labelRes;
         final int iconRes;
         final int contentDescriptionRes;
-        final boolean toggleIndicator;
+        final boolean valueIndicator;
 
-        Overflow(int labelRes, int iconRes, int contentDescriptionRes, boolean toggleIndicator) {
+        Overflow(int labelRes, int iconRes, int contentDescriptionRes, boolean valueIndicator) {
             this.labelRes = labelRes;
             this.iconRes = iconRes;
             this.contentDescriptionRes = contentDescriptionRes;
-            this.toggleIndicator = toggleIndicator;
+            this.valueIndicator = valueIndicator;
         }
     }
 
     private static final int CORE_COUNT = Action.values().length;
     private static final int SECTION_INDEX = CORE_COUNT;
-    private static final int OVERFLOW_COUNT = Overflow.values().length;
-    private static final int ITEM_COUNT = CORE_COUNT + 1 + OVERFLOW_COUNT;
 
     private final LayoutInflater inflater;
     private final Context context;
-    private boolean smoothOn;
+    private final boolean smoothOn;
+    private final boolean phoenixParamsVisible;
+    private final String phoenixParamsIndicator;
 
-    HudMenuAdapter(Context context, boolean smoothOn) {
+    HudMenuAdapter(
+            Context context,
+            boolean smoothOn,
+            boolean phoenixParamsVisible,
+            String phoenixParamsIndicator) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         this.smoothOn = smoothOn;
+        this.phoenixParamsVisible = phoenixParamsVisible;
+        this.phoenixParamsIndicator = phoenixParamsIndicator != null ? phoenixParamsIndicator : "";
     }
 
-    void setSmoothOn(boolean smoothOn) {
-        this.smoothOn = smoothOn;
-        notifyDataSetChanged();
-    }
-
-    static boolean isSectionHeader(int position) {
+    boolean isSectionHeader(int position) {
         return position == SECTION_INDEX;
     }
 
-    static boolean isSmooth(int position) {
+    boolean isSmooth(int position) {
         return overflowAt(position) == Overflow.SMOOTH;
     }
 
-    static boolean isIterations(int position) {
+    boolean isIterations(int position) {
         return overflowAt(position) == Overflow.ITERATIONS;
     }
 
-    static boolean isHelp(int position) {
+    boolean isPhoenixParams(int position) {
+        return overflowAt(position) == Overflow.PHOENIX_PARAMS;
+    }
+
+    boolean isHelp(int position) {
         return overflowAt(position) == Overflow.HELP;
     }
 
-    static boolean isAbout(int position) {
+    boolean isAbout(int position) {
         return overflowAt(position) == Overflow.ABOUT;
     }
 
@@ -107,17 +117,28 @@ final class HudMenuAdapter extends BaseAdapter {
         return Action.values()[position];
     }
 
-    private static Overflow overflowAt(int position) {
+    private Overflow overflowAt(int position) {
         int overflowIndex = position - SECTION_INDEX - 1;
-        if (overflowIndex < 0 || overflowIndex >= OVERFLOW_COUNT) {
+        if (overflowIndex < 0) {
             return null;
         }
-        return Overflow.values()[overflowIndex];
+        int slot = 0;
+        for (Overflow item : Overflow.values()) {
+            if (item == Overflow.PHOENIX_PARAMS && !phoenixParamsVisible) {
+                continue;
+            }
+            if (slot == overflowIndex) {
+                return item;
+            }
+            slot++;
+        }
+        return null;
     }
 
     @Override
     public int getCount() {
-        return ITEM_COUNT;
+        int overflowCount = Overflow.values().length - (phoenixParamsVisible ? 0 : 1);
+        return CORE_COUNT + 1 + overflowCount;
     }
 
     @Override
@@ -171,19 +192,19 @@ final class HudMenuAdapter extends BaseAdapter {
         int labelRes;
         int iconRes;
         int contentDescriptionRes;
-        boolean toggleIndicator;
+        boolean valueIndicator;
         Action action = actionAt(position);
         if (action != null) {
             labelRes = action.labelRes;
             iconRes = action.iconRes;
             contentDescriptionRes = action.contentDescriptionRes;
-            toggleIndicator = action.toggleIndicator;
+            valueIndicator = action.valueIndicator;
         } else {
             Overflow overflow = overflowAt(position);
             labelRes = overflow.labelRes;
             iconRes = overflow.iconRes;
             contentDescriptionRes = overflow.contentDescriptionRes;
-            toggleIndicator = overflow.toggleIndicator;
+            valueIndicator = overflow.valueIndicator;
         }
 
         label.setText(labelRes);
@@ -193,9 +214,14 @@ final class HudMenuAdapter extends BaseAdapter {
                 ContextCompat.getColorStateList(context, R.color.hud_icon_tint));
         row.setContentDescription(context.getString(contentDescriptionRes));
 
-        if (toggleIndicator) {
+        if (valueIndicator) {
             indicator.setVisibility(View.VISIBLE);
-            indicator.setText(smoothOn ? R.string.status_overlay_smooth_on : R.string.status_overlay_smooth_off);
+            if (overflowAt(position) == Overflow.PHOENIX_PARAMS) {
+                indicator.setText(phoenixParamsIndicator);
+            } else {
+                indicator.setText(
+                        smoothOn ? R.string.status_overlay_smooth_on : R.string.status_overlay_smooth_off);
+            }
         } else {
             indicator.setVisibility(View.GONE);
         }

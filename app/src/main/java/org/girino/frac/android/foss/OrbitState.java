@@ -6,17 +6,23 @@ import org.girino.frac.operators.FractalOperator;
 /**
  * Per-pixel orbit checkpoints for Adaptive warm-start (continue from pass-1
  * or the previous border round instead of restarting from iteration 0).
+ *
+ * Most formulas store z(n). Phoenix also stores z(n-1).
  */
 public final class OrbitState {
 
     public final int[] iter;
     public final double[] re;
     public final double[] im;
+    public final double[] prevRe;
+    public final double[] prevIm;
 
     public OrbitState(int pixelCount) {
         iter = new int[pixelCount];
         re = new double[pixelCount];
         im = new double[pixelCount];
+        prevRe = new double[pixelCount];
+        prevIm = new double[pixelCount];
     }
 
     /** True when a non-zero checkpoint exists for index. */
@@ -33,6 +39,14 @@ public final class OrbitState {
         operator.readOrbitZ(scratch);
         re[index] = scratch.getReal();
         im[index] = scratch.getImag();
+        if (operator.orbitCheckpointUsesPrev()) {
+            operator.readOrbitPrevZ(scratch);
+            prevRe[index] = scratch.getReal();
+            prevIm[index] = scratch.getImag();
+        } else {
+            prevRe[index] = 0;
+            prevIm[index] = 0;
+        }
     }
 
     public void clear(int index) {

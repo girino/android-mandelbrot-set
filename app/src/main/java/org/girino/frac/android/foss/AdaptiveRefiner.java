@@ -770,14 +770,27 @@ public final class AdaptiveRefiner {
                     ViewportTransforms.complexX(x, width, centerX, scale),
                     ViewportTransforms.complexY(y, height, centerY, scale));
             if (orbit != null && orbit.hasCheckpoint(index)) {
-                operator.sampleContinueInto(
-                        point,
-                        orbit.iter[index],
-                        orbit.re[index],
-                        orbit.im[index],
-                        nextLimit,
-                        smooth,
-                        sample);
+                if (operator.orbitCheckpointUsesPrev()) {
+                    operator.sampleContinueInto(
+                            point,
+                            orbit.iter[index],
+                            orbit.re[index],
+                            orbit.im[index],
+                            orbit.prevRe[index],
+                            orbit.prevIm[index],
+                            nextLimit,
+                            smooth,
+                            sample);
+                } else {
+                    operator.sampleContinueInto(
+                            point,
+                            orbit.iter[index],
+                            orbit.re[index],
+                            orbit.im[index],
+                            nextLimit,
+                            smooth,
+                            sample);
+                }
             } else {
                 operator.sampleInto(point, nextLimit, smooth, sample);
             }

@@ -60,6 +60,8 @@ public class MandelbrotActivity extends AppCompatActivity {
     private TextView statusOverlayChip;
     private int operatorIndex = DEFAULT_OPERATOR_INDEX;
     private int paletteIndex = DEFAULT_PALETTE_INDEX;
+    private double phoenixPRe = PhoenixParamsStore.DEFAULT_P_RE;
+    private double phoenixPIm = PhoenixParamsStore.DEFAULT_P_IM;
     /** Set when pausing mid-render; cleared after resume restart. */
     private boolean resumeInterruptedRender;
     private Bitmap pendingSaveBitmap;
@@ -73,6 +75,20 @@ public class MandelbrotActivity extends AppCompatActivity {
                     result -> {
                         if (result.getResultCode() == RESULT_OK) {
                             applyIterationSettings(IterationSettingsStore.load(this));
+                        }
+                    });
+    private final ActivityResultLauncher<Intent> phoenixParamsLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK) {
+                            loadPhoenixParams();
+                            if (isPhoenixSelected()) {
+                                applyOperatorForIndex(operatorIndex);
+                                view.start();
+                                persistCurrentSession();
+                                refreshStatusOverlay();
+                            }
                         }
                     });
     private final Runnable showRenderProgress = () -> {
@@ -99,7 +115,9 @@ public class MandelbrotActivity extends AppCompatActivity {
         statusOverlay.setOnClickListener(v -> setStatusOverlayVisible(false));
         statusOverlayChip.setOnClickListener(v -> setStatusOverlayVisible(true));
 
+        loadPhoenixParams();
         restoreSessionState(savedInstanceState);
+        applyOperatorForIndex(operatorIndex);
         applyIterationSettings(IterationSettingsStore.load(this));
 
         view.setRenderBusyListener(new MandelbrotView.RenderBusyListener() {
@@ -156,8 +174,38 @@ public class MandelbrotActivity extends AppCompatActivity {
         refreshStatusOverlay();
     }
 
+    private void loadPhoenixParams() {
+        PhoenixParamsStore.Params params = PhoenixParamsStore.load(this);
+        phoenixPRe = params.pRe;
+        phoenixPIm = params.pIm;
+    }
+
+    private boolean isPhoenixSelected() {
+        return operatorIndex == FormulaCatalog.PHOENIX_INDEX;
+    }
+
+    private void applyOperatorForIndex(int index) {
+        if (index == FormulaCatalog.PHOENIX_INDEX) {
+            view.setOper(FormulaCatalog.createPhoenix(phoenixPRe, phoenixPIm));
+        } else {
+            view.setOper(FormulaCatalog.get(index));
+        }
+    }
+
+    private void setPhoenixParams(double pRe, double pIm) {
+        phoenixPRe = pRe;
+        phoenixPIm = pIm;
+        PhoenixParamsStore.save(this, pRe, pIm);
+        if (isPhoenixSelected()) {
+            applyOperatorForIndex(operatorIndex);
+            view.start();
+            persistCurrentSession();
+            refreshStatusOverlay();
+        }
+    }
+
     private void applyIterationSettings(IterationSettings settings) {
-        view.setIterationSettings(settings);
+        view.setIterationSettings(settings != null ? settings : IterationSettings.defaults());
         refreshStatusOverlay();
     }
 
@@ -180,28 +228,36 @@ public class MandelbrotActivity extends AppCompatActivity {
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.hud_menu_title);
-        HudMenuAdapter adapter = new HudMenuAdapter(this, view.isSmooth());
+        HudMenuAdapter adapter = new HudMenuAdapter(
+                this,
+                view.isSmooth(),
+                isPhoenixSelected(),
+                PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm));
         list.setAdapter(adapter);
         list.setChoiceMode(ListView.CHOICE_MODE_NONE);
         list.setOnItemClickListener((parent, row, position, id) -> {
-            if (HudMenuAdapter.isSectionHeader(position)) {
+            if (adapter.isSectionHeader(position)) {
                 return;
             }
             dialog.dismiss();
-            if (HudMenuAdapter.isSmooth(position)) {
+            if (adapter.isSmooth(position)) {
                 toggleSmooth();
                 return;
             }
-            if (HudMenuAdapter.isIterations(position)) {
+            if (adapter.isIterations(position)) {
                 iterationSettingsLauncher.launch(
                         new Intent(this, IterationSettingsActivity.class));
                 return;
             }
-            if (HudMenuAdapter.isHelp(position)) {
+            if (adapter.isPhoenixParams(position)) {
+                openPhoenixParamsPicker();
+                return;
+            }
+            if (adapter.isHelp(position)) {
                 startActivity(new Intent(this, HelpActivity.class));
                 return;
             }
-            if (HudMenuAdapter.isAbout(position)) {
+            if (adapter.isAbout(position)) {
                 startActivity(new Intent(this, AboutActivity.class));
                 return;
             }
@@ -273,6 +329,7 @@ public class MandelbrotActivity extends AppCompatActivity {
                 0, Math.min(session.operatorIndex, FormulaCatalog.size() - 1));
         paletteIndex = Math.max(
                 0, Math.min(session.paletteIndex, PaletteCatalog.size() - 1));
+        applyOperatorForIndex(operatorIndex);
     }
 
     private void persistCurrentSession() {
@@ -353,16 +410,23 @@ public class MandelbrotActivity extends AppCompatActivity {
         int smoothRes = view.isSmooth()
                 ? R.string.status_overlay_smooth_on
                 : R.string.status_overlay_smooth_off;
-        statusOverlay.setText(
-                formulas[safeFormula]
-                        + "\n"
-                        + palettes[safePalette]
-                        + "\n"
-                        + getString(smoothRes)
-                        + "\n"
-                        + getString(overlayAlgorithmRes())
-                        + "\n"
-                        + getString(R.string.status_overlay_iterations, view.effectiveMaxIter()));
+        StringBuilder overlay = new StringBuilder()
+                .append(formulas[safeFormula])
+                .append('\n')
+                .append(palettes[safePalette])
+                .append('\n')
+                .append(getString(smoothRes))
+                .append('\n')
+                .append(getString(overlayAlgorithmRes()))
+                .append('\n')
+                .append(getString(R.string.status_overlay_iterations, view.effectiveMaxIter()));
+        if (isPhoenixSelected()) {
+            overlay.append('\n')
+                    .append(getString(
+                            R.string.status_overlay_phoenix_p,
+                            PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm)));
+        }
+        statusOverlay.setText(overlay);
     }
 
     private int overlayAlgorithmRes() {
@@ -485,7 +549,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         list.setSelection(safeChecked);
         list.setOnItemClickListener((parent, view1, position, id) -> {
             operatorIndex = position;
-            view.setOper(FormulaCatalog.get(position));
+            applyOperatorForIndex(position);
             view.reset();
             persistCurrentSession();
             refreshStatusOverlay();
@@ -493,6 +557,49 @@ public class MandelbrotActivity extends AppCompatActivity {
         });
         dialog.setContentView(sheet);
         dialog.show();
+    }
+
+    private void openPhoenixParamsPicker() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(R.string.select_phoenix_p);
+        int rowCount = PhoenixPresetCatalog.pickerRowCount();
+        String[] labels = new String[rowCount];
+        for (int i = 0; i < PhoenixPresetCatalog.presetCount(); i++) {
+            labels[i] = getString(PhoenixPresetCatalog.getPreset(i).labelRes);
+        }
+        int customRow = PhoenixPresetCatalog.customRowIndex();
+        if (PhoenixPresetCatalog.indexOfPreset(phoenixPRe, phoenixPIm) < 0) {
+            labels[customRow] = getString(
+                    R.string.phoenix_preset_custom_current,
+                    PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm));
+        } else {
+            labels[customRow] = getString(R.string.phoenix_preset_custom);
+        }
+        list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, labels));
+        int checked = PhoenixPresetCatalog.pickerCheckedRow(phoenixPRe, phoenixPIm);
+        list.setItemChecked(checked, true);
+        list.setSelection(checked);
+        list.setOnItemClickListener((parent, row, position, id) -> {
+            dialog.dismiss();
+            if (PhoenixPresetCatalog.isCustomRow(position)) {
+                openPhoenixCustomParams();
+                return;
+            }
+            PhoenixPresetCatalog.Preset preset = PhoenixPresetCatalog.getPreset(position);
+            setPhoenixParams(preset.pRe, preset.pIm);
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
+    }
+
+    private void openPhoenixCustomParams() {
+        Intent intent = new Intent(this, PhoenixParamsActivity.class);
+        intent.putExtra(PhoenixParamsActivity.EXTRA_P_RE, phoenixPRe);
+        intent.putExtra(PhoenixParamsActivity.EXTRA_P_IM, phoenixPIm);
+        phoenixParamsLauncher.launch(intent);
     }
 
     private void openPalettePicker() {

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
+import org.girino.frac.operators.PhoenixOperator;
 import org.girino.frac.palettes.HSBPalette;
 import org.girino.frac.palettes.PaletteProvider;
 import org.junit.After;
@@ -191,5 +192,14 @@ public class ParallelStepRendererTest {
         FractalOperator b = FormulaCatalog.createLike(a);
         assertNotSame(a, b);
         assertEquals(OptimizedMandelbrotOperator.class, b.getClass());
+    }
+
+    @Test
+    public void formulaCatalog_createLike_phoenixCopiesP() {
+        PhoenixOperator source = new PhoenixOperator(0.5, 0.0);
+        PhoenixOperator copy = (PhoenixOperator) FormulaCatalog.createLike(source);
+        assertNotSame(source, copy);
+        assertEquals(0.5, copy.getPRe(), 1e-12);
+        assertEquals(0.0, copy.getPIm(), 1e-12);
     }
 }

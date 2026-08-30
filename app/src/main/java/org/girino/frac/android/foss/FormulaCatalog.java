@@ -7,10 +7,14 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.operators.MandelbarOperator;
 import org.girino.frac.operators.NovaOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
+import org.girino.frac.operators.PhoenixOperator;
 import org.girino.frac.operators.ShipBarOperator;
 
 /** Named fractal formulas available in the picker (issues #10 / #13). */
 public final class FormulaCatalog {
+
+    public static final int PHOENIX_INDEX = 7;
+
     private static final String[] LABELS = {
             "Mandelbrot Set",
             "Burning Ship",
@@ -19,6 +23,7 @@ public final class FormulaCatalog {
             "Cube Mandelbrot",
             "Mandelbrot to the fourth power",
             "Shipbar",
+            "Phoenix",
     };
 
     private FormulaCatalog() {
@@ -57,13 +62,24 @@ public final class FormulaCatalog {
                 return new FourthMandelbrotOperator();
             case 6:
                 return new ShipBarOperator();
+            case PHOENIX_INDEX:
+                return createPhoenix(
+                        PhoenixParamsStore.DEFAULT_P_RE, PhoenixParamsStore.DEFAULT_P_IM);
             default:
                 throw new IndexOutOfBoundsException("formula index " + index);
         }
     }
 
+    public static FractalOperator createPhoenix(double pRe, double pIm) {
+        return new PhoenixOperator(pRe, pIm);
+    }
+
     /** New instance of the same catalog formula as operator, or Mandelbrot. */
     public static FractalOperator createLike(FractalOperator operator) {
+        if (operator instanceof PhoenixOperator) {
+            PhoenixOperator phoenix = (PhoenixOperator) operator;
+            return createPhoenix(phoenix.getPRe(), phoenix.getPIm());
+        }
         int index = indexOf(operator);
         return create(index >= 0 ? index : 0);
     }
@@ -94,6 +110,9 @@ public final class FormulaCatalog {
         }
         if (type == ShipBarOperator.class) {
             return 6;
+        }
+        if (type == PhoenixOperator.class) {
+            return PHOENIX_INDEX;
         }
         return -1;
     }

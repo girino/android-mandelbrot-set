@@ -18,7 +18,61 @@ class FractalOperatorContinueTest {
                 new CubeMandelbrotOperator(),
                 new FourthMandelbrotOperator(),
                 new ShipBarOperator(),
-                new NovaOperator());
+                new NovaOperator(),
+                new PhoenixOperator());
+    }
+
+    private static FractalOperator.EscapeSample continueFromCheckpoint(
+            FractalOperator operator,
+            Complex point,
+            int startIter,
+            int maxIter,
+            boolean smooth) {
+        Complex z = new Complex();
+        operator.readOrbitZ(z);
+        if (operator.orbitCheckpointUsesPrev()) {
+            Complex prev = new Complex();
+            operator.readOrbitPrevZ(prev);
+            return operator.sampleContinueInto(
+                    point,
+                    startIter,
+                    z.getReal(),
+                    z.getImag(),
+                    prev.getReal(),
+                    prev.getImag(),
+                    maxIter,
+                    smooth,
+                    new FractalOperator.EscapeSample());
+        }
+        return operator.sampleContinue(
+                point, startIter, z.getReal(), z.getImag(), maxIter, smooth);
+    }
+
+    private static FractalOperator.EscapeSample continueFromCheckpointInto(
+            FractalOperator operator,
+            Complex point,
+            int startIter,
+            int maxIter,
+            boolean smooth,
+            FractalOperator.EscapeSample out) {
+        Complex z = new Complex();
+        operator.readOrbitZ(z);
+        if (operator.orbitCheckpointUsesPrev()) {
+            Complex prev = new Complex();
+            operator.readOrbitPrevZ(prev);
+            return operator.sampleContinueInto(
+                    point,
+                    startIter,
+                    z.getReal(),
+                    z.getImag(),
+                    prev.getReal(),
+                    prev.getImag(),
+                    maxIter,
+                    smooth,
+                    out);
+        }
+        return operator.sampleContinueInto(
+                point, startIter, z.getReal(), z.getImag(), maxIter, smooth, out);
     }
 
     @ParameterizedTest
@@ -49,13 +103,12 @@ class FractalOperatorContinueTest {
         FractalOperator.EscapeSample partial = operator.sample(point, mid, false);
         assertFalse(partial.escaped, operator.getClass().getSimpleName());
 
-        Complex scratch = new Complex();
-        operator.readOrbitZ(scratch);
-        FractalOperator.EscapeSample expected = operator.sampleContinue(
-                point, partial.iterations, scratch.getReal(), scratch.getImag(), maxIter, false);
+        FractalOperator.EscapeSample expected =
+                continueFromCheckpoint(operator, point, partial.iterations, maxIter, false);
         FractalOperator.EscapeSample reused = new FractalOperator.EscapeSample();
-        FractalOperator.EscapeSample returned = operator.sampleContinueInto(
-                point, partial.iterations, scratch.getReal(), scratch.getImag(), maxIter, false, reused);
+        FractalOperator.EscapeSample returned =
+                continueFromCheckpointInto(
+                        operator, point, partial.iterations, maxIter, false, reused);
         assertEquals(reused, returned);
         assertEquals(expected.escaped, reused.escaped);
         assertEquals(expected.iterations, reused.iterations);
@@ -70,10 +123,8 @@ class FractalOperatorContinueTest {
         FractalOperator.EscapeSample full = operator.sample(point, maxIter, false);
         assertFalse(full.escaped, operator.getClass().getSimpleName());
 
-        Complex scratch = new Complex();
-        operator.readOrbitZ(scratch);
-        FractalOperator.EscapeSample continued = operator.sampleContinue(
-                point, full.iterations, scratch.getReal(), scratch.getImag(), maxIter, false);
+        FractalOperator.EscapeSample continued =
+                continueFromCheckpoint(operator, point, full.iterations, maxIter, false);
 
         assertEquals(full.escaped, continued.escaped);
         assertEquals(full.iterations, continued.iterations);
@@ -89,10 +140,8 @@ class FractalOperatorContinueTest {
         FractalOperator.EscapeSample partial = operator.sample(point, mid, false);
         assertFalse(partial.escaped, operator.getClass().getSimpleName());
 
-        Complex scratch = new Complex();
-        operator.readOrbitZ(scratch);
-        FractalOperator.EscapeSample continued = operator.sampleContinue(
-                point, partial.iterations, scratch.getReal(), scratch.getImag(), maxIter, false);
+        FractalOperator.EscapeSample continued =
+                continueFromCheckpoint(operator, point, partial.iterations, maxIter, false);
         FractalOperator.EscapeSample full = operator.sample(point, maxIter, false);
 
         assertEquals(full.escaped, continued.escaped);

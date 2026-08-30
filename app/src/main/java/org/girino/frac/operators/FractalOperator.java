@@ -88,6 +88,14 @@ public abstract class FractalOperator {
 	}
 
 	/**
+	 * True when Adaptive must store z(n-1) alongside z(n) in OrbitState
+	 * (e.g. Phoenix: z(n+1) = z(n)^2 + c + p*z(n-1)).
+	 */
+	public boolean orbitCheckpointUsesPrev() {
+		return false;
+	}
+
+	/**
 	 * Continue an orbit from a checkpoint (Adaptive warm-start). When
 	 * startIter is 0, behaves like sample().
 	 */
@@ -110,12 +118,30 @@ public abstract class FractalOperator {
 			int maxiter,
 			boolean isSmooth,
 			EscapeSample out) {
+		return sampleContinueInto(C, startIter, zRe, zIm, 0, 0, maxiter, isSmooth, out);
+	}
+
+	/** Continues an orbit into out, restoring z(n-1) when the operator needs it. */
+	public final EscapeSample sampleContinueInto(
+			Complex C,
+			int startIter,
+			double zRe,
+			double zIm,
+			double prevRe,
+			double prevIm,
+			int maxiter,
+			boolean isSmooth,
+			EscapeSample out) {
 		if (startIter <= 0) {
 			return sampleInto(C, maxiter, isSmooth, out);
 		}
 		int i = startIter;
 		Z.set(zRe, zIm);
-		resumeIteration(i, Z, C, maxiter);
+		if (orbitCheckpointUsesPrev()) {
+			resumeIterationWithPrev(i, Z, C, maxiter, prevRe, prevIm);
+		} else {
+			resumeIteration(i, Z, C, maxiter);
+		}
 		for (; i < maxiter && diverge(i, Z, C, maxiter); i++) {
 			step(i, Z, C, maxiter);
 		}
@@ -127,6 +153,13 @@ public abstract class FractalOperator {
 	public final void readOrbitZ(Complex dest) {
 		if (dest != null) {
 			dest.set(Z.getReal(), Z.getImag());
+		}
+	}
+
+	/** Copies z(n-1) after sample / sampleContinue when orbitCheckpointUsesPrev(). */
+	public void readOrbitPrevZ(Complex dest) {
+		if (dest != null) {
+			dest.set(0, 0);
 		}
 	}
 
@@ -147,6 +180,15 @@ public abstract class FractalOperator {
 	 * fields, apply C transforms that beforeIteration would have done once).
 	 */
 	protected void resumeIteration(int step, Complex Z, Complex C, int maxiter) { ; }
+
+	/**
+	 * Resume when the checkpoint includes z(n-1). Default ignores prev and
+	 * delegates to resumeIteration.
+	 */
+	protected void resumeIterationWithPrev(
+			int step, Complex Z, Complex C, int maxiter, double prevRe, double prevIm) {
+		resumeIteration(step, Z, C, maxiter);
+	}
 
 	protected void afterIteration(int step, Complex Z, Complex C, int maxiter) { ; }
 	abstract protected void step(int step, Complex Z, Complex C, int maxiter);

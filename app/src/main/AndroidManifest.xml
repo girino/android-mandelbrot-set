@@ -35,6 +35,10 @@
             android:name=".IterationSettingsActivity"
             android:exported="false"
             android:label="@string/menu_iterations" />
+        <activity
+            android:name=".PhoenixParamsActivity"
+            android:exported="false"
+            android:label="@string/phoenix_custom_title" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -19,7 +19,11 @@ import com.google.android.material.textfield.TextInputLayout;
 /** Escape-time iteration mode and values (issues #26 / #28). */
 public class IterationSettingsActivity extends AppCompatActivity {
 
+    public static final String EXTRA_DISABLE_ADAPTIVE = "disable_adaptive";
+
     private RadioGroup modeGroup;
+    private View adaptiveRadio;
+    private View adaptiveSection;
     private TextInputLayout fixedLayout;
     private TextInputLayout baseLayout;
     private TextInputLayout multiplierLayout;
@@ -30,6 +34,7 @@ public class IterationSettingsActivity extends AppCompatActivity {
     private TextInputEditText multiplierValue;
     private TextInputEditText roundsValue;
     private TextInputEditText capValue;
+    private boolean disableAdaptive;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +47,8 @@ public class IterationSettingsActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
 
         modeGroup = findViewById(R.id.iteration_mode_group);
+        adaptiveRadio = findViewById(R.id.iteration_mode_adaptive);
+        adaptiveSection = findViewById(R.id.iteration_adaptive_section);
         fixedLayout = findViewById(R.id.iteration_fixed_layout);
         baseLayout = findViewById(R.id.iteration_base_layout);
         multiplierLayout = findViewById(R.id.iteration_multiplier_layout);
@@ -54,6 +61,14 @@ public class IterationSettingsActivity extends AppCompatActivity {
         capValue = findViewById(R.id.iteration_cap_value);
         MaterialButton save = findViewById(R.id.iteration_save);
         MaterialButton resetDefaults = findViewById(R.id.iteration_reset_defaults);
+
+        disableAdaptive = getIntent().getBooleanExtra(EXTRA_DISABLE_ADAPTIVE, false);
+        if (disableAdaptive) {
+            adaptiveRadio.setVisibility(View.GONE);
+            adaptiveSection.setVisibility(View.GONE);
+            roundsLayout.setVisibility(View.GONE);
+            capLayout.setVisibility(View.GONE);
+        }
 
         IterationSettings current = IterationSettingsStore.load(this);
         bind(current);
@@ -83,7 +98,11 @@ public class IterationSettingsActivity extends AppCompatActivity {
         if (settings.mode == IterationSettings.Mode.SCALE_WITH_ZOOM) {
             modeGroup.check(R.id.iteration_mode_zoom);
         } else if (settings.mode == IterationSettings.Mode.ADAPTIVE) {
-            modeGroup.check(R.id.iteration_mode_adaptive);
+            if (disableAdaptive) {
+                modeGroup.check(R.id.iteration_mode_fixed);
+            } else {
+                modeGroup.check(R.id.iteration_mode_adaptive);
+            }
         } else {
             modeGroup.check(R.id.iteration_mode_fixed);
         }
@@ -129,7 +148,9 @@ public class IterationSettingsActivity extends AppCompatActivity {
         if (checked == R.id.iteration_mode_zoom) {
             mode = IterationSettings.Mode.SCALE_WITH_ZOOM;
         } else if (checked == R.id.iteration_mode_adaptive) {
-            mode = IterationSettings.Mode.ADAPTIVE;
+            mode = disableAdaptive
+                    ? IterationSettings.Mode.FIXED
+                    : IterationSettings.Mode.ADAPTIVE;
         } else {
             mode = IterationSettings.Mode.FIXED;
         }
