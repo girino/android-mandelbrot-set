@@ -5,6 +5,25 @@ plugins {
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestListener
+import org.gradle.api.tasks.testing.TestResult
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+/** Robolectric / GUI unit tests — excluded from CI (backendTestDebugUnitTest). */
+val robolectricUnitTestClasses = listOf(
+    "org.girino.frac.android.foss.BottomSheetPickerHelperTest",
+    "org.girino.frac.android.foss.FormulaPreviewTest",
+    "org.girino.frac.android.foss.JuliaParamsStoreTest",
+    "org.girino.frac.android.foss.MandelbrotViewGestureTest",
+    "org.girino.frac.android.foss.PaletteSwatchTest",
+    "org.girino.frac.android.foss.PhoenixParamsStoreTest",
+    "org.girino.frac.android.foss.SessionStoreTest",
+    "org.girino.frac.android.foss.ViewportExportTest",
+    "org.girino.frac.android.foss.ViewportSessionTest",
+)
 
 val releaseKeystoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
@@ -92,4 +111,64 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.12.2")
+}
+
+afterEvaluate {
+    val backendOnlyRequested =
+        project.hasProperty("backendTests")
+            || gradle.startParameter.taskNames.any { it.contains("backendTestDebugUnitTest") }
+
+    tasks.named<Test>("testDebugUnitTest").configure {
+        if (backendOnlyRequested) {
+            filter {
+                robolectricUnitTestClasses.forEach { excludeTestsMatching(it) }
+            }
+        }
+    }
+
+    tasks.register("backendTestDebugUnitTest") {
+        group = "verification"
+        description =
+            "Backend unit tests only (no Robolectric). CI uses this; local full suite: testDebugUnitTest."
+        dependsOn("testDebugUnitTest")
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events(
+            TestLogEvent.STARTED,
+            TestLogEvent.PASSED,
+            TestLogEvent.FAILED,
+            TestLogEvent.SKIPPED,
+            TestLogEvent.STANDARD_OUT,
+            TestLogEvent.STANDARD_ERROR,
+        )
+        exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = true
+    }
+    addTestListener(object : TestListener {
+        override fun beforeSuite(suite: TestDescriptor) = Unit
+
+        override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+            if (suite.parent == null) {
+                logger.lifecycle(
+                    "UNIT TEST SUITE FINISHED: ${suite.displayName} -> ${result.resultType}"
+                )
+            }
+        }
+
+        override fun beforeTest(testDescriptor: TestDescriptor) {
+            logger.lifecycle("UNIT TEST START: ${testDescriptor.displayName}")
+        }
+
+        override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {
+            logger.lifecycle(
+                "UNIT TEST END: ${testDescriptor.displayName} -> ${result.resultType}"
+            )
+        }
+    })
 }

@@ -36,8 +36,11 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Test, lint, and build debug APK
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
+      - name: Backend unit tests
+        run: ./gradlew backendTestDebugUnitTest --no-daemon --console=plain
+
+      - name: Lint and build debug APK
+        run: ./gradlew lintDebug assembleDebug --no-daemon --console=plain
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v6

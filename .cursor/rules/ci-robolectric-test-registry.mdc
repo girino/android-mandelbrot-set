@@ -1,0 +1,51 @@
+---
+description: Registrar testes Robolectric/GUI em robolectricUnitTestClasses (CI roda só backend)
+globs: app/src/test/**/*.java,app/build.gradle.kts,.github/workflows/android-*.yml
+alwaysApply: false
+---
+
+# CI — testes backend vs Robolectric (GUI)
+
+O CI executa **`backendTestDebugUnitTest`** — `testDebugUnitTest` **sem** classes
+Robolectric/GUI. A suite completa (incluindo GUI) roda **só localmente** com
+`testDebugUnitTest`.
+
+| Comando | Escopo |
+|---------|--------|
+| `.\gradlew.bat backendTestDebugUnitTest` | CI — backend only |
+| `.\gradlew.bat testDebugUnitTest` | Local — backend + Robolectric |
+
+Lista de exclusão: [`robolectricUnitTestClasses`](app/build.gradle.kts) em
+[`app/build.gradle.kts`](app/build.gradle.kts).
+
+## Ao adicionar ou renomear teste Robolectric
+
+Se a classe usa `@RunWith(RobolectricTestRunner.class)` (ou outro runner que
+dependa de Android/shadows na JVM), **obrigatório**:
+
+1. Incluir o **FQCN** em `robolectricUnitTestClasses` (ordem alfabética).
+2. Rodar local: `.\gradlew.bat testDebugUnitTest --tests <FQCN>`.
+3. Confirmar que o CI **não** roda a classe:
+   `.\gradlew.bat backendTestDebugUnitTest` (a classe não deve aparecer no log).
+
+Testes **backend** (operators, palettes, viewport, render puro sem Robolectric)
+**não** entram na lista — o CI já os executa.
+
+```kotlin
+// app/build.gradle.kts — exemplo ao criar FooActivityTest (Robolectric)
+val robolectricUnitTestClasses = listOf(
+    // ...
+    "org.girino.frac.android.foss.FooActivityTest",
+)
+```
+
+```text
+# ❌ BAD — Robolectric novo sem registrar
+@RunWith(RobolectricTestRunner.class)
+public class NewPickerTest { ... }
+// CI passa verde mas a classe nunca roda no GitHub Actions
+
+# ✅ GOOD — FQCN na lista + testDebugUnitTest local
+```
+
+Renomear pacote/classe de teste Robolectric → atualizar o FQCN na lista.

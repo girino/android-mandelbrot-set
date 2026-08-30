@@ -33,17 +33,10 @@ public class FormulaPreviewTest {
     private static boolean hasNonBlackPixel(Bitmap bitmap) {
         int w = bitmap.getWidth();
         int h = bitmap.getHeight();
-        for (int y = 0; y < h; y += Math.max(1, h / 8)) {
-            for (int x = 0; x < w; x += Math.max(1, w / 8)) {
-                int rgb = bitmap.getPixel(x, y) & 0x00FFFFFF;
-                if (rgb != Color.BLACK) {
-                    return true;
-                }
-            }
-        }
-        // Dense scan fallback for sparse coloring.
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
+        int stepX = Math.max(1, w / 8);
+        int stepY = Math.max(1, h / 8);
+        for (int y = 0; y < h; y += stepY) {
+            for (int x = 0; x < w; x += stepX) {
                 if ((bitmap.getPixel(x, y) & 0x00FFFFFF) != Color.BLACK) {
                     return true;
                 }
