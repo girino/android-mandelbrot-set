@@ -62,6 +62,8 @@ public class MandelbrotActivity extends AppCompatActivity {
     private int paletteIndex = DEFAULT_PALETTE_INDEX;
     private double phoenixPRe = PhoenixParamsStore.DEFAULT_P_RE;
     private double phoenixPIm = PhoenixParamsStore.DEFAULT_P_IM;
+    private double juliaCRe = JuliaParamsStore.DEFAULT_C_RE;
+    private double juliaCIm = JuliaParamsStore.DEFAULT_C_IM;
     /** Set when pausing mid-render; cleared after resume restart. */
     private boolean resumeInterruptedRender;
     private Bitmap pendingSaveBitmap;
@@ -83,7 +85,21 @@ public class MandelbrotActivity extends AppCompatActivity {
                     result -> {
                         if (result.getResultCode() == RESULT_OK) {
                             loadPhoenixParams();
-                            if (isPhoenixSelected()) {
+                            if (isPhoenixSelected() || isJuliaPhoenixSelected()) {
+                                applyOperatorForIndex(operatorIndex);
+                                view.start();
+                                persistCurrentSession();
+                                refreshStatusOverlay();
+                            }
+                        }
+                    });
+    private final ActivityResultLauncher<Intent> juliaParamsLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK) {
+                            loadJuliaParams();
+                            if (isJuliaSelected() || isJuliaPhoenixSelected()) {
                                 applyOperatorForIndex(operatorIndex);
                                 view.start();
                                 persistCurrentSession();
@@ -116,6 +132,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         statusOverlayChip.setOnClickListener(v -> setStatusOverlayVisible(true));
 
         loadPhoenixParams();
+        loadJuliaParams();
         restoreSessionState(savedInstanceState);
         applyOperatorForIndex(operatorIndex);
         applyIterationSettings(IterationSettingsStore.load(this));
@@ -184,11 +201,50 @@ public class MandelbrotActivity extends AppCompatActivity {
         return operatorIndex == FormulaCatalog.PHOENIX_INDEX;
     }
 
+    private void loadJuliaParams() {
+        JuliaParamsStore.Params params = JuliaParamsStore.load(this);
+        juliaCRe = params.cRe;
+        juliaCIm = params.cIm;
+    }
+
+    private boolean isJuliaSelected() {
+        return operatorIndex == FormulaCatalog.JULIA_INDEX;
+    }
+
+    private boolean isJuliaPhoenixSelected() {
+        return operatorIndex == FormulaCatalog.JULIA_PHOENIX_INDEX;
+    }
+
+    private boolean showsJuliaParamsMenu() {
+        return isJuliaSelected() || isJuliaPhoenixSelected();
+    }
+
+    private boolean showsPhoenixParamsMenu() {
+        return isPhoenixSelected() || isJuliaPhoenixSelected();
+    }
+
     private void applyOperatorForIndex(int index) {
         if (index == FormulaCatalog.PHOENIX_INDEX) {
             view.setOper(FormulaCatalog.createPhoenix(phoenixPRe, phoenixPIm));
+        } else if (index == FormulaCatalog.JULIA_INDEX) {
+            view.setOper(FormulaCatalog.createJulia(juliaCRe, juliaCIm));
+        } else if (index == FormulaCatalog.JULIA_PHOENIX_INDEX) {
+            view.setOper(FormulaCatalog.createJuliaPhoenix(
+                    juliaCRe, juliaCIm, phoenixPRe, phoenixPIm));
         } else {
             view.setOper(FormulaCatalog.get(index));
+        }
+    }
+
+    private void setJuliaParams(double cRe, double cIm) {
+        juliaCRe = cRe;
+        juliaCIm = cIm;
+        JuliaParamsStore.save(this, cRe, cIm);
+        if (showsJuliaParamsMenu()) {
+            applyOperatorForIndex(operatorIndex);
+            view.start();
+            persistCurrentSession();
+            refreshStatusOverlay();
         }
     }
 
@@ -196,7 +252,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         phoenixPRe = pRe;
         phoenixPIm = pIm;
         PhoenixParamsStore.save(this, pRe, pIm);
-        if (isPhoenixSelected()) {
+        if (isPhoenixSelected() || isJuliaPhoenixSelected()) {
             applyOperatorForIndex(operatorIndex);
             view.start();
             persistCurrentSession();
@@ -231,8 +287,10 @@ public class MandelbrotActivity extends AppCompatActivity {
         HudMenuAdapter adapter = new HudMenuAdapter(
                 this,
                 view.isSmooth(),
-                isPhoenixSelected(),
-                PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm));
+                showsPhoenixParamsMenu(),
+                PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm),
+                showsJuliaParamsMenu(),
+                JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm));
         list.setAdapter(adapter);
         list.setChoiceMode(ListView.CHOICE_MODE_NONE);
         list.setOnItemClickListener((parent, row, position, id) -> {
@@ -251,6 +309,10 @@ public class MandelbrotActivity extends AppCompatActivity {
             }
             if (adapter.isPhoenixParams(position)) {
                 openPhoenixParamsPicker();
+                return;
+            }
+            if (adapter.isJuliaParams(position)) {
+                openJuliaParamsPicker();
                 return;
             }
             if (adapter.isHelp(position)) {
@@ -420,11 +482,17 @@ public class MandelbrotActivity extends AppCompatActivity {
                 .append(getString(overlayAlgorithmRes()))
                 .append('\n')
                 .append(getString(R.string.status_overlay_iterations, view.effectiveMaxIter()));
-        if (isPhoenixSelected()) {
+        if (showsPhoenixParamsMenu()) {
             overlay.append('\n')
                     .append(getString(
                             R.string.status_overlay_phoenix_p,
                             PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm)));
+        }
+        if (showsJuliaParamsMenu()) {
+            overlay.append('\n')
+                    .append(getString(
+                            R.string.status_overlay_julia_c,
+                            JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm)));
         }
         statusOverlay.setText(overlay);
     }
@@ -600,6 +668,49 @@ public class MandelbrotActivity extends AppCompatActivity {
         intent.putExtra(PhoenixParamsActivity.EXTRA_P_RE, phoenixPRe);
         intent.putExtra(PhoenixParamsActivity.EXTRA_P_IM, phoenixPIm);
         phoenixParamsLauncher.launch(intent);
+    }
+
+    private void openJuliaParamsPicker() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        TextView title = sheet.findViewById(R.id.picker_title);
+        ListView list = sheet.findViewById(R.id.picker_list);
+        title.setText(R.string.select_julia_c);
+        int rowCount = JuliaPresetCatalog.pickerRowCount();
+        String[] labels = new String[rowCount];
+        for (int i = 0; i < JuliaPresetCatalog.presetCount(); i++) {
+            labels[i] = getString(JuliaPresetCatalog.getPreset(i).labelRes);
+        }
+        int customRow = JuliaPresetCatalog.customRowIndex();
+        if (JuliaPresetCatalog.indexOfPreset(juliaCRe, juliaCIm) < 0) {
+            labels[customRow] = getString(
+                    R.string.julia_preset_custom_current,
+                    JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm));
+        } else {
+            labels[customRow] = getString(R.string.julia_preset_custom);
+        }
+        list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, labels));
+        int checked = JuliaPresetCatalog.pickerCheckedRow(juliaCRe, juliaCIm);
+        list.setItemChecked(checked, true);
+        list.setSelection(checked);
+        list.setOnItemClickListener((parent, row, position, id) -> {
+            dialog.dismiss();
+            if (JuliaPresetCatalog.isCustomRow(position)) {
+                openJuliaCustomParams();
+                return;
+            }
+            JuliaPresetCatalog.Preset preset = JuliaPresetCatalog.getPreset(position);
+            setJuliaParams(preset.cRe, preset.cIm);
+        });
+        dialog.setContentView(sheet);
+        dialog.show();
+    }
+
+    private void openJuliaCustomParams() {
+        Intent intent = new Intent(this, JuliaParamsActivity.class);
+        intent.putExtra(JuliaParamsActivity.EXTRA_C_RE, juliaCRe);
+        intent.putExtra(JuliaParamsActivity.EXTRA_C_IM, juliaCIm);
+        juliaParamsLauncher.launch(intent);
     }
 
     private void openPalettePicker() {

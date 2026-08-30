@@ -1,23 +1,28 @@
 package org.girino.frac.operators;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
 class JuliaOperatorTest {
-    private final JuliaOperator operator = new JuliaOperator();
-
     @Test
-    void seedNearFixedPointStaysInside() {
-        // Z0 = C; with this Julia seed the origin is typically interior for modest maxiter.
-        assertEquals(1.0, operator.apply(new Complex(0, 0), 40, false));
+    void differentPixelsSampleIndependently() {
+        JuliaOperator julia = new JuliaOperator(0.285, 0.013);
+        FractalOperator.EscapeSample interior =
+                julia.sample(new Complex(0.3, 0.4), 80, false);
+        FractalOperator.EscapeSample escaped =
+                julia.sample(new Complex(5.0, 0.0), 80, false);
+        assertTrue(interior.iterations == 80 && !interior.escaped);
+        assertTrue(escaped.escaped && escaped.iterations < 80);
+        assertNotEquals(interior.value, escaped.value);
     }
 
     @Test
-    void distantSeedEscapes() {
-        double result = operator.apply(new Complex(2, 2), 40, false);
-        assertTrue(result >= 0.0);
-        assertTrue(result < 1.0);
+    void differentSeedsChangeImage() {
+        JuliaOperator a = new JuliaOperator(0.285, 0.013);
+        JuliaOperator b = new JuliaOperator(-0.8, 0.156);
+        Complex z0 = new Complex(0.3, 0.4);
+        assertNotEquals(a.apply(z0, 80, false), b.apply(z0, 80, false));
     }
 }

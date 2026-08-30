@@ -35,6 +35,26 @@
     <string name="phoenix_invalid">Enter valid numbers for p</string>
     <string name="status_overlay_phoenix_p">p: %1$s</string>
     <string name="hud_phoenix_params_cd">Choose Phoenix distortion parameter p</string>
+    <string name="menu_julia_params">Julia c</string>
+    <string name="select_julia_c">Julia seed (c)</string>
+    <string name="julia_preset_classic">Classic (0.285+0.013i)</string>
+    <string name="julia_preset_dendrite">Dendrite (−0.8+0.156i)</string>
+    <string name="julia_preset_san_marco">San Marco (−0.727+0.189i)</string>
+    <string name="julia_preset_spiral">Spiral (−0.4+0.6i)</string>
+    <string name="julia_preset_douady">Douady (−0.123+0.745i)</string>
+    <string name="julia_preset_phoenix_real">Phoenix (0.566)</string>
+    <string name="julia_preset_custom">Custom…</string>
+    <string name="julia_preset_custom_current">Custom (%1$s)</string>
+    <string name="julia_custom_title">Custom Julia c</string>
+    <string name="julia_custom_summary">Julia set z(n+1) = z(n)² + c. The pixel coordinate is z(0); c stays fixed for the whole image.</string>
+    <string name="julia_c_re_hint">Real part of c</string>
+    <string name="julia_c_re_helper">Example: 0.285</string>
+    <string name="julia_c_im_hint">Imaginary part of c</string>
+    <string name="julia_c_im_helper">Example: 0.013</string>
+    <string name="julia_save">Apply</string>
+    <string name="julia_invalid">Enter valid numbers for c</string>
+    <string name="status_overlay_julia_c">c: %1$s</string>
+    <string name="hud_julia_params_cd">Choose Julia seed parameter c</string>
     <string name="hud_zoom_in">+</string>
     <string name="hud_zoom_out">−</string>
     <string name="hud_formula_cd">Choose fractal formula</string>

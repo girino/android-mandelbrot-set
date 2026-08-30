@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 import org.girino.frac.operators.FractalOperator;
+import org.girino.frac.operators.JuliaOperator;
+import org.girino.frac.operators.JuliaPhoenixOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.operators.PhoenixOperator;
 import org.girino.frac.palettes.HSBPalette;
@@ -201,5 +203,25 @@ public class ParallelStepRendererTest {
         assertNotSame(source, copy);
         assertEquals(0.5, copy.getPRe(), 1e-12);
         assertEquals(0.0, copy.getPIm(), 1e-12);
+    }
+
+    @Test
+    public void formulaCatalog_createLike_juliaCopiesC() {
+        JuliaOperator source = new JuliaOperator(-0.4, 0.6);
+        JuliaOperator copy = (JuliaOperator) FormulaCatalog.createLike(source);
+        assertNotSame(source, copy);
+        assertEquals(-0.4, copy.getCRe(), 1e-12);
+        assertEquals(0.6, copy.getCIm(), 1e-12);
+    }
+
+    @Test
+    public void formulaCatalog_createLike_juliaPhoenixCopiesCAndP() {
+        JuliaPhoenixOperator source = new JuliaPhoenixOperator(-0.4, 0.6, 0.5, -0.25);
+        JuliaPhoenixOperator copy = (JuliaPhoenixOperator) FormulaCatalog.createLike(source);
+        assertNotSame(source, copy);
+        assertEquals(-0.4, copy.getCRe(), 1e-12);
+        assertEquals(0.6, copy.getCIm(), 1e-12);
+        assertEquals(0.5, copy.getPRe(), 1e-12);
+        assertEquals(-0.25, copy.getPIm(), 1e-12);
     }
 }

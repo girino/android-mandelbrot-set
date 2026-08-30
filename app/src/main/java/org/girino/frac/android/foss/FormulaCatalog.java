@@ -4,6 +4,8 @@ import org.girino.frac.operators.BurningShipOperator;
 import org.girino.frac.operators.CubeMandelbrotOperator;
 import org.girino.frac.operators.FourthMandelbrotOperator;
 import org.girino.frac.operators.FractalOperator;
+import org.girino.frac.operators.JuliaOperator;
+import org.girino.frac.operators.JuliaPhoenixOperator;
 import org.girino.frac.operators.MandelbarOperator;
 import org.girino.frac.operators.NovaOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
@@ -14,6 +16,8 @@ import org.girino.frac.operators.ShipBarOperator;
 public final class FormulaCatalog {
 
     public static final int PHOENIX_INDEX = 7;
+    public static final int JULIA_INDEX = 8;
+    public static final int JULIA_PHOENIX_INDEX = 9;
     /** Tricorn / Mandelbar: conj(z)^2 + c (same operator, experiment label). */
     public static final int TRICORN_INDEX = 3;
 
@@ -26,6 +30,8 @@ public final class FormulaCatalog {
             "Mandelbrot to the fourth power",
             "Shipbar",
             "Phoenix",
+            "Julia",
+            "Julia Phoenix",
     };
 
     private FormulaCatalog() {
@@ -67,6 +73,15 @@ public final class FormulaCatalog {
             case PHOENIX_INDEX:
                 return createPhoenix(
                         PhoenixParamsStore.DEFAULT_P_RE, PhoenixParamsStore.DEFAULT_P_IM);
+            case JULIA_INDEX:
+                return createJulia(
+                        JuliaParamsStore.DEFAULT_C_RE, JuliaParamsStore.DEFAULT_C_IM);
+            case JULIA_PHOENIX_INDEX:
+                return createJuliaPhoenix(
+                        JuliaParamsStore.DEFAULT_C_RE,
+                        JuliaParamsStore.DEFAULT_C_IM,
+                        PhoenixParamsStore.DEFAULT_P_RE,
+                        PhoenixParamsStore.DEFAULT_P_IM);
             default:
                 throw new IndexOutOfBoundsException("formula index " + index);
         }
@@ -76,11 +91,31 @@ public final class FormulaCatalog {
         return new PhoenixOperator(pRe, pIm);
     }
 
+    public static FractalOperator createJulia(double cRe, double cIm) {
+        return new JuliaOperator(cRe, cIm);
+    }
+
+    public static FractalOperator createJuliaPhoenix(double cRe, double cIm, double pRe, double pIm) {
+        return new JuliaPhoenixOperator(cRe, cIm, pRe, pIm);
+    }
+
     /** New instance of the same catalog formula as operator, or Mandelbrot. */
     public static FractalOperator createLike(FractalOperator operator) {
         if (operator instanceof PhoenixOperator) {
             PhoenixOperator phoenix = (PhoenixOperator) operator;
             return createPhoenix(phoenix.getPRe(), phoenix.getPIm());
+        }
+        if (operator instanceof JuliaOperator) {
+            JuliaOperator julia = (JuliaOperator) operator;
+            return createJulia(julia.getCRe(), julia.getCIm());
+        }
+        if (operator instanceof JuliaPhoenixOperator) {
+            JuliaPhoenixOperator juliaPhoenix = (JuliaPhoenixOperator) operator;
+            return createJuliaPhoenix(
+                    juliaPhoenix.getCRe(),
+                    juliaPhoenix.getCIm(),
+                    juliaPhoenix.getPRe(),
+                    juliaPhoenix.getPIm());
         }
         int index = indexOf(operator);
         return create(index >= 0 ? index : 0);
@@ -115,6 +150,12 @@ public final class FormulaCatalog {
         }
         if (type == PhoenixOperator.class) {
             return PHOENIX_INDEX;
+        }
+        if (type == JuliaOperator.class) {
+            return JULIA_INDEX;
+        }
+        if (type == JuliaPhoenixOperator.class) {
+            return JULIA_PHOENIX_INDEX;
         }
         return -1;
     }

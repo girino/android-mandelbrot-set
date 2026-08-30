@@ -17,10 +17,6 @@ final class HudMenuAdapter extends BaseAdapter {
     private static final int TYPE_ACTION = 0;
     private static final int TYPE_SECTION = 1;
 
-    /**
-     * Core menu actions (also on the HUD bar except Formula/Palette).
-     * Export is on the bar (issue #46); Smooth is overflow-only.
-     */
     enum Action {
         ZOOM_IN(R.string.menu_zoom_in, R.drawable.ic_hud_zoom_in, R.string.hud_zoom_in_cd, false),
         ZOOM_OUT(R.string.menu_zoom_out, R.drawable.ic_hud_zoom_out, R.string.hud_zoom_out_cd, false),
@@ -49,6 +45,11 @@ final class HudMenuAdapter extends BaseAdapter {
                 R.drawable.ic_hud_phoenix_params,
                 R.string.hud_phoenix_params_cd,
                 true),
+        JULIA_PARAMS(
+                R.string.menu_julia_params,
+                R.drawable.ic_hud_julia_params,
+                R.string.hud_julia_params_cd,
+                true),
         HELP(R.string.menu_help, R.drawable.ic_hud_help, R.string.hud_help_cd, false),
         ABOUT(R.string.menu_about, R.drawable.ic_hud_about, R.string.hud_about_cd, false);
 
@@ -73,17 +74,23 @@ final class HudMenuAdapter extends BaseAdapter {
     private final boolean smoothOn;
     private final boolean phoenixParamsVisible;
     private final String phoenixParamsIndicator;
+    private final boolean juliaParamsVisible;
+    private final String juliaParamsIndicator;
 
     HudMenuAdapter(
             Context context,
             boolean smoothOn,
             boolean phoenixParamsVisible,
-            String phoenixParamsIndicator) {
+            String phoenixParamsIndicator,
+            boolean juliaParamsVisible,
+            String juliaParamsIndicator) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         this.smoothOn = smoothOn;
         this.phoenixParamsVisible = phoenixParamsVisible;
         this.phoenixParamsIndicator = phoenixParamsIndicator != null ? phoenixParamsIndicator : "";
+        this.juliaParamsVisible = juliaParamsVisible;
+        this.juliaParamsIndicator = juliaParamsIndicator != null ? juliaParamsIndicator : "";
     }
 
     boolean isSectionHeader(int position) {
@@ -102,6 +109,10 @@ final class HudMenuAdapter extends BaseAdapter {
         return overflowAt(position) == Overflow.PHOENIX_PARAMS;
     }
 
+    boolean isJuliaParams(int position) {
+        return overflowAt(position) == Overflow.JULIA_PARAMS;
+    }
+
     boolean isHelp(int position) {
         return overflowAt(position) == Overflow.HELP;
     }
@@ -117,6 +128,16 @@ final class HudMenuAdapter extends BaseAdapter {
         return Action.values()[position];
     }
 
+    private boolean isOverflowVisible(Overflow item) {
+        if (item == Overflow.PHOENIX_PARAMS) {
+            return phoenixParamsVisible;
+        }
+        if (item == Overflow.JULIA_PARAMS) {
+            return juliaParamsVisible;
+        }
+        return true;
+    }
+
     private Overflow overflowAt(int position) {
         int overflowIndex = position - SECTION_INDEX - 1;
         if (overflowIndex < 0) {
@@ -124,7 +145,7 @@ final class HudMenuAdapter extends BaseAdapter {
         }
         int slot = 0;
         for (Overflow item : Overflow.values()) {
-            if (item == Overflow.PHOENIX_PARAMS && !phoenixParamsVisible) {
+            if (!isOverflowVisible(item)) {
                 continue;
             }
             if (slot == overflowIndex) {
@@ -137,8 +158,14 @@ final class HudMenuAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        int overflowCount = Overflow.values().length - (phoenixParamsVisible ? 0 : 1);
-        return CORE_COUNT + 1 + overflowCount;
+        int hidden = 0;
+        if (!phoenixParamsVisible) {
+            hidden++;
+        }
+        if (!juliaParamsVisible) {
+            hidden++;
+        }
+        return CORE_COUNT + 1 + Overflow.values().length - hidden;
     }
 
     @Override
@@ -216,8 +243,11 @@ final class HudMenuAdapter extends BaseAdapter {
 
         if (valueIndicator) {
             indicator.setVisibility(View.VISIBLE);
-            if (overflowAt(position) == Overflow.PHOENIX_PARAMS) {
+            Overflow overflow = overflowAt(position);
+            if (overflow == Overflow.PHOENIX_PARAMS) {
                 indicator.setText(phoenixParamsIndicator);
+            } else if (overflow == Overflow.JULIA_PARAMS) {
+                indicator.setText(juliaParamsIndicator);
             } else {
                 indicator.setText(
                         smoothOn ? R.string.status_overlay_smooth_on : R.string.status_overlay_smooth_off);

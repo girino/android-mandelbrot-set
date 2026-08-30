@@ -19,7 +19,9 @@ class FractalOperatorContinueTest {
                 new FourthMandelbrotOperator(),
                 new ShipBarOperator(),
                 new NovaOperator(),
-                new PhoenixOperator());
+                new PhoenixOperator(),
+                new JuliaOperator(),
+                new JuliaPhoenixOperator());
     }
 
     private static FractalOperator.EscapeSample continueFromCheckpoint(
