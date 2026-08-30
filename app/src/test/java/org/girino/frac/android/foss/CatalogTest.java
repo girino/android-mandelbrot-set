@@ -13,13 +13,17 @@ public class CatalogTest {
 
     @Test
     public void formulaCatalog_defaultsAndLookup() {
-        assertEquals(10, FormulaCatalog.size());
+        assertEquals(12, FormulaCatalog.size());
         assertEquals(0, FormulaCatalog.indexOf(new OptimizedMandelbrotOperator()));
         assertEquals("Mandelbrot Set", FormulaCatalog.labels()[0]);
         assertEquals("Tricorn", FormulaCatalog.labels()[FormulaCatalog.TRICORN_INDEX]);
         assertEquals("Phoenix", FormulaCatalog.labels()[FormulaCatalog.PHOENIX_INDEX]);
         assertEquals("Julia", FormulaCatalog.labels()[FormulaCatalog.JULIA_INDEX]);
         assertEquals("Julia Phoenix", FormulaCatalog.labels()[FormulaCatalog.JULIA_PHOENIX_INDEX]);
+        assertEquals("Celtic Mandelbrot", FormulaCatalog.labels()[FormulaCatalog.CELTIC_INDEX]);
+        assertEquals(
+                "Perpendicular Mandelbrot",
+                FormulaCatalog.labels()[FormulaCatalog.PERPENDICULAR_INDEX]);
         assertTrue(FormulaCatalog.get(0) instanceof OptimizedMandelbrotOperator);
         assertNotSame(FormulaCatalog.create(0), FormulaCatalog.create(0));
     }

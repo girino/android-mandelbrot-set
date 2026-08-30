@@ -1,6 +1,7 @@
 package org.girino.frac.android.foss;
 
 import org.girino.frac.operators.BurningShipOperator;
+import org.girino.frac.operators.CelticMandelbrotOperator;
 import org.girino.frac.operators.CubeMandelbrotOperator;
 import org.girino.frac.operators.FourthMandelbrotOperator;
 import org.girino.frac.operators.FractalOperator;
@@ -10,6 +11,7 @@ import org.girino.frac.operators.MandelbarOperator;
 import org.girino.frac.operators.NovaOperator;
 import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.girino.frac.operators.PhoenixOperator;
+import org.girino.frac.operators.PerpendicularMandelbrotOperator;
 import org.girino.frac.operators.ShipBarOperator;
 
 /** Named fractal formulas available in the picker (issues #10 / #13). */
@@ -18,6 +20,8 @@ public final class FormulaCatalog {
     public static final int PHOENIX_INDEX = 7;
     public static final int JULIA_INDEX = 8;
     public static final int JULIA_PHOENIX_INDEX = 9;
+    public static final int CELTIC_INDEX = 10;
+    public static final int PERPENDICULAR_INDEX = 11;
     /** Tricorn / Mandelbar: conj(z)^2 + c (same operator, experiment label). */
     public static final int TRICORN_INDEX = 3;
 
@@ -32,6 +36,8 @@ public final class FormulaCatalog {
             "Phoenix",
             "Julia",
             "Julia Phoenix",
+            "Celtic Mandelbrot",
+            "Perpendicular Mandelbrot",
     };
 
     private FormulaCatalog() {
@@ -82,6 +88,10 @@ public final class FormulaCatalog {
                         JuliaParamsStore.DEFAULT_C_IM,
                         PhoenixParamsStore.DEFAULT_P_RE,
                         PhoenixParamsStore.DEFAULT_P_IM);
+            case CELTIC_INDEX:
+                return new CelticMandelbrotOperator();
+            case PERPENDICULAR_INDEX:
+                return new PerpendicularMandelbrotOperator();
             default:
                 throw new IndexOutOfBoundsException("formula index " + index);
         }
@@ -156,6 +166,12 @@ public final class FormulaCatalog {
         }
         if (type == JuliaPhoenixOperator.class) {
             return JULIA_PHOENIX_INDEX;
+        }
+        if (type == CelticMandelbrotOperator.class) {
+            return CELTIC_INDEX;
+        }
+        if (type == PerpendicularMandelbrotOperator.class) {
+            return PERPENDICULAR_INDEX;
         }
         return -1;
     }
