@@ -86,8 +86,6 @@ android {
             all {
                 it.useJUnitPlatform()
                 it.maxHeapSize = "512m"
-                // One JVM per class: stray render threads must not block the whole suite.
-                it.forkEvery = 1L
                 it.maxParallelForks = 1
                 it.timeout.set(Duration.ofMinutes(3))
             }
@@ -120,9 +118,16 @@ afterEvaluate {
 
     tasks.named<Test>("testDebugUnitTest").configure {
         if (backendOnlyRequested) {
+            // Backend classes shut down their own ExecutorServices in @After.
+            // forkEvery=1 made CI pay ~4s JVM boot per class and hit the 3 min timeout.
+            forkEvery = 0L
             filter {
                 robolectricUnitTestClasses.forEach { excludeTestsMatching(it) }
             }
+        } else {
+            // Full local suite includes MandelbrotView Robolectric tests; isolate JVMs
+            // so a leftover render thread cannot hang the rest of the suite.
+            forkEvery = 1L
         }
     }
 

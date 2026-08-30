@@ -36,13 +36,9 @@
             android:exported="false"
             android:label="@string/menu_iterations" />
         <activity
-            android:name=".PhoenixParamsActivity"
+            android:name=".FormulaParamsActivity"
             android:exported="false"
-            android:label="@string/phoenix_custom_title" />
-        <activity
-            android:name=".JuliaParamsActivity"
-            android:exported="false"
-            android:label="@string/julia_custom_title" />
+            android:label="@string/formula_params_title" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

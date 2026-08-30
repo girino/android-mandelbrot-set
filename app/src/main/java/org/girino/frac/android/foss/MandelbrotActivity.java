@@ -79,27 +79,14 @@ public class MandelbrotActivity extends AppCompatActivity {
                             applyIterationSettings(IterationSettingsStore.load(this));
                         }
                     });
-    private final ActivityResultLauncher<Intent> phoenixParamsLauncher =
+    private final ActivityResultLauncher<Intent> formulaParamsLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
                         if (result.getResultCode() == RESULT_OK) {
                             loadPhoenixParams();
-                            if (isPhoenixSelected() || isJuliaPhoenixSelected()) {
-                                applyOperatorForIndex(operatorIndex);
-                                view.start();
-                                persistCurrentSession();
-                                refreshStatusOverlay();
-                            }
-                        }
-                    });
-    private final ActivityResultLauncher<Intent> juliaParamsLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.StartActivityForResult(),
-                    result -> {
-                        if (result.getResultCode() == RESULT_OK) {
                             loadJuliaParams();
-                            if (isJuliaSelected() || isJuliaPhoenixSelected()) {
+                            if (showsFormulaParamsMenu()) {
                                 applyOperatorForIndex(operatorIndex);
                                 view.start();
                                 persistCurrentSession();
@@ -215,12 +202,16 @@ public class MandelbrotActivity extends AppCompatActivity {
         return operatorIndex == FormulaCatalog.JULIA_PHOENIX_INDEX;
     }
 
-    private boolean showsJuliaParamsMenu() {
-        return isJuliaSelected() || isJuliaPhoenixSelected();
+    private boolean showsFormulaParamsMenu() {
+        return FormulaParamsActivity.showsFormulaParamsMenu(operatorIndex);
     }
 
-    private boolean showsPhoenixParamsMenu() {
-        return isPhoenixSelected() || isJuliaPhoenixSelected();
+    private boolean usesCParam() {
+        return FormulaParamsActivity.usesCParam(operatorIndex);
+    }
+
+    private boolean usesPParam() {
+        return FormulaParamsActivity.usesPParam(operatorIndex);
     }
 
     private void applyOperatorForIndex(int index) {
@@ -233,30 +224,6 @@ public class MandelbrotActivity extends AppCompatActivity {
                     juliaCRe, juliaCIm, phoenixPRe, phoenixPIm));
         } else {
             view.setOper(FormulaCatalog.get(index));
-        }
-    }
-
-    private void setJuliaParams(double cRe, double cIm) {
-        juliaCRe = cRe;
-        juliaCIm = cIm;
-        JuliaParamsStore.save(this, cRe, cIm);
-        if (showsJuliaParamsMenu()) {
-            applyOperatorForIndex(operatorIndex);
-            view.start();
-            persistCurrentSession();
-            refreshStatusOverlay();
-        }
-    }
-
-    private void setPhoenixParams(double pRe, double pIm) {
-        phoenixPRe = pRe;
-        phoenixPIm = pIm;
-        PhoenixParamsStore.save(this, pRe, pIm);
-        if (isPhoenixSelected() || isJuliaPhoenixSelected()) {
-            applyOperatorForIndex(operatorIndex);
-            view.start();
-            persistCurrentSession();
-            refreshStatusOverlay();
         }
     }
 
@@ -294,16 +261,11 @@ public class MandelbrotActivity extends AppCompatActivity {
         HudMenuAdapter adapter = new HudMenuAdapter(
                 this,
                 view.isSmooth(),
-                showsPhoenixParamsMenu(),
-                PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm),
-                showsJuliaParamsMenu(),
-                JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm));
+                showsFormulaParamsMenu(),
+                formatFormulaParamsIndicator());
         list.setAdapter(adapter);
         list.setChoiceMode(ListView.CHOICE_MODE_NONE);
         list.setOnItemClickListener((parent, row, position, id) -> {
-            if (adapter.isSectionHeader(position)) {
-                return;
-            }
             dialog.dismiss();
             if (adapter.isSmooth(position)) {
                 toggleSmooth();
@@ -314,12 +276,8 @@ public class MandelbrotActivity extends AppCompatActivity {
                         new Intent(this, IterationSettingsActivity.class));
                 return;
             }
-            if (adapter.isPhoenixParams(position)) {
-                openPhoenixParamsPicker();
-                return;
-            }
-            if (adapter.isJuliaParams(position)) {
-                openJuliaParamsPicker();
+            if (adapter.isFormulaParams(position)) {
+                openFormulaParams();
                 return;
             }
             if (adapter.isHelp(position)) {
@@ -330,24 +288,11 @@ public class MandelbrotActivity extends AppCompatActivity {
                 startActivity(new Intent(this, AboutActivity.class));
                 return;
             }
-            HudMenuAdapter.Action action = HudMenuAdapter.actionAt(position);
+            HudMenuAdapter.Action action = adapter.actionAt(position);
             if (action == null) {
                 return;
             }
             switch (action) {
-                case ZOOM_IN:
-                    view.zoomIn();
-                    persistCurrentSession();
-                    refreshStatusOverlay();
-                    break;
-                case ZOOM_OUT:
-                    view.zoomOut();
-                    persistCurrentSession();
-                    refreshStatusOverlay();
-                    break;
-                case RESET:
-                    performFullReset();
-                    break;
                 case FORMULA:
                     openFormulaPicker();
                     break;
@@ -488,13 +433,13 @@ public class MandelbrotActivity extends AppCompatActivity {
                 .append(getString(overlayAlgorithmRes()))
                 .append('\n')
                 .append(getString(R.string.status_overlay_iterations, view.effectiveMaxIter()));
-        if (showsPhoenixParamsMenu()) {
+        if (usesPParam()) {
             overlay.append('\n')
                     .append(getString(
                             R.string.status_overlay_phoenix_p,
                             PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm)));
         }
-        if (showsJuliaParamsMenu()) {
+        if (usesCParam()) {
             overlay.append('\n')
                     .append(getString(
                             R.string.status_overlay_julia_c,
@@ -630,86 +575,27 @@ public class MandelbrotActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void openPhoenixParamsPicker() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = inflatePickerSheet(dialog);
-        TextView title = sheet.findViewById(R.id.picker_title);
-        ListView list = sheet.findViewById(R.id.picker_list);
-        title.setText(R.string.select_phoenix_p);
-        int rowCount = PhoenixPresetCatalog.pickerRowCount();
-        String[] labels = new String[rowCount];
-        for (int i = 0; i < PhoenixPresetCatalog.presetCount(); i++) {
-            labels[i] = getString(PhoenixPresetCatalog.getPreset(i).labelRes);
-        }
-        int customRow = PhoenixPresetCatalog.customRowIndex();
-        if (PhoenixPresetCatalog.indexOfPreset(phoenixPRe, phoenixPIm) < 0) {
-            labels[customRow] = getString(
-                    R.string.phoenix_preset_custom_current,
+    private String formatFormulaParamsIndicator() {
+        if (isJuliaPhoenixSelected()) {
+            return getString(
+                    R.string.formula_params_indicator_both,
+                    JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm),
                     PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm));
-        } else {
-            labels[customRow] = getString(R.string.phoenix_preset_custom);
         }
-        list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, labels));
-        int checked = PhoenixPresetCatalog.pickerCheckedRow(phoenixPRe, phoenixPIm);
-        BottomSheetPickerHelper.bindCheckedSelection(list, checked, rowCount);
-        list.setOnItemClickListener((parent, row, position, id) -> {
-            dialog.dismiss();
-            if (PhoenixPresetCatalog.isCustomRow(position)) {
-                openPhoenixCustomParams();
-                return;
-            }
-            PhoenixPresetCatalog.Preset preset = PhoenixPresetCatalog.getPreset(position);
-            setPhoenixParams(preset.pRe, preset.pIm);
-        });
-        dialog.show();
+        if (isJuliaSelected()) {
+            return JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm);
+        }
+        return PhoenixPresetCatalog.formatShort(phoenixPRe, phoenixPIm);
     }
 
-    private void openPhoenixCustomParams() {
-        Intent intent = new Intent(this, PhoenixParamsActivity.class);
-        intent.putExtra(PhoenixParamsActivity.EXTRA_P_RE, phoenixPRe);
-        intent.putExtra(PhoenixParamsActivity.EXTRA_P_IM, phoenixPIm);
-        phoenixParamsLauncher.launch(intent);
-    }
-
-    private void openJuliaParamsPicker() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = inflatePickerSheet(dialog);
-        TextView title = sheet.findViewById(R.id.picker_title);
-        ListView list = sheet.findViewById(R.id.picker_list);
-        title.setText(R.string.select_julia_c);
-        int rowCount = JuliaPresetCatalog.pickerRowCount();
-        String[] labels = new String[rowCount];
-        for (int i = 0; i < JuliaPresetCatalog.presetCount(); i++) {
-            labels[i] = getString(JuliaPresetCatalog.getPreset(i).labelRes);
-        }
-        int customRow = JuliaPresetCatalog.customRowIndex();
-        if (JuliaPresetCatalog.indexOfPreset(juliaCRe, juliaCIm) < 0) {
-            labels[customRow] = getString(
-                    R.string.julia_preset_custom_current,
-                    JuliaPresetCatalog.formatShort(juliaCRe, juliaCIm));
-        } else {
-            labels[customRow] = getString(R.string.julia_preset_custom);
-        }
-        list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, labels));
-        int checked = JuliaPresetCatalog.pickerCheckedRow(juliaCRe, juliaCIm);
-        BottomSheetPickerHelper.bindCheckedSelection(list, checked, rowCount);
-        list.setOnItemClickListener((parent, row, position, id) -> {
-            dialog.dismiss();
-            if (JuliaPresetCatalog.isCustomRow(position)) {
-                openJuliaCustomParams();
-                return;
-            }
-            JuliaPresetCatalog.Preset preset = JuliaPresetCatalog.getPreset(position);
-            setJuliaParams(preset.cRe, preset.cIm);
-        });
-        dialog.show();
-    }
-
-    private void openJuliaCustomParams() {
-        Intent intent = new Intent(this, JuliaParamsActivity.class);
-        intent.putExtra(JuliaParamsActivity.EXTRA_C_RE, juliaCRe);
-        intent.putExtra(JuliaParamsActivity.EXTRA_C_IM, juliaCIm);
-        juliaParamsLauncher.launch(intent);
+    private void openFormulaParams() {
+        Intent intent = new Intent(this, FormulaParamsActivity.class);
+        intent.putExtra(FormulaParamsActivity.EXTRA_OPERATOR_INDEX, operatorIndex);
+        intent.putExtra(FormulaParamsActivity.EXTRA_C_RE, juliaCRe);
+        intent.putExtra(FormulaParamsActivity.EXTRA_C_IM, juliaCIm);
+        intent.putExtra(FormulaParamsActivity.EXTRA_P_RE, phoenixPRe);
+        intent.putExtra(FormulaParamsActivity.EXTRA_P_IM, phoenixPIm);
+        formulaParamsLauncher.launch(intent);
     }
 
     private void openPalettePicker() {

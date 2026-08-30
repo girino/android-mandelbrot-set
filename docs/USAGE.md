@@ -42,11 +42,13 @@ A compact bar at the bottom of the screen (icons only):
 | **⇪** | Export viewport as PNG (share or save to gallery) |
 | **☰** | Open the menu (all actions with icon + name) |
 
-The **menu** lists zoom in/out, reset, formula, palette, then **More**:
-**Smooth** (with on/off), **Iterations**, **Help**, and **About**. Formula and palette
+The **menu** lists formula, palette, **Smooth** (with on/off), **Iterations**,
+**Parameters (c / p)** when a Julia or Phoenix formula is selected, **Help**,
+and **About**. Formula and palette
 open bottom sheets: formula rows show a mini fractal thumbnail; palette rows show
 a color swatch. Smooth toggles continuous iteration coloring. Iterations opens
-a settings screen for escape-time max iterations. Help summarizes gestures and
+a settings screen for escape-time max iterations. Parameters edits Julia **c**
+and Phoenix **p**. Help summarizes gestures and
 the HUD; About shows the version, package id, and **Girino Anarchist License
 (GAL)** with a link to the full license text.
 

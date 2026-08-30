@@ -12,8 +12,8 @@ Robolectric/GUI. A suite completa (incluindo GUI) roda **só localmente** com
 
 | Comando | Escopo |
 |---------|--------|
-| `.\gradlew.bat backendTestDebugUnitTest` | CI — backend only |
-| `.\gradlew.bat testDebugUnitTest` | Local — backend + Robolectric |
+| `.\gradlew.bat backendTestDebugUnitTest` | CI — backend only (one JVM, no `forkEvery`) |
+| `.\gradlew.bat testDebugUnitTest` | Local — backend + Robolectric (`forkEvery=1`) |
 
 Lista de exclusão: [`robolectricUnitTestClasses`](app/build.gradle.kts) em
 [`app/build.gradle.kts`](app/build.gradle.kts).
