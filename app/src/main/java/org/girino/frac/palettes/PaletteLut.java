@@ -18,7 +18,9 @@ public final class PaletteLut {
         int[] lut = new int[SIZE];
         for (int i = 0; i < SIZE; i++) {
             double value = i / (double) SIZE;
-            if (value < PaletteProvider.epsilon || (1.0 - value) < PaletteProvider.epsilon) {
+            // Interior (non-escaping) pixels use value -> 1.0; only that end is black.
+            // Fast escapes at high maxIter map to small values and must use the palette low end.
+            if ((1.0 - value) < PaletteProvider.epsilon) {
                 lut[i] = Argb.BLACK;
             } else {
                 lut[i] = fn.colorAt(value);
@@ -28,7 +30,7 @@ public final class PaletteLut {
     }
 
     public static int lookup(int[] lut, double value) {
-        if (value < PaletteProvider.epsilon || (1.0 - value) < PaletteProvider.epsilon) {
+        if ((1.0 - value) < PaletteProvider.epsilon) {
             return Argb.BLACK;
         }
         return lut[(int) (lut.length * value)];

@@ -38,7 +38,7 @@ public class SmoothFixedPalette implements PaletteProvider {
 	
 	
 	public int getColor(double value) {
-		if (value < epsilon || (1.0-value) < epsilon) {
+		if ((1.0 - value) < epsilon) {
 			return Argb.BLACK;
 		}
 		return colors[(int)(colors.length * value)];

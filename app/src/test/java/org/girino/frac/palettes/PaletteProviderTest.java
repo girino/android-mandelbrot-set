@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.stream.Stream;
+import org.girino.frac.operators.Complex;
+import org.girino.frac.operators.FractalOperator;
+import org.girino.frac.operators.OptimizedMandelbrotOperator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -23,11 +26,26 @@ class PaletteProviderTest {
 
     @ParameterizedTest
     @MethodSource("uiPalettes")
-    void extremeValuesAreBlack(PaletteProvider palette) {
-        assertEquals(Argb.BLACK, palette.getColor(0.0));
+    void interiorValueIsBlack(PaletteProvider palette) {
         assertEquals(Argb.BLACK, palette.getColor(1.0));
-        assertEquals(Argb.BLACK, palette.getColor(PaletteProvider.epsilon / 2.0));
         assertEquals(Argb.BLACK, palette.getColor(1.0 - PaletteProvider.epsilon / 2.0));
+    }
+
+    @Test
+    void fastEscapeAtHighMaxIterIsNotBlackOnNeonAndRgb() {
+        double fastEscape = 1.0 / 4096.0;
+        assertNotEquals(Argb.BLACK, new NeonPalette().getColor(fastEscape));
+        assertNotEquals(Argb.BLACK, new DefaultPalette().getColor(fastEscape));
+    }
+
+    @Test
+    void smoothInteriorValueMapsToBlack() {
+        OptimizedMandelbrotOperator mandelbrot = new OptimizedMandelbrotOperator();
+        FractalOperator.EscapeSample interior =
+                mandelbrot.sample(new Complex(0, 0), 4096, true);
+        assertTrue(!interior.escaped);
+        assertEquals(Argb.BLACK, new NeonPalette().getColor(interior.value));
+        assertEquals(Argb.BLACK, new DefaultPalette().getColor(interior.value));
     }
 
     @ParameterizedTest

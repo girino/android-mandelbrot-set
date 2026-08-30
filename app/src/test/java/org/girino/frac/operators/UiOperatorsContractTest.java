@@ -28,6 +28,7 @@ class UiOperatorsContractTest {
     @MethodSource("classicUiOperators")
     void originStaysInsideForDiscreteColoring(FractalOperator operator) {
         assertEquals(1.0, operator.apply(new Complex(0, 0), 40, false));
+        assertEquals(1.0, operator.apply(new Complex(0, 0), 40, true));
     }
 
     @ParameterizedTest

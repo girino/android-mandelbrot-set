@@ -199,17 +199,17 @@ public abstract class FractalOperator {
 		return ((double)step)/((double)maxiter);
 	}
 	protected double produceSmoothResult(int step, Complex Z, Complex C, int maxiter) {
-		double mu = 0.0;
-		if (step < maxiter) {
-			// For z(n+1) = z(n) ^ k + c, use the renormalized iteration count.
-			mu = step - (Math.log(Math.log(Complex.modulus(Z)))) / getLogEscapeRadius();
-			mu /= (double)maxiter;
-			if (mu >= 1.0) {
-				mu = 0;
-			}
-			if (mu < 0) {
-				mu = 0;
-			}
+		if (step >= maxiter) {
+			// Interior: same palette slot as discrete produceResult (maxiter/maxiter).
+			return 1.0;
+		}
+		double mu = step - (Math.log(Math.log(Complex.modulus(Z)))) / getLogEscapeRadius();
+		mu /= (double) maxiter;
+		if (mu >= 1.0) {
+			mu = 0;
+		}
+		if (mu < 0) {
+			mu = 0;
 		}
 		return mu;
 	}
