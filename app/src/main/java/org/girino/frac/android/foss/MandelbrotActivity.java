@@ -278,9 +278,16 @@ public class MandelbrotActivity extends AppCompatActivity {
         refreshStatusOverlay();
     }
 
+    private View inflatePickerSheet(BottomSheetDialog dialog) {
+        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        BottomSheetPickerHelper.prepareList(sheet.findViewById(R.id.picker_list));
+        dialog.setContentView(sheet);
+        return sheet;
+    }
+
     private void openHudMenu() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.hud_menu_title);
@@ -351,7 +358,6 @@ public class MandelbrotActivity extends AppCompatActivity {
                     break;
             }
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
@@ -606,15 +612,13 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void openFormulaPicker() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.select_formula);
         FormulaPickerAdapter adapter = new FormulaPickerAdapter(this, list);
         list.setAdapter(adapter);
-        int safeChecked = Math.max(0, Math.min(operatorIndex, FormulaCatalog.size() - 1));
-        list.setItemChecked(safeChecked, true);
-        list.setSelection(safeChecked);
+        BottomSheetPickerHelper.bindCheckedSelection(list, operatorIndex, FormulaCatalog.size());
         list.setOnItemClickListener((parent, view1, position, id) -> {
             operatorIndex = position;
             applyOperatorForIndex(position);
@@ -623,13 +627,12 @@ public class MandelbrotActivity extends AppCompatActivity {
             refreshStatusOverlay();
             dialog.dismiss();
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
     private void openPhoenixParamsPicker() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.select_phoenix_p);
@@ -648,8 +651,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         }
         list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, labels));
         int checked = PhoenixPresetCatalog.pickerCheckedRow(phoenixPRe, phoenixPIm);
-        list.setItemChecked(checked, true);
-        list.setSelection(checked);
+        BottomSheetPickerHelper.bindCheckedSelection(list, checked, rowCount);
         list.setOnItemClickListener((parent, row, position, id) -> {
             dialog.dismiss();
             if (PhoenixPresetCatalog.isCustomRow(position)) {
@@ -659,7 +661,6 @@ public class MandelbrotActivity extends AppCompatActivity {
             PhoenixPresetCatalog.Preset preset = PhoenixPresetCatalog.getPreset(position);
             setPhoenixParams(preset.pRe, preset.pIm);
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
@@ -672,7 +673,7 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void openJuliaParamsPicker() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.select_julia_c);
@@ -691,8 +692,7 @@ public class MandelbrotActivity extends AppCompatActivity {
         }
         list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_single_choice, labels));
         int checked = JuliaPresetCatalog.pickerCheckedRow(juliaCRe, juliaCIm);
-        list.setItemChecked(checked, true);
-        list.setSelection(checked);
+        BottomSheetPickerHelper.bindCheckedSelection(list, checked, rowCount);
         list.setOnItemClickListener((parent, row, position, id) -> {
             dialog.dismiss();
             if (JuliaPresetCatalog.isCustomRow(position)) {
@@ -702,7 +702,6 @@ public class MandelbrotActivity extends AppCompatActivity {
             JuliaPresetCatalog.Preset preset = JuliaPresetCatalog.getPreset(position);
             setJuliaParams(preset.cRe, preset.cIm);
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
@@ -715,15 +714,13 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void openPalettePicker() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.select_palette);
         PalettePickerAdapter adapter = new PalettePickerAdapter(this, list);
         list.setAdapter(adapter);
-        int safeChecked = Math.max(0, Math.min(paletteIndex, PaletteCatalog.size() - 1));
-        list.setItemChecked(safeChecked, true);
-        list.setSelection(safeChecked);
+        BottomSheetPickerHelper.bindCheckedSelection(list, paletteIndex, PaletteCatalog.size());
         list.setOnItemClickListener((parent, view1, position, id) -> {
             paletteIndex = position;
             view.setPalette(PaletteCatalog.get(position));
@@ -732,7 +729,6 @@ public class MandelbrotActivity extends AppCompatActivity {
             refreshStatusOverlay();
             dialog.dismiss();
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
@@ -742,7 +738,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             int checkedIndex,
             PickerSelectionListener listener) {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(titleRes);
@@ -751,14 +747,11 @@ public class MandelbrotActivity extends AppCompatActivity {
                 android.R.layout.simple_list_item_single_choice,
                 labels);
         list.setAdapter(adapter);
-        int safeChecked = Math.max(0, Math.min(checkedIndex, labels.length - 1));
-        list.setItemChecked(safeChecked, true);
-        list.setSelection(safeChecked);
+        BottomSheetPickerHelper.bindCheckedSelection(list, checkedIndex, labels.length);
         list.setOnItemClickListener((parent, view1, position, id) -> {
             listener.onSelected(position);
             dialog.dismiss();
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
@@ -769,7 +762,7 @@ public class MandelbrotActivity extends AppCompatActivity {
             return;
         }
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheet = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_picker, null);
+        View sheet = inflatePickerSheet(dialog);
         TextView title = sheet.findViewById(R.id.picker_title);
         ListView list = sheet.findViewById(R.id.picker_list);
         title.setText(R.string.export_title);
@@ -798,7 +791,6 @@ public class MandelbrotActivity extends AppCompatActivity {
                 bitmap.recycle();
             }
         });
-        dialog.setContentView(sheet);
         dialog.show();
     }
 
