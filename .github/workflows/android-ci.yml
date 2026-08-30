@@ -36,8 +36,8 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Backend unit tests
-        run: ./gradlew backendTestDebugUnitTest --no-daemon --console=plain
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon --console=plain
 
       - name: Lint and build debug APK
         run: ./gradlew lintDebug assembleDebug --no-daemon --console=plain

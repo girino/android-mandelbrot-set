@@ -12,7 +12,7 @@ import org.gradle.api.tasks.testing.TestResult
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-/** Robolectric / GUI unit tests — excluded from CI (backendTestDebugUnitTest). */
+/** Robolectric / GUI classes — used by optional backendTestDebugUnitTest only. */
 val robolectricUnitTestClasses = listOf(
     "org.girino.frac.android.foss.BottomSheetPickerHelperTest",
     "org.girino.frac.android.foss.FormulaPreviewTest",
@@ -87,7 +87,7 @@ android {
                 it.useJUnitPlatform()
                 it.maxHeapSize = "512m"
                 it.maxParallelForks = 1
-                it.timeout.set(Duration.ofMinutes(3))
+                it.timeout.set(Duration.ofMinutes(4))
             }
         }
     }
@@ -134,7 +134,7 @@ afterEvaluate {
     tasks.register("backendTestDebugUnitTest") {
         group = "verification"
         description =
-            "Backend unit tests only (no Robolectric). CI uses this; local full suite: testDebugUnitTest."
+            "Backend unit tests only (no Robolectric). CI/full suite: testDebugUnitTest."
         dependsOn("testDebugUnitTest")
     }
 }

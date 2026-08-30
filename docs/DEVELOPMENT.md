@@ -43,8 +43,8 @@ Debug builds append a compile timestamp to `versionName`, e.g.
 All tests run headless on the JVM — no emulator needed.
 
 ```powershell
-.\gradlew.bat backendTestDebugUnitTest   # CI subset (no Robolectric)
-.\gradlew.bat testDebugUnitTest         # full suite including GUI
+.\gradlew.bat testDebugUnitTest         # full suite (CI + local)
+.\gradlew.bat backendTestDebugUnitTest   # optional fast subset (backend only)
 # or
 .\scripts\setup-headless-tests.ps1 -RunTests
 ```
