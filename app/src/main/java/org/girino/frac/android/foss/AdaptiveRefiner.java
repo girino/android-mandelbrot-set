@@ -5,12 +5,9 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.palettes.PaletteProvider;
 import org.girino.frac.viewport.ViewportTransforms;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -458,11 +455,10 @@ public final class AdaptiveRefiner {
         AtomicBoolean cancelled = new AtomicBoolean(false);
         int tasks = Math.min(workerCount, height);
         CountDownLatch latch = new CountDownLatch(tasks);
-        List<Future<?>> futures = new ArrayList<>(tasks);
         for (int t = 0; t < tasks; t++) {
             final int yStart = t * height / tasks;
             final int yEnd = (t + 1) * height / tasks;
-            futures.add(workers.submit(() -> {
+            workers.submit(() -> {
                 try {
                     for (int y = yStart; y < yEnd; y++) {
                         if (cancelled.get()
@@ -486,16 +482,13 @@ public final class AdaptiveRefiner {
                 } finally {
                     latch.countDown();
                 }
-            }));
+            });
         }
         try {
             while (true) {
                 if (cancel != null && cancel.isCancelled()) {
                     cancelled.set(true);
-                    for (Future<?> future : futures) {
-                        future.cancel(true);
-                    }
-                    latch.await();
+                    awaitWorkers(latch);
                     return 0;
                 }
                 if (latch.await(50, java.util.concurrent.TimeUnit.MILLISECONDS)) {
@@ -504,15 +497,8 @@ public final class AdaptiveRefiner {
             }
         } catch (InterruptedException e) {
             cancelled.set(true);
-            for (Future<?> future : futures) {
-                future.cancel(true);
-            }
             Thread.currentThread().interrupt();
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
+            awaitWorkers(latch);
             return 0;
         }
         if (cancelled.get() || (cancel != null && cancel.isCancelled())) {
@@ -658,12 +644,11 @@ public final class AdaptiveRefiner {
 
         AtomicBoolean cancelled = new AtomicBoolean(false);
         CountDownLatch latch = new CountDownLatch(tasks);
-        List<Future<?>> futures = new ArrayList<>(tasks);
         for (int t = 0; t < tasks; t++) {
             final int from = t * borderCount / tasks;
             final int to = (t + 1) * borderCount / tasks;
             final FractalOperator op = workerOperators[t];
-            futures.add(workers.submit(() -> {
+            workers.submit(() -> {
                 try {
                     if (!retestRange(
                             pixels, interior, border, from, to,
@@ -676,7 +661,7 @@ public final class AdaptiveRefiner {
                 } finally {
                     latch.countDown();
                 }
-            }));
+            });
         }
 
         int lastPreviewAt = previewSamples != null ? previewSamples.get() : 0;
@@ -685,10 +670,7 @@ public final class AdaptiveRefiner {
             while (true) {
                 if (cancel != null && cancel.isCancelled()) {
                     cancelled.set(true);
-                    for (Future<?> future : futures) {
-                        future.cancel(true);
-                    }
-                    latch.await();
+                    awaitWorkers(latch);
                     return false;
                 }
                 if (latch.await(50, java.util.concurrent.TimeUnit.MILLISECONDS)) {
@@ -707,15 +689,8 @@ public final class AdaptiveRefiner {
             }
         } catch (InterruptedException e) {
             cancelled.set(true);
-            for (Future<?> future : futures) {
-                future.cancel(true);
-            }
             Thread.currentThread().interrupt();
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
+            awaitWorkers(latch);
             return false;
         }
         if (!cancelled.get() && previewListener != null && anyEscaped.get()) {
@@ -821,5 +796,18 @@ public final class AdaptiveRefiner {
             }
         }
         return true;
+    }
+
+    private static void awaitWorkers(CountDownLatch latch) {
+        try {
+            while (!latch.await(200, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                if (Thread.currentThread().isInterrupted()) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

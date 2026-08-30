@@ -5,12 +5,9 @@ import org.girino.frac.operators.FractalOperator;
 import org.girino.frac.palettes.PaletteProvider;
 import org.girino.frac.viewport.ViewportTransforms;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -208,13 +205,12 @@ public final class ParallelStepRenderer {
         final int reportEvery = Math.max(1, totalSamples / 100);
         AtomicBoolean cancelled = new AtomicBoolean(false);
         CountDownLatch latch = new CountDownLatch(tasks);
-        List<Future<?>> futures = new ArrayList<>(tasks);
 
         for (int t = 0; t < tasks; t++) {
             final int rowStart = t * rowCount / tasks;
             final int rowEnd = (t + 1) * rowCount / tasks;
             final FractalOperator operator = workerOperators[t];
-            futures.add(workers.submit(() -> {
+            workers.submit(() -> {
                 try {
                     fillRowRange(
                             pixels, width, height, step, scale, centerX, centerY,
@@ -225,15 +221,14 @@ public final class ParallelStepRenderer {
                 } finally {
                     latch.countDown();
                 }
-            }));
+            });
         }
 
         try {
             while (true) {
                 if (cancel != null && cancel.isCancelled()) {
                     cancelled.set(true);
-                    cancelAll(futures);
-                    latch.await();
+                    awaitWorkers(latch);
                     return false;
                 }
                 if (latch.await(50, java.util.concurrent.TimeUnit.MILLISECONDS)) {
@@ -242,22 +237,25 @@ public final class ParallelStepRenderer {
             }
         } catch (InterruptedException e) {
             cancelled.set(true);
-            cancelAll(futures);
             Thread.currentThread().interrupt();
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
+            awaitWorkers(latch);
             return false;
         }
 
         return !cancelled.get() && (cancel == null || !cancel.isCancelled());
     }
 
-    private static void cancelAll(List<Future<?>> futures) {
-        for (Future<?> future : futures) {
-            future.cancel(true);
+    /** Cooperative shutdown only — Future.cancel(true) can skip finally and hang await. */
+    private static void awaitWorkers(CountDownLatch latch) {
+        try {
+            while (!latch.await(200, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                if (Thread.currentThread().isInterrupted()) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
