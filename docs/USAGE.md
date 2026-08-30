@@ -38,7 +38,7 @@ A compact bar at the bottom of the screen (icons only):
 |------|--------|
 | **+** | Zoom in about the screen center |
 | **−** | Zoom out about the screen center |
-| **↻** | Reset viewport to the initial position and scale; also restores iteration settings to defaults (fixed 40) |
+| **↻** | Reset viewport to the initial position and scale (iteration settings unchanged — use Iterations → Reset to defaults) |
 | **⇪** | Export viewport as PNG (share or save to gallery) |
 | **☰** | Open the menu (all actions with icon + name) |
 
@@ -58,11 +58,13 @@ Menu → **Iterations** chooses how escape-time max iterations are computed:
 
 | Mode | Fields | Behavior |
 |------|--------|----------|
-| **Fixed max** (default) | Max iterations (default **40**) | Same cap for every pixel at every zoom |
+| **Fixed max** (default) | Max iterations (default **64**) | Same cap for every pixel at every zoom |
 | **Scale with zoom** | Base (default **40**) and multiplier (default **1.2**) | At home zoom, maxIter = base. Each doubling of zoom multiplies by the multiplier: `round(base × multiplier^log2(scale/homeScale))`, clamped to 10–1048576 (soft UI warning above 4096) |
-| **Adaptive** | Pass-1 max (same Fixed field, default **40**), max rounds (default **8**), absolute cap (default **4096**, hard max **1048576**) | Full progressive pass at pass-1 max, then only re-tests interior border pixels (4-connected to an escaped neighbor). At each doubled limit, keeps retesting newly exposed borders until a pass finds no new escapes, then doubles again (or stops if that first pass found nothing). Intermediate fills are painted on screen. The status overlay **Iter** shows the max from the last border round; zoom does not raise pass-1 from that value. Tip: lower pass-1 (e.g. 10–20) makes the first-frame border growth easier to see. |
+| **Adaptive** | Pass-1 max (same Fixed field, default **64**), max rounds (default **18**), absolute cap (default **262144**, hard max **2^30**) | Full progressive pass at pass-1 max, then only re-tests interior border pixels (4-connected to an escaped neighbor). At each doubled limit, keeps retesting newly exposed borders until a pass finds no new escapes, then doubles again (or stops if that first pass found nothing). Intermediate fills are painted on screen. The status overlay **Iter** shows the max from the last border round; zoom does not raise pass-1 from that value. All-black progressive previews are skipped until the first border escape. |
 
-Settings survive process restart via SharedPreferences. Changing them re-renders
+Settings survive process restart via SharedPreferences. **Cold start** also
+restores the last viewport, formula, palette, and smooth setting when the app
+was previously saved (issue #19). Changing iteration settings re-renders
 (respecting the gesture gate). The status overlay shows the effective **Iter**
 value for the current viewport (Fixed / zoom-resolved base; Adaptive shows the
 last border-round limit when available).
@@ -74,7 +76,8 @@ Pan and pinch still work on the fractal above the bar; the bar does not
 start a drag.
 
 Rotating the device keeps the same fractal region (viewport, formula, palette,
-and smooth setting). A full **Reset** still returns to the canonical initial view.
+and smooth setting). A full **Reset** returns to the canonical initial view but
+does not change iteration settings.
 
 While a progressive render is running after you lift your finger (or after
 zoom / reset / palette change), a thin progress bar at the top fills in

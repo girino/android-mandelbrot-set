@@ -1,9 +1,10 @@
 # Fractals by Girino FOSS
 
 An interactive Android fractal explorer. Pan, pinch, and double-tap to navigate,
-long-press for coordinates, switch formulas and palettes from a bottom HUD,
-export the viewport as PNG, toggle smooth coloring from the menu, and choose
-fixed / scale-with-zoom / **adaptive** iteration limits. The fractal draws
+long-press for coordinates, choose among **12 formulas** and **12 palettes** from
+a bottom HUD, export the viewport as PNG, toggle smooth coloring from the menu,
+and pick fixed / scale-with-zoom / **adaptive** iteration limits. Your last
+viewport and choices are restored after the app is closed. The fractal draws
 edge-to-edge under the system bars.
 
 This FOSS edition uses the application ID `org.girino.frac.android.foss`, so it

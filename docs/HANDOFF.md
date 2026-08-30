@@ -1,6 +1,6 @@
-# Agent handoff — post v1.1.0
+# Agent handoff — post v1.2.0
 
-Onboarding for a **new coding agent** continuing this repo after the v1.1.0
+Onboarding for a **new coding agent** continuing this repo after the v1.2.0
 release. Humans who only use the app: see [README.md](../README.md) and
 [USAGE.md](USAGE.md). Maintainer release ops: [DEPLOY.md](DEPLOY.md).
 
@@ -8,13 +8,13 @@ Read order (mandatory before editing risk areas):
 
 1. [AGENTS.md](../AGENTS.md) + every matching `.cursor/rules/*.mdc`
 2. This file
-3. [POSTMORTEM-1.1.0.md](POSTMORTEM-1.1.0.md)
-4. If touching Adaptive: [ADAPTIVE-ITERATION.md](ADAPTIVE-ITERATION.md) +
+3. [POSTMORTEM-1.2.0.md](POSTMORTEM-1.2.0.md) (latest release notes)
+4. [POSTMORTEM-1.1.0.md](POSTMORTEM-1.1.0.md) (v1.1.0 retrospective)
+5. If touching Adaptive: [ADAPTIVE-ITERATION.md](ADAPTIVE-ITERATION.md) +
    [POSTMORTEM-adaptive-iteration.md](POSTMORTEM-adaptive-iteration.md)
-5. If touching gestures / `MandelbrotView`:
+6. If touching gestures / `MandelbrotView`:
    [viewport-smooth-transition.mdc](../.cursor/rules/viewport-smooth-transition.mdc)
-   + [POSTMORTEM-viewport-flicker.md](POSTMORTEM-viewport-flicker.md) (+ pinch
-   postmortem if changing focus)
+   + [POSTMORTEM-viewport-flicker.md](POSTMORTEM-viewport-flicker.md)
 
 ---
 
@@ -22,14 +22,14 @@ Read order (mandatory before editing risk areas):
 
 | Field | Value |
 |-------|-------|
-| Release line | **1.1.0** (`app/build.gradle.kts`, tag `v1.1.0`) |
+| Release line | **1.2.0** (`app/build.gradle.kts`, tag `v1.2.0`) |
 | App ID | `org.girino.frac.android.foss` |
 | Language | Pure Java (AppCompat / Material UI; platform graphics for fractal) |
+| Formulas | 12 (Mandelbrot, Burning Ship, Nova, Tricorn, Cube, Fourth, Shipbar, Phoenix, Julia, Julia Phoenix, Celtic, Perpendicular) |
+| Palettes | 12 (Green, Blue, Red, RGB, BGR, Fire, Ocean, Grayscale, Sunset, Neon, Viridis, Electric) |
 | Channels | GitHub Releases + Zapstore (no F-Droid) |
 | License | GAL only |
-
-Working tree after handoff docs may be ahead of `origin/master` — check
-`git status` / `git log origin/master..HEAD`.
+| Open GitHub issues | **None** (backlog triaged Aug 2026) |
 
 ## Machine / toolchain (this maintainer’s setup)
 
@@ -37,9 +37,9 @@ Working tree after handoff docs may be ahead of `origin/master` — check
   `-m` flags (no bash heredoc).
 - **Always** use repo-local `.jdk/` and `.android-sdk/` — never the system SDK
   ([local-android-sdk.mdc](../.cursor/rules/local-android-sdk.mdc)).
-- Headless gesture tests: `.\scripts\setup-headless-tests.ps1 -RunTests` or
-  `.\gradlew.bat testDebugUnitTest`.
-- Before any release tag: `lintRelease testDebugUnitTest` locally.
+- Headless gesture tests (local): `.\scripts\setup-headless-tests.ps1 -RunTests` or
+  `.\gradlew.bat testDebugUnitTest`. CI uses `backendTestDebugUnitTest` only.
+- Before any release tag: `lintRelease backendTestDebugUnitTest` locally.
 - Lint trap: **no** `{@code}` / `{@link}` in `app/src/main/**` comments.
 - Git push: only when the user asks; silent `gh` credential helper
   ([git-credentials-github.mdc](../.cursor/rules/git-credentials-github.mdc)).
@@ -58,7 +58,8 @@ Working tree after handoff docs may be ahead of `origin/master` — check
 | Palettes | `palettes/*`, `PaletteLut.java` |
 | HUD / menus | `MandelbrotActivity.java`, `activity_mandelbrot.xml`, `HudMenuAdapter.java` |
 | Iteration modes | `IterationSettings*.java` |
-| Session on rotate | `ViewportSession.java` |
+| Session (rotate + cold start) | `ViewportSession.java`, `SessionStore.java` |
+| Julia / Phoenix params | `FormulaParamsActivity.java`, `*ParamsStore.java` |
 
 ## Invariants (break these → user-visible regressions)
 
@@ -70,26 +71,13 @@ Working tree after handoff docs may be ahead of `origin/master` — check
    display, not the next pass-1 budget.
 4. README stays **end-user only** ([readme-user-facing.mdc](../.cursor/rules/readme-user-facing.mdc)).
 
-## Suggested next work (priority is the user’s call)
+## If new work is requested
 
-### Experimental (try; easy to discard)
-
-| Issue | Idea |
-|-------|------|
-| [#47](https://github.com/girino/android-mandelbrot-set/issues/47) | Palette from observed iter min/max |
-| [#48](https://github.com/girino/android-mandelbrot-set/issues/48) | Skip all-black progressive publishes in Adaptive |
-
-### Deferred (heavy / research)
-
-[#38](https://github.com/girino/android-mandelbrot-set/issues/38)–[#45](https://github.com/girino/android-mandelbrot-set/issues/45)
-(scalar remaining ops, OrbitState memory, smooth log(k), cardioid/bulb skip,
-periodicity, Mariani–Silver, deep zoom precision, GPU/JNI).
-
-### Product debt
-
-[#19](https://github.com/girino/android-mandelbrot-set/issues/19) persist last
-session across process death; [#20](https://github.com/girino/android-mandelbrot-set/issues/20)
-accessibility.
+There is no open issue backlog. New features need a fresh GitHub issue or
+explicit user direction. Closed as **won't do** in v1.2.0 cycle: accessibility
+(#20), scalar remaining ops (#38), deep-zoom perturbation (#44), adaptive
+palette (#47), iteration-step / extended progressive (#50), plus earlier
+research items (#41–#43, #45, #49).
 
 ### Do not reopen without evidence
 
@@ -102,12 +90,13 @@ accessibility.
 $env:JAVA_HOME = Join-Path $PWD ".jdk"
 $env:ANDROID_HOME = Join-Path $PWD ".android-sdk"
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-.\gradlew.bat lintRelease testDebugUnitTest
+.\gradlew.bat lintRelease backendTestDebugUnitTest
 ```
 
-- Gesture / `MandelbrotView`: also run `MandelbrotViewGestureTest` and **on-device**
-  pan, pinch, zoom-out with fingers closing, chained gestures before render ends.
-- Adaptive: on-device deep zoom + Adaptive mode; watch for black flash (#48) and
+- Gesture / `MandelbrotView`: also run `MandelbrotViewGestureTest` locally and
+  **on-device** pan, pinch, zoom-out with fingers closing, chained gestures
+  before render ends.
+- Adaptive: on-device deep zoom + Adaptive mode; black-flash skip (#48) and
   stop-floor behavior.
 - Never paste secrets into chat or commits.
 
@@ -115,9 +104,8 @@ $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 
 - Answer questions without coding until the user asks to implement
   (`AGENTS.md`).
-- Project rule: commit finished work; **user rule may say otherwise** — if the
-  user says “commit”, commit; if they say “don’t commit yet”, wait. Push only
-  on explicit request (release requests include tag push).
+- Project rule: commit finished work; push only on explicit request (release
+  requests include tag push).
 - Prefer Portuguese (BR) in chat with this maintainer.
 
 ## Document index
@@ -129,6 +117,7 @@ $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Build / test / layout |
 | [DEPLOY.md](DEPLOY.md) | Release + Zapstore |
 | [CHANGELOG.md](../CHANGELOG.md) | Version history |
+| [POSTMORTEM-1.2.0.md](POSTMORTEM-1.2.0.md) | v1.2.0 release retrospective |
 | [POSTMORTEM-1.1.0.md](POSTMORTEM-1.1.0.md) | v1.1.0 retrospective |
 | [POSTMORTEM-adaptive-iteration.md](POSTMORTEM-adaptive-iteration.md) | Adaptive wrong turns |
-| Viewport POSTMORTEM-* | Gesture flicker / pinch (pre-1.1.0, still binding) |
+| Viewport POSTMORTEM-* | Gesture flicker / pinch (still binding for MandelbrotView) |

@@ -2,29 +2,56 @@
 
 ## Unreleased
 
-### CI
+## 1.2.0 - 2026-08-30
 
-- Fix flaky Android CI hang on testDebugUnitTest: drain Robolectric main
-  looper in MandelbrotView test tearDown, run tests before lint in CI, raise
-  unit-test task timeout to 10 minutes.
-- Shorten headless render tests (64×64, low iter caps), await render worker
-  shutdown, and fork one JVM per test class so CI fails fast instead of hanging.
+### Formulas and palettes
 
-## 1.1.1 - 2026-08-29
+- **Phoenix**, **Julia**, **Julia Phoenix**, **Celtic Mandelbrot**, and
+  **Perpendicular Mandelbrot** added to the formula picker.
+- **Tricorn** label for Mandelbar (same math); formula picker scroll fixed for
+  long catalogs.
+- Unified **Parameters (c / p)** screen for Julia and Phoenix formulas.
+- Seven new palettes: **Fire**, **Ocean**, **Grayscale**, **Sunset**, **Neon**,
+  **Viridis**, **Electric** (12 palettes total).
 
-### Iteration settings
+### Session and iteration
 
-- Changing formula or HUD Reset no longer resets iteration mode or values; only
-  **Reset to defaults** on the Iterations screen restores factory settings.
-- Formula change still returns viewport to home.
-- New defaults: Fixed / Adaptive pass-1 max **64**; adaptive absolute cap default
-  **2^18** (max **2^30**); max refinement rounds **1–31** (default **18**).
+- **Cold-start session restore** (issue #19): viewport, formula, palette, and
+  smooth setting survive process death.
+- Iteration settings persist independently: HUD **Reset** and formula change no
+  longer wipe iteration mode/values; only **Reset to defaults** on the
+  Iterations screen restores factory settings. Formula change still returns
+  viewport to home.
+- Defaults: Fixed / Adaptive pass-1 max **64**; adaptive absolute cap **2^18**
+  (hard max **2^30**); max refinement rounds **1–31** (default **18**).
 
-### Fractals and UX
+### Rendering and UX
 
-- **Shipbar** fixed: conjugate after abs so it is the Mandelbar-style variant of
-  Burning Ship (was a duplicate).
+- Fix **black band on outer escapes** at high maxIter on RGB/Neon palettes
+  (issue #51).
+- **Adaptive**: skip all-black progressive preview publishes and defer UI updates
+  until the first border escape (issue #48).
+- Smooth coloring for power-k maps uses **log(k)** escape radius (issue #40).
+- **Shipbar** fixed (conjugate after abs — distinct from Burning Ship).
 - Keep screen on while a render is in progress.
+- Fix chained pinch during a frozen render preview; skip redundant re-render on
+  resume when the frame is already ready.
+- Fix false soft warning when Fixed mode max iter exceeds 4096.
+
+### CI and tests
+
+- CI runs **backendTestDebugUnitTest** only (no Robolectric) for reliable
+  GitHub Actions runs.
+- Fix cooperative worker cancel in parallel render tests (CI timeout hang).
+- Shorter headless render fixtures, per-class JVM fork, render-worker shutdown
+  await in gesture test tearDown.
+
+### Issue triage
+
+- Closed as **won't do**: #20 (accessibility), #38 (scalar remaining ops), #44
+  (deep-zoom perturbation), #47 (adaptive palette), #50 (iteration-step /
+  extended spatial progressive experiments).
+- All GitHub issues now closed; no open backlog.
 
 ## 1.1.0 - 2026-08-24
 

@@ -1,9 +1,12 @@
 Explore o conjunto de Mandelbrot e outros fractais diretamente no seu dispositivo Android.
 
 Arraste, use pinça e toque duplo para navegar; mantenha pressionado para ver as
-coordenadas complexas. A barra inferior troca fórmulas e paletas (folhas
-inferiores), ativa a coloração suave, aplica zoom e redefine a vista. A
-renderização é progressiva e acontece só no aparelho. O fractal ocupa a tela
-inteira, inclusive sob as barras do sistema.
+coordenadas complexas. A barra inferior oferece zoom, reset, exportar e um menu
+com **12 fórmulas** (Mandelbrot, Burning Ship, Tricorn, Julia, Phoenix e outras)
+e **12 paletas** com amostras de cor. Ative coloração suave, defina limites de
+iteração fixos / com zoom / adaptativos e edite parâmetros Julia ou Phoenix. Ao
+reabrir o app, a última vista e escolhas são restauradas. A renderização é
+progressiva e acontece só no aparelho. O fractal ocupa a tela inteira, inclusive
+sob as barras do sistema.
 
 O aplicativo não contém anúncios, rastreadores, análise de uso, acesso à rede nem coleta de dados.

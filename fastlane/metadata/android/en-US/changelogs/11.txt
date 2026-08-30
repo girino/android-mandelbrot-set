@@ -1,0 +1,1 @@
+Twelve fractal formulas and twelve palettes. Session restore after restart. Fix for black bands at high iteration on RGB/Neon. Phoenix, Julia, Celtic, and more. Adaptive iteration polish and CI stability.

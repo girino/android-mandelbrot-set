@@ -1,0 +1,1 @@
+Doze fractais e doze paletas. Restaura a sessão ao reabrir. Corrige faixas pretas com muitas iterações em RGB/Neon. Phoenix, Julia, Celtic e mais. Ajustes no modo Adaptive e CI mais estável.

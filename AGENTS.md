@@ -29,15 +29,15 @@ your own defaults.
 - Android app, pure Java. UI uses AppCompat + Material Components (HUD,
   bottom-sheet pickers, edge-to-edge); fractal rendering stays on platform
   graphics. Application ID `org.girino.frac.android.foss`.
-- **Current release line:** 1.1.0 (see `app/build.gradle.kts` and
+- **Current release line:** 1.2.0 (see `app/build.gradle.kts` and
   [CHANGELOG.md](CHANGELOG.md)).
 - Build/test/lint commands and repo-local toolchain: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 - Release/deploy flow (tag → CI signed APK → GitHub Release → Zapstore):
   [docs/DEPLOY.md](docs/DEPLOY.md).
 - User-facing behavior: [docs/USAGE.md](docs/USAGE.md).
 - Adaptive iteration algorithm: [docs/ADAPTIVE-ITERATION.md](docs/ADAPTIVE-ITERATION.md).
-- **Post-v1.1.0 agent handoff:** [docs/HANDOFF.md](docs/HANDOFF.md).
-- Release retrospective: [docs/POSTMORTEM-1.1.0.md](docs/POSTMORTEM-1.1.0.md).
+- **Post-v1.2.0 agent handoff:** [docs/HANDOFF.md](docs/HANDOFF.md).
+- Release retrospective: [docs/POSTMORTEM-1.2.0.md](docs/POSTMORTEM-1.2.0.md).
 
 ## Working conventions
 
@@ -52,7 +52,7 @@ your own defaults.
    commit messages — use multiple `-m` flags.
 5. **Lint trap**: `{@code}`/`{@link}` tags crash lint's JavaDoc parser here.
    Plain text only.
-6. **Before tagging a release**: run `lintRelease testDebugUnitTest`
+6. **Before tagging a release**: run `lintRelease backendTestDebugUnitTest`
    locally with repo-local SDK/JDK.
 
 ## The viewport story (why the code looks like it does)
@@ -92,7 +92,8 @@ Tests: `AdaptiveRefinerTest`, `FractalOperatorContinueTest`.
 
 | Document | Topic |
 |----------|-------|
-| [docs/HANDOFF.md](docs/HANDOFF.md) | Next-agent onboarding after v1.1.0 (not a postmortem; read first) |
+| [docs/HANDOFF.md](docs/HANDOFF.md) | Next-agent onboarding after v1.2.0 |
+| [docs/POSTMORTEM-1.2.0.md](docs/POSTMORTEM-1.2.0.md) | v1.2.0 release retrospective and issue triage |
 | [docs/POSTMORTEM-1.1.0.md](docs/POSTMORTEM-1.1.0.md) | v1.1.0 release retrospective (UI, Adaptive, opts, Zapstore, CI hang) |
 | [docs/POSTMORTEM-adaptive-iteration.md](docs/POSTMORTEM-adaptive-iteration.md) | Adaptive wrong turns (carry pass-1, full remap, #35, pool tuning) |
 | [docs/POSTMORTEM-viewport-gestures.md](docs/POSTMORTEM-viewport-gestures.md) | Failed approaches before v1.0.2-alpha2 (handoff, bridge, manual pinch, publish gates) |

@@ -36,7 +36,7 @@ $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 ```
 
 Debug builds append a compile timestamp to `versionName`, e.g.
-`1.1.0-20260824120000`, so you can tell builds apart on a device.
+`1.2.0-20260830180000`, so you can tell builds apart on a device.
 
 ## Testing
 

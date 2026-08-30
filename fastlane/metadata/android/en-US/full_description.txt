@@ -1,8 +1,11 @@
 Explore the Mandelbrot set and related fractals directly on your Android device.
 
 Pan, pinch, and double-tap to navigate; long-press to read complex coordinates.
-A bottom bar switches formulas and palettes (bottom sheets), toggles smooth
-coloring, zooms, and resets. Rendering is progressive and entirely on-device.
+A bottom bar offers zoom, reset, export, and a menu for **12 formulas** (Mandelbrot,
+Burning Ship, Tricorn, Julia, Phoenix, and more) and **12 palettes** with preview
+swatches. Toggle smooth coloring, set fixed / zoom-scaled / adaptive iteration
+limits, and edit Julia or Phoenix parameters. Your last viewport and choices are
+restored when you reopen the app. Rendering is progressive and entirely on-device.
 The fractal draws edge-to-edge under the system bars.
 
 The app contains no ads, trackers, analytics, network access, or data collection.
