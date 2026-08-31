@@ -682,11 +682,34 @@ public class MandelbrotActivity extends AppCompatActivity {
 
     private void shareViewport(Bitmap bitmap) {
         try {
-            if (!ViewportPngExporter.share(this, bitmap, getString(R.string.export_share))) {
+            ViewportSession session = view.captureSession();
+            String formula = FormulaCatalog.labels()[
+                    Math.max(0, Math.min(session.operatorIndex, FormulaCatalog.size() - 1))];
+            String caption = ViewportShareCaption.build(
+                    readAppVersionName(),
+                    formula,
+                    session.centerX,
+                    session.centerY,
+                    session.scale,
+                    session.operatorIndex,
+                    juliaCRe,
+                    juliaCIm,
+                    phoenixPRe,
+                    phoenixPIm);
+            if (!ViewportPngExporter.share(
+                    this, bitmap, getString(R.string.export_share), caption)) {
                 showExportSnackbar(R.string.export_share_failed);
             }
         } finally {
             bitmap.recycle();
+        }
+    }
+
+    private String readAppVersionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "";
         }
     }
 

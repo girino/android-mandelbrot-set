@@ -34,7 +34,11 @@ public final class ViewportPngExporter {
         return FILE_PREFIX + stamp + ".png";
     }
 
-    public static boolean share(Context context, Bitmap bitmap, CharSequence chooserTitle) {
+    public static boolean share(
+            Context context,
+            Bitmap bitmap,
+            CharSequence chooserTitle,
+            CharSequence shareText) {
         if (bitmap == null) {
             return false;
         }
@@ -47,6 +51,9 @@ public final class ViewportPngExporter {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType(PNG_MIME);
             intent.putExtra(Intent.EXTRA_STREAM, uri);
+            if (shareText != null && shareText.length() > 0) {
+                intent.putExtra(Intent.EXTRA_TEXT, shareText.toString());
+            }
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             context.startActivity(Intent.createChooser(intent, chooserTitle));
             return true;

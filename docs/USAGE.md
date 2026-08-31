@@ -106,7 +106,10 @@ fractal are unchanged. The HUD bar uses a similar translucent background.
 Tap **Export** on the HUD bar (or use the share/save sheet it opens), then choose:
 
 - **Share…** — opens the system share sheet with a PNG of what you see on screen
-  (no network permission; you pick the destination app).
+  (no network permission; you pick the destination app). The share includes a
+  short English caption: app attribution with links, formula name, viewport
+  center and scale, and Julia **c** or Phoenix **p** when those formulas are
+  active. Gallery save does not add caption text.
 - **Save to gallery** — on Android 10 and newer, saves to **Pictures/Fractals**.
   On older Android versions, opens the system save dialog so you can pick a folder.
 
