@@ -16,6 +16,7 @@ final class HudMenuAdapter extends BaseAdapter {
 
     enum Action {
         FORMULA(R.string.menu_formula, R.drawable.ic_hud_formula, R.string.hud_formula_cd, false),
+        RANDOM(R.string.menu_random, R.drawable.ic_hud_random, R.string.hud_random_cd, false),
         PALETTE(R.string.menu_palette, R.drawable.ic_hud_palette, R.string.hud_palette_cd, false),
         SMOOTH(R.string.menu_smooth_palette, R.drawable.ic_hud_smooth, R.string.hud_smooth_cd, true),
         ITERATIONS(R.string.menu_iterations, R.drawable.ic_hud_iterations, R.string.hud_iterations_cd, false),
@@ -64,6 +65,10 @@ final class HudMenuAdapter extends BaseAdapter {
 
     boolean isIterations(int position) {
         return actionAt(position) == Action.ITERATIONS;
+    }
+
+    boolean isRandom(int position) {
+        return actionAt(position) == Action.RANDOM;
     }
 
     boolean isFormulaParams(int position) {

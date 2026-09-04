@@ -17,6 +17,7 @@ import org.girino.frac.palettes.PaletteProvider;
 import org.girino.frac.viewport.ViewportTransforms;
 
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -818,6 +819,35 @@ public class MandelbrotView extends View {
     /** Zoom out about the screen center (HUD / menu). */
     public void zoomOut() {
         zoomAt(width / 2f, height / 2f, 1.0 / ZOOM_STEP);
+    }
+
+    /** Searches Mandelbrot boundaries, then renders the selected viewport normally. */
+    public void exploreRandomMandelbrot() {
+        stop();
+        if (activePointers > 0 || renderExecutor.isShutdown() || getWidth() <= 0 || getHeight() <= 0) {
+            return;
+        }
+        final int generation = renderGeneration.get();
+        final double aspectRatio = height / (double) width;
+        setRenderBusy(true);
+        renderTask = renderExecutor.submit(() -> {
+            RandomMandelbrotExplorer.Result result = RandomMandelbrotExplorer.explore(
+                    new Random(),
+                    aspectRatio,
+                    () -> generation != renderGeneration.get()
+                            || Thread.currentThread().isInterrupted());
+            post(() -> {
+                if (generation != renderGeneration.get() || activePointers > 0 || result == null) {
+                    clearRenderBusyIfCurrent(generation);
+                    return;
+                }
+                targetCenterX = result.centerX;
+                targetCenterY = result.centerY;
+                targetScale = width / result.viewWidth;
+                hasPendingTarget = true;
+                start();
+            });
+        });
     }
 
     /**

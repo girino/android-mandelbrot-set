@@ -42,7 +42,7 @@ A compact bar at the bottom of the screen (icons only):
 | **⇪** | Export viewport as PNG (share or save to gallery) |
 | **☰** | Open the menu (all actions with icon + name) |
 
-The **menu** lists formula, palette, **Smooth** (with on/off), **Iterations**,
+The **menu** lists formula, **Random explore**, palette, **Smooth** (with on/off), **Iterations**,
 **Parameters (c / p)** when a Julia or Phoenix formula is selected, **Help**,
 and **About**. Formula and palette
 open bottom sheets: formula rows show a mini fractal thumbnail; palette rows show
@@ -51,6 +51,13 @@ a settings screen for escape-time max iterations. Parameters edits Julia **c**
 and Phoenix **p**. Help summarizes gestures and
 the HUD; About shows the version, package id, and **Girino Anarchist License
 (GAL)** with a link to the full license text.
+
+**Random explore** searches for a Mandelbrot detail rather than choosing from a
+fixed coordinate catalog. It samples a low-resolution grid, chooses an
+interior/exterior boundary weighted by its neighboring transitions, recenters,
+and applies a random zoom. It repeats this three to twelve times before the
+normal renderer draws the result. The action switches to Mandelbrot Set while
+keeping the selected palette, smooth setting, and iteration settings.
 
 ## Iterations
 

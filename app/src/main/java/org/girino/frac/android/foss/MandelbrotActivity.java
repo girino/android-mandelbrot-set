@@ -276,6 +276,14 @@ public class MandelbrotActivity extends AppCompatActivity {
                         new Intent(this, IterationSettingsActivity.class));
                 return;
             }
+            if (adapter.isRandom(position)) {
+                operatorIndex = DEFAULT_OPERATOR_INDEX;
+                applyOperatorForIndex(operatorIndex);
+                view.exploreRandomMandelbrot();
+                persistCurrentSession();
+                refreshStatusOverlay();
+                return;
+            }
             if (adapter.isFormulaParams(position)) {
                 openFormulaParams();
                 return;
