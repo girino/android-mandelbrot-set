@@ -2,13 +2,12 @@ package org.girino.frac.android.foss;
 
 import org.girino.frac.operators.Complex;
 import org.girino.frac.operators.FractalOperator;
-import org.girino.frac.operators.OptimizedMandelbrotOperator;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/** Finds a detailed Mandelbrot viewport by repeatedly sampling its boundary. */
+/** Finds a detailed viewport by repeatedly sampling a formula's boundary. */
 final class RandomMandelbrotExplorer {
 
     static final int MIN_PASSES = 3;
@@ -38,8 +37,9 @@ final class RandomMandelbrotExplorer {
     private RandomMandelbrotExplorer() {
     }
 
-    static Result explore(Random random, double aspectRatio, CancelCheck cancel) {
-        if (random == null || !(aspectRatio > 0)) {
+    static Result explore(
+            FractalOperator operator, Random random, double aspectRatio, CancelCheck cancel) {
+        if (operator == null || random == null || !(aspectRatio > 0)) {
             return null;
         }
         int passes = MIN_PASSES + random.nextInt(MAX_PASSES - MIN_PASSES + 1);
@@ -54,7 +54,7 @@ final class RandomMandelbrotExplorer {
             }
             int iterations = searchIterations(INITIAL_VIEW_WIDTH / viewWidth);
             List<Border> borders = findBorders(
-                    centerX, centerY, viewWidth, viewHeight, iterations, cancel);
+                    operator, centerX, centerY, viewWidth, viewHeight, iterations, cancel);
             if (borders == null || borders.isEmpty()) {
                 return null;
             }
@@ -69,6 +69,7 @@ final class RandomMandelbrotExplorer {
     }
 
     private static List<Border> findBorders(
+            FractalOperator operator,
             double centerX,
             double centerY,
             double viewWidth,
@@ -78,7 +79,6 @@ final class RandomMandelbrotExplorer {
         int sampleWidth = SAMPLE_SIZE;
         int sampleHeight = Math.max(3, (int) Math.round(SAMPLE_SIZE * viewHeight / viewWidth));
         boolean[] interior = new boolean[sampleWidth * sampleHeight];
-        FractalOperator operator = new OptimizedMandelbrotOperator();
         FractalOperator.EscapeSample sample = new FractalOperator.EscapeSample();
         Complex coordinate = new Complex();
 

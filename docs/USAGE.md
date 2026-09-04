@@ -52,12 +52,12 @@ and Phoenix **p**. Help summarizes gestures and
 the HUD; About shows the version, package id, and **Girino Anarchist License
 (GAL)** with a link to the full license text.
 
-**Random explore** searches for a Mandelbrot detail rather than choosing from a
+**Random explore** searches for a detail in the selected formula rather than choosing from a
 fixed coordinate catalog. It samples a low-resolution grid, chooses an
 interior/exterior boundary weighted by its neighboring transitions, recenters,
 and applies a random zoom. It repeats this three to twelve times before the
-normal renderer draws the result. The action switches to Mandelbrot Set while
-keeping the selected palette, smooth setting, and iteration settings.
+normal renderer draws the result. The action keeps the selected formula,
+palette, smooth setting, and iteration settings.
 
 ## Iterations
 

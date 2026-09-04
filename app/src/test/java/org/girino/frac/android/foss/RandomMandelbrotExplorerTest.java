@@ -7,6 +7,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import org.girino.frac.operators.JuliaOperator;
+import org.girino.frac.operators.OptimizedMandelbrotOperator;
+
 import java.util.Random;
 
 /** Random boundary exploration is reproducible for a supplied seed. */
@@ -17,9 +20,9 @@ public class RandomMandelbrotExplorerTest {
     @Test
     public void seededExploration_isReproducibleAndZoomsIn() {
         RandomMandelbrotExplorer.Result first = RandomMandelbrotExplorer.explore(
-                new Random(42L), 16.0 / 9.0, () -> false);
+                new OptimizedMandelbrotOperator(), new Random(42L), 16.0 / 9.0, () -> false);
         RandomMandelbrotExplorer.Result second = RandomMandelbrotExplorer.explore(
-                new Random(42L), 16.0 / 9.0, () -> false);
+                new OptimizedMandelbrotOperator(), new Random(42L), 16.0 / 9.0, () -> false);
 
         assertNotNull(first);
         assertNotNull(second);
@@ -31,6 +34,16 @@ public class RandomMandelbrotExplorerTest {
 
     @Test
     public void cancelledExploration_returnsNoViewport() {
-        assertNull(RandomMandelbrotExplorer.explore(new Random(42L), 1.0, () -> true));
+        assertNull(RandomMandelbrotExplorer.explore(
+                new OptimizedMandelbrotOperator(), new Random(42L), 1.0, () -> true));
+    }
+
+    @Test
+    public void currentFormula_canDriveExploration() {
+        RandomMandelbrotExplorer.Result result = RandomMandelbrotExplorer.explore(
+                new JuliaOperator(0.285, 0.013), new Random(42L), 1.0, () -> false);
+
+        assertNotNull(result);
+        assertTrue(result.viewWidth < 3.5);
     }
 }

@@ -821,17 +821,19 @@ public class MandelbrotView extends View {
         zoomAt(width / 2f, height / 2f, 1.0 / ZOOM_STEP);
     }
 
-    /** Searches Mandelbrot boundaries, then renders the selected viewport normally. */
-    public void exploreRandomMandelbrot() {
+    /** Searches the selected formula's boundaries, then renders the selected viewport normally. */
+    public void exploreRandom() {
         stop();
         if (activePointers > 0 || renderExecutor.isShutdown() || getWidth() <= 0 || getHeight() <= 0) {
             return;
         }
         final int generation = renderGeneration.get();
         final double aspectRatio = height / (double) width;
+        final FractalOperator exploreOperator = FormulaCatalog.createLike(operator);
         setRenderBusy(true);
         renderTask = renderExecutor.submit(() -> {
             RandomMandelbrotExplorer.Result result = RandomMandelbrotExplorer.explore(
+                    exploreOperator,
                     new Random(),
                     aspectRatio,
                     () -> generation != renderGeneration.get()

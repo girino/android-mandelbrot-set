@@ -277,9 +277,7 @@ public class MandelbrotActivity extends AppCompatActivity {
                 return;
             }
             if (adapter.isRandom(position)) {
-                operatorIndex = DEFAULT_OPERATOR_INDEX;
-                applyOperatorForIndex(operatorIndex);
-                view.exploreRandomMandelbrot();
+                view.exploreRandom();
                 persistCurrentSession();
                 refreshStatusOverlay();
                 return;
