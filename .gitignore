@@ -13,3 +13,4 @@ captures/
 *.keystore
 .credentials.env
 .tmp-zsp-publish.sh
+/.recovery/
